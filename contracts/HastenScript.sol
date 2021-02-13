@@ -20,11 +20,11 @@ contract HastenScript is IHastenScript, ERC721 {
             _exists(scriptHash),
             "HastenScript: script query for nonexistent token"
         );
+
         return (_scripts[scriptHash], _environments[scriptHash]);
     }
 
     function upload(
-        address uploader,
         string memory tokenURI,
         bytes memory scriptBytes
     ) public override {
@@ -32,13 +32,12 @@ contract HastenScript is IHastenScript, ERC721 {
         // but make scripts unique by hashing them
         // keccak256 seems the cheapest hashing function
         uint256 hash = uint256(keccak256(scriptBytes));
-        _mint(uploader, hash);
+        _mint(msg.sender, hash);
         _scripts[hash] = scriptBytes;
         _setTokenURI(hash, tokenURI);
     }
 
-    function upload(
-        address uploader,
+    function uploadWithEnvironment(
         string memory tokenURI,
         bytes memory scriptBytes,
         bytes memory environment
@@ -47,7 +46,7 @@ contract HastenScript is IHastenScript, ERC721 {
         // but make scripts unique by hashing them
         // keccak256 seems the cheapest hashing function
         uint256 hash = uint256(keccak256(scriptBytes));
-        _mint(uploader, hash);
+        _mint(msg.sender, hash);
         _scripts[hash] = scriptBytes;
         _environments[hash] = environment;
         _setTokenURI(hash, tokenURI);
@@ -61,6 +60,7 @@ contract HastenScript is IHastenScript, ERC721 {
             msg.sender == ownerOf(scriptHash),
             "Only the owner of the script can update its environment"
         );
+
         _environments[scriptHash] = environment;
     }
 }

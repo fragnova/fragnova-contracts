@@ -5,9 +5,9 @@ contract("HastenScript", accounts => {
     const contract = await nft.deployed();
     assert.equal(await contract.totalSupply.call(), 0);
     const emptyCode = new Uint8Array(1024);
-    const tx = await contract.upload(accounts[0], "", emptyCode);
+    const tx = await contract.upload("", emptyCode, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), "82244645650067078051647883681477212594888008908680932184588990116864531889524");
-    assert.equal(tx.receipt.gasUsed, 228906);
+    assert.equal(tx.receipt.gasUsed, 228502);
     assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -20,7 +20,7 @@ contract("HastenScript", accounts => {
       const contract = await nft.deployed();
       assert.equal(await contract.totalSupply.call(), 1);
       const emptyCode = new Uint8Array(1024);
-      await contract.upload(accounts[0], "", emptyCode, emptyCode);
+      await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[0] });
     } catch (e) {
       assert(e.toString() == "Error: Returned error: VM Exception while processing transaction: revert ERC721: token already minted -- Reason given: ERC721: token already minted.");
       return;
@@ -28,14 +28,14 @@ contract("HastenScript", accounts => {
     assert(false, "expected exception not thrown");
   });
 
-  it("should upload a script", async () => {
+  it("should upload a script with environment", async () => {
     const contract = await nft.deployed();
     assert.equal(await contract.totalSupply.call(), 1);
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
-    const tx = await contract.upload(accounts[0], "", emptyCode, emptyCode);
+    const tx = await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), "22245867104185935282213184455643255424572845908357372064232261761039889590899");
-    assert.equal(tx.receipt.gasUsed, 291293);
+    assert.equal(tx.receipt.gasUsed, 290976);
     assert.equal(await contract.totalSupply.call(), 2);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);

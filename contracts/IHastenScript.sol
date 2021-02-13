@@ -12,14 +12,12 @@ abstract contract IHastenScript is IERC721 {
 
     // uploads a new script with an empty environment
     function upload(
-        address uploader,
         string memory tokenURI,
         bytes memory scriptBytes
     ) public virtual;
 
     // uploads a new script with an initial environment
-    function upload(
-        address uploader,
+    function uploadWithEnvironment(
         string memory tokenURI,
         bytes memory scriptBytes,
         bytes memory environment
