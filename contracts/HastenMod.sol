@@ -39,9 +39,9 @@ contract HastenMod is ERC721 {
         uint256 scriptHash,
         bytes memory environment
     ) public {
-        // only the owner of the script can upload mods.
         require(
-            msg.sender == IHastenScript(_scriptsLibrary).ownerOf(scriptHash)
+            msg.sender == IHastenScript(_scriptsLibrary).ownerOf(scriptHash),
+            "Only the owner of the script can upload mods"
         );
 
         _tokenIds.increment();

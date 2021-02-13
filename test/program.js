@@ -1,8 +1,12 @@
 var nft = artifacts.require("HastenScript");
+var modNft = artifacts.require("HastenMod");
 
 contract("HastenScript", accounts => {
+  const scriptHash = web3.utils.toHex("82244645650067078051647883681477212594888008908680932184588990116864531889524");
+
   it("should upload a script", async () => {
     const contract = await nft.deployed();
+    scriptContract = contract;
     assert.equal(await contract.totalSupply.call(), 0);
     const emptyCode = new Uint8Array(1024);
     const tx = await contract.upload("", emptyCode, { from: accounts[0] });
@@ -48,7 +52,7 @@ contract("HastenScript", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(30);
-      await contract.update(web3.utils.toHex("82244645650067078051647883681477212594888008908680932184588990116864531889524"), emptyCode, { from: accounts[1] });
+      await contract.update(scriptHash, emptyCode, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "Only the owner of the script can update its environment");
       return;
@@ -59,9 +63,43 @@ contract("HastenScript", accounts => {
   it("should update a script's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
-    const tx = await contract.update(web3.utils.toHex("82244645650067078051647883681477212594888008908680932184588990116864531889524"), emptyCode, { from: accounts[0] });
-    const script = await contract.script.call(web3.utils.toHex("82244645650067078051647883681477212594888008908680932184588990116864531889524"));
+    await contract.update(scriptHash, emptyCode, { from: accounts[0] });
+    const script = await contract.script.call(scriptHash);
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(script.environment, codeHex);
+  });
+
+  it("should upload a mod", async () => {
+    const scontract = await nft.deployed();
+    const contract = await modNft.new(scontract.address);
+    const empty = new Uint8Array(1024);
+    const tx = await contract.upload("", scriptHash, empty, { from: accounts[0] });
+    assert.equal(tx.logs[0].args.tokenId.toString(), 1);
+    assert.equal(tx.receipt.gasUsed, 276287);
+    assert.equal(await contract.totalSupply.call(), 1);
+    assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
+    const script = await contract.script.call(tx.logs[0].args.tokenId);
+    const codeHex = web3.utils.bytesToHex(empty);
+    assert.equal(script.scriptBytes, codeHex);
+  });
+
+  it("should not upload a mod", async () => {
+    try {
+      const scontract = await nft.deployed();
+      const contract = await modNft.new(scontract.address);
+      const empty = new Uint8Array(1024);
+      const tx = await contract.upload("", scriptHash, empty, { from: accounts[1] });
+      assert.equal(tx.logs[0].args.tokenId.toString(), 1);
+      assert.equal(tx.receipt.gasUsed, 276287);
+      assert.equal(await contract.totalSupply.call(), 1);
+      assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
+      const script = await contract.script.call(tx.logs[0].args.tokenId);
+      const codeHex = web3.utils.bytesToHex(empty);
+      assert.equal(script.scriptBytes, codeHex);
+    } catch (e) {
+      assert(e.reason == "Only the owner of the script can upload mods");
+      return;
+    }
+    assert(false, "expected exception not thrown");
   });
 });
