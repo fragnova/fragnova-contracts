@@ -17,8 +17,8 @@ contract("HastenScript", accounts => {
 
   it("should upload a script", async () => {
     const contract = await nft.deployed();
-    console.log(getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0x711"));
-    console.log(contract.address);
+    // console.log(getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0x711"));
+    // console.log(contract.address);
     scriptContract = contract;
     assert.equal(await contract.totalSupply.call(), 0);
     const emptyCode = new Uint8Array(1024);
@@ -86,7 +86,7 @@ contract("HastenScript", accounts => {
     await nft.deployed();
     const dao20 = await dao.deployed();
     const contract = await modNft.deployed();
-    assert.equal(await dao20.balanceOf.call(contract.address), 1024);
+    assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
     const empty = new Uint8Array(1024);
     const tx = await contract.upload("", scriptHash, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
@@ -97,17 +97,18 @@ contract("HastenScript", accounts => {
     const codeHex = web3.utils.bytesToHex(empty);
     assert.equal(script.scriptBytes, codeHex);
     // mint should not trigger rewards
-    assert.equal(await dao20.balanceOf.call(contract.address), 1024);
+    assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
   });
 
   it("should transfer a mod", async () => {
     await nft.deployed();
     const dao20 = await dao.deployed();
+    // console.log(web3.utils.fromWei((await dao20.totalSupply.call()).toString(), "ether"));
     const contract = await modNft.deployed();
     await contract.safeTransferFrom(accounts[0], accounts[1], 1);
     assert.equal(await contract.ownerOf.call(1), accounts[1]);
     // check reward
-    assert.equal(await dao20.balanceOf.call(contract.address), 1023);
+    assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
   });
 
   it("should not upload a mod", async () => {

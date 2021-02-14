@@ -10,7 +10,7 @@ contract HastenMod is ERC721 {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    uint256 internal constant OwnerReward = 1;
+    uint256 internal constant OwnerReward = 1 * (10 ** 16);
     uint256 internal constant UIntMax = uint256(-1);
 
     // mapping for scripts storage
