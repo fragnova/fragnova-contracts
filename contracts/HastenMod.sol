@@ -23,7 +23,7 @@ contract HastenMod is ERC721, Ownable {
     HastenDAOToken internal immutable _daoToken;
 
     constructor(address libraryAddress, address daoAddress)
-        ERC721("Hasten Mod NFT", "HSTN")
+        ERC721("Hasten Mod NFT", "HSTNm")
     {
         _scriptsLibrary = HastenScript(libraryAddress);
         _daoToken = HastenDAOToken(daoAddress);
