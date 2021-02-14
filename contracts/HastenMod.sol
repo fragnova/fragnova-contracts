@@ -3,27 +3,29 @@ pragma solidity ^0.7.4;
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
-import "./IHastenScript.sol";
+import "./HastenScript.sol";
+import "./HastenDAOToken.sol";
 
 contract HastenMod is ERC721 {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
     uint256 internal constant OwnerReward = 1;
+    uint256 internal constant UIntMax = uint256(-1);
 
     // mapping for scripts storage
     mapping(uint256 => uint256) private _scripts;
     mapping(uint256 => bytes) private _environments;
     mapping(uint256 => uint256) private _rewardBlocks;
 
-    IHastenScript internal immutable _scriptsLibrary;
-    IERC20 internal immutable _daoToken;
+    HastenScript internal immutable _scriptsLibrary;
+    HastenDAOToken internal immutable _daoToken;
 
     constructor(address libraryAddress, address daoAddress)
         ERC721("Hasten Mod NFT", "HSTN")
     {
-        _scriptsLibrary = IHastenScript(libraryAddress);
-        _daoToken = IERC20(daoAddress);
+        _scriptsLibrary = HastenScript(libraryAddress);
+        _daoToken = HastenDAOToken(daoAddress);
     }
 
     function script(uint256 modId)
@@ -83,6 +85,7 @@ contract HastenMod is ERC721 {
             _daoToken.balanceOf(address(this)) > OwnerReward
         ) {
             address scriptOwner = _scriptsLibrary.ownerOf(_scripts[tokenId]);
+            _daoToken.increaseAllowance(address(this), OwnerReward);
             _daoToken.transferFrom(address(this), scriptOwner, OwnerReward);
             _rewardBlocks[tokenId] = block.number;
         }

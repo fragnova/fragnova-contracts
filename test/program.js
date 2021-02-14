@@ -83,9 +83,10 @@ contract("HastenScript", accounts => {
   });
 
   it("should upload a mod", async () => {
-    const scontract = await nft.deployed();
+    await nft.deployed();
     const dao20 = await dao.deployed();
-    const contract = await modNft.new(scontract.address, dao20.address);
+    const contract = await modNft.deployed();
+    assert.equal(await dao20.balanceOf.call(contract.address), 1024);
     const empty = new Uint8Array(1024);
     const tx = await contract.upload("", scriptHash, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
@@ -95,13 +96,25 @@ contract("HastenScript", accounts => {
     const script = await contract.script.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(empty);
     assert.equal(script.scriptBytes, codeHex);
+    // mint should not trigger rewards
+    assert.equal(await dao20.balanceOf.call(contract.address), 1024);
+  });
+
+  it("should transfer a mod", async () => {
+    await nft.deployed();
+    const dao20 = await dao.deployed();
+    const contract = await modNft.deployed();
+    await contract.safeTransferFrom(accounts[0], accounts[1], 1);
+    assert.equal(await contract.ownerOf.call(1), accounts[1]);
+    // check reward
+    assert.equal(await dao20.balanceOf.call(contract.address), 1023);
   });
 
   it("should not upload a mod", async () => {
     try {
-      const scontract = await nft.deployed();
-      const dao20 = await dao.deployed();
-      const contract = await modNft.new(scontract.address, dao20.address);
+      await nft.deployed();
+      await dao.deployed();
+      const contract = await modNft.deployed();
       const empty = new Uint8Array(1024);
       const tx = await contract.upload("", scriptHash, empty, { from: accounts[1] });
       assert.equal(tx.logs[0].args.tokenId.toString(), 1);
