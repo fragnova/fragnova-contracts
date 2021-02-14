@@ -3,14 +3,15 @@ pragma solidity ^0.7.4;
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
+import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "./HastenScript.sol";
 import "./HastenDAOToken.sol";
 
-contract HastenMod is ERC721 {
+contract HastenMod is ERC721, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    uint256 internal constant OwnerReward = 1 * (10 ** 16);
+    uint256 internal OwnerReward = 1 * (10**16);
     uint256 internal constant UIntMax = uint256(-1);
 
     // mapping for scripts storage
@@ -89,5 +90,13 @@ contract HastenMod is ERC721 {
             _daoToken.transferFrom(address(this), scriptOwner, OwnerReward);
             _rewardBlocks[tokenId] = block.number;
         }
+    }
+
+    function setScriptOwnerReward(uint256 amount) public onlyOwner {
+        OwnerReward = amount;
+    }
+
+    function getScriptOwnerReward() public view returns (uint256) {
+        return OwnerReward;
     }
 }
