@@ -2,6 +2,7 @@ const { keccak256, hexToBytes } = require('web3-utils')
 
 var nft = artifacts.require("HastenScript");
 var modNft = artifacts.require("HastenMod");
+var dao = artifacts.require("HastenDAOToken");
 
 function getExpectedAddress(address, bytecode, salt) {
   const arg = hexToBytes('0xff')
@@ -16,7 +17,8 @@ contract("HastenScript", accounts => {
 
   it("should upload a script", async () => {
     const contract = await nft.deployed();
-    console.log(getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0x711"))
+    console.log(getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0x711"));
+    console.log(contract.address);
     scriptContract = contract;
     assert.equal(await contract.totalSupply.call(), 0);
     const emptyCode = new Uint8Array(1024);
@@ -82,11 +84,12 @@ contract("HastenScript", accounts => {
 
   it("should upload a mod", async () => {
     const scontract = await nft.deployed();
-    const contract = await modNft.new(scontract.address);
+    const dao20 = await dao.deployed();
+    const contract = await modNft.new(scontract.address, dao20.address);
     const empty = new Uint8Array(1024);
     const tx = await contract.upload("", scriptHash, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
-    assert.equal(tx.receipt.gasUsed, 275451);
+    assert.equal(tx.receipt.gasUsed, 275578);
     assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -97,7 +100,8 @@ contract("HastenScript", accounts => {
   it("should not upload a mod", async () => {
     try {
       const scontract = await nft.deployed();
-      const contract = await modNft.new(scontract.address);
+      const dao20 = await dao.deployed();
+      const contract = await modNft.new(scontract.address, dao20.address);
       const empty = new Uint8Array(1024);
       const tx = await contract.upload("", scriptHash, empty, { from: accounts[1] });
       assert.equal(tx.logs[0].args.tokenId.toString(), 1);

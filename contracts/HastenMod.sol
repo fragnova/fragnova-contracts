@@ -1,6 +1,7 @@
 pragma solidity ^0.7.4;
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "./IHastenScript.sol";
 
@@ -8,14 +9,21 @@ contract HastenMod is ERC721 {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
+    uint256 internal constant OwnerReward = 1;
+
     // mapping for scripts storage
     mapping(uint256 => uint256) private _scripts;
     mapping(uint256 => bytes) private _environments;
+    mapping(uint256 => uint256) private _rewardBlocks;
 
-    address internal immutable _scriptsLibrary;
+    IHastenScript internal immutable _scriptsLibrary;
+    IERC20 internal immutable _daoToken;
 
-    constructor(address libraryAddress) ERC721("Hasten Mod NFT", "HSTN") {
-        _scriptsLibrary = libraryAddress;
+    constructor(address libraryAddress, address daoAddress)
+        ERC721("Hasten Mod NFT", "HSTN")
+    {
+        _scriptsLibrary = IHastenScript(libraryAddress);
+        _daoToken = IERC20(daoAddress);
     }
 
     function script(uint256 modId)
@@ -28,8 +36,7 @@ contract HastenMod is ERC721 {
             "HastenScript: script query for nonexistent token"
         );
 
-        (bytes memory byteCode, ) =
-            IHastenScript(_scriptsLibrary).script(_scripts[modId]);
+        (bytes memory byteCode, ) = _scriptsLibrary.script(_scripts[modId]);
 
         return (byteCode, _environments[modId]);
     }
@@ -40,7 +47,7 @@ contract HastenMod is ERC721 {
         bytes memory environment
     ) public {
         require(
-            msg.sender == IHastenScript(_scriptsLibrary).ownerOf(scriptHash),
+            msg.sender == _scriptsLibrary.ownerOf(scriptHash),
             "Only the owner of the script can upload mods"
         );
 
@@ -59,5 +66,25 @@ contract HastenMod is ERC721 {
         );
 
         _environments[modId] = environment;
+    }
+
+    // reward the owner of the Script
+    // limited to once per block for safety reasons
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal override {
+        // ensure not a mint or burn
+        if (
+            to != address(0) &&
+            from != address(0) &&
+            _rewardBlocks[tokenId] != block.number &&
+            _daoToken.balanceOf(address(this)) > OwnerReward
+        ) {
+            address scriptOwner = _scriptsLibrary.ownerOf(_scripts[tokenId]);
+            _daoToken.transferFrom(address(this), scriptOwner, OwnerReward);
+            _rewardBlocks[tokenId] = block.number;
+        }
     }
 }
