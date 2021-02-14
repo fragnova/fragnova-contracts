@@ -12,7 +12,7 @@ contract HastenMod is ERC721 {
     mapping(uint256 => uint256) private _scripts;
     mapping(uint256 => bytes) private _environments;
 
-    address internal _scriptsLibrary;
+    address internal immutable _scriptsLibrary;
 
     constructor(address libraryAddress) ERC721("Hasten Mod NFT", "HSTN") {
         _scriptsLibrary = libraryAddress;

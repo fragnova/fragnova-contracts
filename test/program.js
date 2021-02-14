@@ -1,11 +1,22 @@
+const { keccak256, hexToBytes } = require('web3-utils')
+
 var nft = artifacts.require("HastenScript");
 var modNft = artifacts.require("HastenMod");
+
+function getExpectedAddress(address, bytecode, salt) {
+  const arg = hexToBytes('0xff')
+    .concat(hexToBytes(address))
+    .concat(hexToBytes(salt))
+    .concat(hexToBytes(keccak256(bytecode)))
+  return '0x' + keccak256(arg).slice(26)
+}
 
 contract("HastenScript", accounts => {
   const scriptHash = web3.utils.toHex("82244645650067078051647883681477212594888008908680932184588990116864531889524");
 
   it("should upload a script", async () => {
     const contract = await nft.deployed();
+    console.log(getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0x711"))
     scriptContract = contract;
     assert.equal(await contract.totalSupply.call(), 0);
     const emptyCode = new Uint8Array(1024);
@@ -75,7 +86,7 @@ contract("HastenScript", accounts => {
     const empty = new Uint8Array(1024);
     const tx = await contract.upload("", scriptHash, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
-    assert.equal(tx.receipt.gasUsed, 276287);
+    assert.equal(tx.receipt.gasUsed, 275451);
     assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -90,7 +101,7 @@ contract("HastenScript", accounts => {
       const empty = new Uint8Array(1024);
       const tx = await contract.upload("", scriptHash, empty, { from: accounts[1] });
       assert.equal(tx.logs[0].args.tokenId.toString(), 1);
-      assert.equal(tx.receipt.gasUsed, 276287);
+      assert.equal(tx.receipt.gasUsed, 275451);
       assert.equal(await contract.totalSupply.call(), 1);
       assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
       const script = await contract.script.call(tx.logs[0].args.tokenId);
