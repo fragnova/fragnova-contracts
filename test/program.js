@@ -23,13 +23,15 @@ contract("HastenScript", accounts => {
     assert.equal(await contract.totalSupply.call(), 0);
     const emptyCode = new Uint8Array(1024);
     const tx = await contract.upload("", emptyCode, { from: accounts[0] });
-    assert.equal(tx.logs[0].args.tokenId.toString(), "82244645650067078051647883681477212594888008908680932184588990116864531889524");
-    assert.equal(tx.receipt.gasUsed, 228502);
+    assert.equal(tx.logs[0].args.tokenId.toString(), "1");
+    assert.equal(tx.receipt.gasUsed, 273361);
     assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
-    const script = await contract.script.call(tx.logs[0].args.tokenId);
+    const script = await contract.scriptFromId.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(script.scriptBytes, codeHex);
+    const scriptFromHash = await contract.scriptFromHash.call(scriptHash);
+    assert.equal(scriptFromHash.scriptBytes, script.scriptBytes);
   });
 
   it("should not upload a script", async () => {
@@ -39,7 +41,7 @@ contract("HastenScript", accounts => {
       const emptyCode = new Uint8Array(1024);
       await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[0] });
     } catch (e) {
-      assert(e.toString() == "Error: Returned error: VM Exception while processing transaction: revert ERC721: token already minted -- Reason given: ERC721: token already minted.");
+      assert(e.reason == "HastenScript: script hash already minted");
       return;
     }
     assert(false, "expected exception not thrown");
@@ -51,11 +53,11 @@ contract("HastenScript", accounts => {
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[0] });
-    assert.equal(tx.logs[0].args.tokenId.toString(), "22245867104185935282213184455643255424572845908357372064232261761039889590899");
-    assert.equal(tx.receipt.gasUsed, 290976);
+    assert.equal(tx.logs[0].args.tokenId.toString(), "2");
+    assert.equal(tx.receipt.gasUsed, 318677);
     assert.equal(await contract.totalSupply.call(), 2);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
-    const script = await contract.script.call(tx.logs[0].args.tokenId);
+    const script = await contract.scriptFromId.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(script.scriptBytes, codeHex);
     assert.equal(script.environment, codeHex);
@@ -65,7 +67,7 @@ contract("HastenScript", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(30);
-      await contract.update(scriptHash, emptyCode, { from: accounts[1] });
+      await contract.update(1, emptyCode, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "Only the owner of the script can update its environment");
       return;
@@ -76,8 +78,8 @@ contract("HastenScript", accounts => {
   it("should update a script's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
-    await contract.update(scriptHash, emptyCode, { from: accounts[0] });
-    const script = await contract.script.call(scriptHash);
+    await contract.update(1, emptyCode, { from: accounts[0] });
+    const script = await contract.scriptFromHash.call(scriptHash);
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(script.environment, codeHex);
   });
@@ -88,9 +90,9 @@ contract("HastenScript", accounts => {
     const contract = await modNft.deployed();
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
     const empty = new Uint8Array(1024);
-    const tx = await contract.upload("", scriptHash, empty, { from: accounts[0] });
+    const tx = await contract.upload("", 1, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
-    assert.equal(tx.receipt.gasUsed, 275578);
+    assert.equal(tx.receipt.gasUsed, 275206);
     assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -117,12 +119,12 @@ contract("HastenScript", accounts => {
       await dao.deployed();
       const contract = await modNft.deployed();
       const empty = new Uint8Array(1024);
-      const tx = await contract.upload("", scriptHash, empty, { from: accounts[1] });
+      const tx = await contract.upload("", 1, empty, { from: accounts[1] });
       assert.equal(tx.logs[0].args.tokenId.toString(), 1);
       assert.equal(tx.receipt.gasUsed, 275451);
       assert.equal(await contract.totalSupply.call(), 1);
       assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-      const script = await contract.script.call(tx.logs[0].args.tokenId);
+      const script = await contract.scriptFromId.call(tx.logs[0].args.tokenId);
       const codeHex = web3.utils.bytesToHex(empty);
       assert.equal(script.scriptBytes, codeHex);
     } catch (e) {

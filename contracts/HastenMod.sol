@@ -39,25 +39,26 @@ contract HastenMod is ERC721, Ownable {
             "HastenScript: script query for nonexistent token"
         );
 
-        (bytes memory byteCode, ) = _scriptsLibrary.script(_scripts[modId]);
+        (bytes memory byteCode, ) =
+            _scriptsLibrary.scriptFromId(_scripts[modId]);
 
         return (byteCode, _environments[modId]);
     }
 
     function upload(
         string memory tokenURI,
-        uint256 scriptHash,
+        uint256 scriptId,
         bytes memory environment
     ) public {
         require(
-            msg.sender == _scriptsLibrary.ownerOf(scriptHash),
+            msg.sender == _scriptsLibrary.ownerOf(scriptId),
             "Only the owner of the script can upload mods"
         );
 
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
         _mint(msg.sender, newItemId);
-        _scripts[newItemId] = scriptHash;
+        _scripts[newItemId] = scriptId;
         _environments[newItemId] = environment;
         _setTokenURI(newItemId, tokenURI);
     }
