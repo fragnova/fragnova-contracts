@@ -25,7 +25,7 @@ contract HastenMod is ERC721, Ownable {
     HastenDAOToken internal immutable _daoToken;
 
     constructor(address libraryAddress, address daoAddress)
-        ERC721("Hasten Mod NFT", "HSTNm")
+        ERC721("Hasten Mod NFT", "HSTNmV1")
     {
         _scriptsLibrary = HastenScript(libraryAddress);
         _daoToken = HastenDAOToken(daoAddress);
@@ -104,15 +104,6 @@ contract HastenMod is ERC721, Ownable {
         );
 
         _upload(tokenURI, scriptId, environment);
-    }
-
-    function update(uint256 modId, bytes memory environment) public {
-        require(
-            msg.sender == ownerOf(modId),
-            "Only the owner of the mod can update its environment"
-        );
-
-        _environments[modId] = environment;
     }
 
     // reward the owner of the Script

@@ -12,7 +12,7 @@ contract HastenScript is ERC721 {
     mapping(uint256 => bytes) private _scripts;
     mapping(uint256 => bytes) private _environments;
 
-    constructor() ERC721("Hasten Script NFT", "HSTNs") {}
+    constructor() ERC721("Hasten Script NFT", "HSTNsV1") {}
 
     function scriptFromHash(uint256 scriptHash)
         public
