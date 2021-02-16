@@ -4,6 +4,7 @@ import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
+import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import "./HastenScript.sol";
 import "./HastenDAOToken.sol";
 
@@ -17,6 +18,7 @@ contract HastenMod is ERC721, Ownable {
     // mapping for scripts storage
     mapping(uint256 => uint256) private _scripts;
     mapping(uint256 => bytes) private _environments;
+    mapping(uint256 => address) private _signers;
     mapping(uint256 => uint256) private _rewardBlocks;
 
     HastenScript internal immutable _scriptsLibrary;
@@ -45,6 +47,28 @@ contract HastenMod is ERC721, Ownable {
         return (byteCode, _environments[modId]);
     }
 
+    function setDelegate(uint256 scriptId, address delegate) public {
+        require(
+            msg.sender == _scriptsLibrary.ownerOf(scriptId),
+            "HastenMod: Only the owner of the script can set signer delegate"
+        );
+
+        _signers[scriptId] = delegate;
+    }
+
+    function _upload(
+        string memory tokenURI,
+        uint256 scriptId,
+        bytes memory environment
+    ) internal {
+        _tokenIds.increment();
+        uint256 newItemId = _tokenIds.current();
+        _mint(msg.sender, newItemId);
+        _scripts[newItemId] = scriptId;
+        _environments[newItemId] = environment;
+        _setTokenURI(newItemId, tokenURI);
+    }
+
     function upload(
         string memory tokenURI,
         uint256 scriptId,
@@ -52,15 +76,34 @@ contract HastenMod is ERC721, Ownable {
     ) public {
         require(
             msg.sender == _scriptsLibrary.ownerOf(scriptId),
-            "Only the owner of the script can upload mods"
+            "HastenMod: Only the owner of the script can upload mods"
         );
 
-        _tokenIds.increment();
-        uint256 newItemId = _tokenIds.current();
-        _mint(msg.sender, newItemId);
-        _scripts[newItemId] = scriptId;
-        _environments[newItemId] = environment;
-        _setTokenURI(newItemId, tokenURI);
+        _upload(tokenURI, scriptId, environment);
+    }
+
+    /*
+        This is to allow any user to upload something as long as the owner of the script authorizes.
+    */
+    function uploadWithDelegateAuth(
+        bytes32 hash,
+        bytes memory signature,
+        string memory tokenURI,
+        uint256 scriptId,
+        bytes memory environment
+    ) public {
+        require(
+            _signers[scriptId] == ECDSA.recover(hash, signature),
+            "HastenMod: Invalid authorization signed payload"
+        );
+        require(
+            keccak256(
+                abi.encodePacked(msg.sender, tokenURI, scriptId, environment)
+            ) == hash,
+            "HastenMod: Invalid authorization hash"
+        );
+
+        _upload(tokenURI, scriptId, environment);
     }
 
     function update(uint256 modId, bytes memory environment) public {

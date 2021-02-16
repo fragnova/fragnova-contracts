@@ -92,7 +92,7 @@ contract("HastenScript", accounts => {
     const empty = new Uint8Array(1024);
     const tx = await contract.upload("", 1, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
-    assert.equal(tx.receipt.gasUsed, 275206);
+    assert.equal(tx.receipt.gasUsed, 275223);
     assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -128,7 +128,7 @@ contract("HastenScript", accounts => {
       const codeHex = web3.utils.bytesToHex(empty);
       assert.equal(script.scriptBytes, codeHex);
     } catch (e) {
-      assert(e.reason == "Only the owner of the script can upload mods");
+      assert(e.reason == "HastenMod: Only the owner of the script can upload mods");
       return;
     }
     assert(false, "expected exception not thrown");
