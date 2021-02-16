@@ -166,14 +166,14 @@ contract("HastenScript", accounts => {
       { t: "bytes", v: web3.utils.bytesToHex(empty) }
     ];
     const messageHex = web3.utils.soliditySha3(...parts);
-    const signature = await signMessage(accounts[0], messageHex);
+    const signature = await signMessage(accounts[2], messageHex);
     await nft.deployed();
     const dao20 = await dao.deployed();
     const contract = await modNft.deployed();
-    await contract.setDelegate(1, accounts[0], { from: accounts[0] });
+    await contract.setDelegate(1, accounts[2], { from: accounts[0] });
     const tx = await contract.uploadWithDelegateAuth(signature, "", 1, empty, { from: accounts[1] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 2);
-    assert.equal(tx.receipt.gasUsed, 236296);
+    assert.equal(tx.receipt.gasUsed, 236279);
     assert.equal(await contract.totalSupply.call(), 2);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -181,5 +181,28 @@ contract("HastenScript", accounts => {
     assert.equal(script.scriptBytes, codeHex);
     // mint - no rewards
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
+  });
+
+  it("should not upload a mod with delegate", async () => {
+    try {
+      const empty = new Uint8Array(1024);
+      const parts = [
+        { t: "address", v: accounts[1] },
+        { t: "string", v: "" },
+        { t: "uint256", v: 1 },
+        { t: "bytes", v: web3.utils.bytesToHex(empty) }
+      ];
+      const messageHex = web3.utils.soliditySha3(...parts);
+      const signature = await signMessage(accounts[3], messageHex);
+      await nft.deployed();
+      const dao20 = await dao.deployed();
+      const contract = await modNft.deployed();
+      await contract.setDelegate(1, accounts[2], { from: accounts[0] });
+      const tx = await contract.uploadWithDelegateAuth(signature, "", 1, empty, { from: accounts[1] });
+    } catch (e) {
+      assert(e.reason == "HastenMod: Invalid signature");
+      return;
+    }
+    assert(false, "expected exception not thrown");
   });
 });

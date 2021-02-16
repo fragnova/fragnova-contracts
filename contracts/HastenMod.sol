@@ -104,7 +104,7 @@ contract HastenMod is ERC721, Ownable {
             );
         require(
             _signers[scriptId] == ECDSA.recover(hash, signature),
-            "HastenMod: Invalid authorization signed payload"
+            "HastenMod: Invalid signature"
         );
 
         _upload(tokenURI, scriptId, environment);
