@@ -179,7 +179,7 @@ contract("HastenScript", accounts => {
     const script = await contract.script.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(empty);
     assert.equal(script.scriptBytes, codeHex);
-    // mint should not trigger rewards
-    // assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
+    // mint - no rewards
+    assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
   });
 });
