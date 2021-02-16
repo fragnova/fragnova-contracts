@@ -12,6 +12,29 @@ function getExpectedAddress(address, bytecode, salt) {
   return '0x' + keccak256(arg).slice(26)
 }
 
+function fixSignature(signature) {
+  // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
+  // signature malleability if version is 0/1
+  // see https://github.com/ethereum/go-ethereum/blob/v1.8.23/internal/ethapi/api.go#L465
+  let v = parseInt(signature.slice(130, 132), 16);
+  if (v < 27) {
+    v += 27;
+  }
+  const vHex = v.toString(16);
+  return signature.slice(0, 130) + vHex;
+}
+
+// signs message in node (ganache auto-applies "Ethereum Signed Message" prefix)
+async function signMessage(signer, messageHex = '0x') {
+  return fixSignature(await web3.eth.sign(messageHex, signer));
+};
+
+function toEthSignedMessageHash(messageHex) {
+  const messageBuffer = Buffer.from(messageHex.substring(2), 'hex');
+  const prefix = Buffer.from(`\u0019Ethereum Signed Message:\n${messageBuffer.length}`);
+  return web3.utils.sha3(Buffer.concat([prefix, messageBuffer]));
+}
+
 contract("HastenScript", accounts => {
   const scriptHash = web3.utils.toHex("82244645650067078051647883681477212594888008908680932184588990116864531889524");
 
@@ -92,7 +115,7 @@ contract("HastenScript", accounts => {
     const empty = new Uint8Array(1024);
     const tx = await contract.upload("", 1, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
-    assert.equal(tx.receipt.gasUsed, 275201);
+    assert.equal(tx.receipt.gasUsed, 275246);
     assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -132,5 +155,31 @@ contract("HastenScript", accounts => {
       return;
     }
     assert(false, "expected exception not thrown");
+  });
+
+  it("should upload a mod with delegate", async () => {
+    const empty = new Uint8Array(1024);
+    const parts = [
+      { t: "address", v: accounts[1] },
+      { t: "string", v: "" },
+      { t: "uint256", v: 1 },
+      { t: "bytes", v: web3.utils.bytesToHex(empty) }
+    ];
+    const messageHex = web3.utils.soliditySha3(...parts);
+    const signature = await signMessage(accounts[0], messageHex);
+    await nft.deployed();
+    const dao20 = await dao.deployed();
+    const contract = await modNft.deployed();
+    await contract.setDelegate(1, accounts[0], { from: accounts[0] });
+    const tx = await contract.uploadWithDelegateAuth(signature, "", 1, empty, { from: accounts[1] });
+    assert.equal(tx.logs[0].args.tokenId.toString(), 2);
+    assert.equal(tx.receipt.gasUsed, 236296);
+    assert.equal(await contract.totalSupply.call(), 2);
+    assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
+    const script = await contract.script.call(tx.logs[0].args.tokenId);
+    const codeHex = web3.utils.bytesToHex(empty);
+    assert.equal(script.scriptBytes, codeHex);
+    // mint should not trigger rewards
+    // assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
   });
 });

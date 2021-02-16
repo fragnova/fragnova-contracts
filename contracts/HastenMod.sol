@@ -86,21 +86,25 @@ contract HastenMod is ERC721, Ownable {
         This is to allow any user to upload something as long as the owner of the script authorizes.
     */
     function uploadWithDelegateAuth(
-        bytes32 hash,
         bytes memory signature,
         string memory tokenURI,
         uint256 scriptId,
         bytes memory environment
     ) public {
+        bytes32 hash =
+            ECDSA.toEthSignedMessageHash(
+                keccak256(
+                    abi.encodePacked(
+                        msg.sender,
+                        tokenURI,
+                        scriptId,
+                        environment
+                    )
+                )
+            );
         require(
             _signers[scriptId] == ECDSA.recover(hash, signature),
             "HastenMod: Invalid authorization signed payload"
-        );
-        require(
-            keccak256(
-                abi.encodePacked(msg.sender, tokenURI, scriptId, environment)
-            ) == hash,
-            "HastenMod: Invalid authorization hash"
         );
 
         _upload(tokenURI, scriptId, environment);
