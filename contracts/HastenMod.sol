@@ -19,7 +19,7 @@ contract HastenMod is ERC721, Ownable {
     mapping(uint256 => uint256) private _scripts;
     mapping(uint256 => bytes) private _environments;
     mapping(uint256 => address) private _signers;
-    mapping(uint256 => uint256) private _rewardBlocks;
+    mapping(address => uint256) private _rewardBlocks;
 
     HastenScript internal immutable _scriptsLibrary;
     HastenDAOToken internal immutable _daoToken;
@@ -118,16 +118,16 @@ contract HastenMod is ERC721, Ownable {
         uint256 tokenId
     ) internal override {
         // ensure not a mint or burn
-        if (
-            to != address(0) &&
-            from != address(0) &&
-            _rewardBlocks[tokenId] != block.number &&
-            _daoToken.balanceOf(address(this)) > OwnerReward
-        ) {
+        if (to != address(0) && from != address(0)) {
             address scriptOwner = _scriptsLibrary.ownerOf(_scripts[tokenId]);
-            _daoToken.increaseAllowance(address(this), OwnerReward);
-            _daoToken.transferFrom(address(this), scriptOwner, OwnerReward);
-            _rewardBlocks[tokenId] = block.number;
+            if (
+                _rewardBlocks[scriptOwner] != block.number &&
+                _daoToken.balanceOf(address(this)) > OwnerReward
+            ) {
+                _daoToken.increaseAllowance(address(this), OwnerReward);
+                _daoToken.transferFrom(address(this), scriptOwner, OwnerReward);
+                _rewardBlocks[scriptOwner] = block.number;
+            }
         }
     }
 

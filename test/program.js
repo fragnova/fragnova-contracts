@@ -115,7 +115,7 @@ contract("HastenScript", accounts => {
     const empty = new Uint8Array(1024);
     const tx = await contract.upload("", 1, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
-    assert.equal(tx.receipt.gasUsed, 275246);
+    assert.equal(tx.receipt.gasUsed, 275206);
     assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -173,7 +173,7 @@ contract("HastenScript", accounts => {
     await contract.setDelegate(1, accounts[2], { from: accounts[0] });
     const tx = await contract.uploadWithDelegateAuth(signature, "", 1, empty, { from: accounts[1] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 2);
-    assert.equal(tx.receipt.gasUsed, 236279);
+    assert.equal(tx.receipt.gasUsed, 236239);
     assert.equal(await contract.totalSupply.call(), 2);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
