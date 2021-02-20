@@ -1,6 +1,6 @@
 const { Address, bufferToHex } = require("ethereumjs-util");
 const { Transaction } = require("@ethereumjs/tx");
-const { keccak256, hexToBytes } = require("web3-utils");
+const { keccak256, hexToBytes, bytesToHex } = require("web3-utils");
 const { BN } = require("bn.js");
 
 var nft = artifacts.require("HastenScript");
@@ -12,6 +12,7 @@ function getExpectedAddress(address, bytecode, salt) {
     .concat(hexToBytes(address))
     .concat(hexToBytes(salt))
     .concat(hexToBytes(keccak256(bytecode)))
+  console.log(bytesToHex(arg));
   return '0x' + keccak256(arg).slice(26)
 }
 
@@ -150,6 +151,7 @@ contract("HastenScript", accounts => {
         "type": "function"
       }
     ], "0xce0042B868300000d44A59004Da54A005ffdcf9f");
+    // console.log(nft.bytecode);
     const deployedTx = await deployerContract.methods.deploy(nft.bytecode, "0x000000000000000000000000000000000000000000000000000000000000beef").send({
       from: accounts[0],
       // gasPrice: "10000000000000",

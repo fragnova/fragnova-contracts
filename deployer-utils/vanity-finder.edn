@@ -1,0 +1,19 @@
+(def Root (Node))
+
+(defchain find-address
+  "0xFF" (HexToBytes) >= .bytes
+  (Input) (Take 0) (HexToBytes) (AppendTo .bytes) ; address
+  (Input) (Take 1) (HexToBytes) (AppendTo .bytes) ; salt
+  (Input) (Take 2) (HexToBytes) (Hash.Keccak256) (AppendTo .bytes) ; bytecode
+  .bytes (Hash.Keccak256) (ToHex) (Slice :From 26) >= .res
+  "0x" (PrependTo .res) .res)
+
+(defchain test
+  ["0xce0042B868300000d44A59004Da54A005ffdcf9f"
+   "0x000000000000000000000000000000000000000000000000000000000000beef"
+   (slurp "bytecode.txt")]
+  (Do find-address)
+  (Log))
+
+(schedule Root test)
+(run Root)
