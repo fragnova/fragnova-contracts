@@ -1,4 +1,7 @@
-const { keccak256, hexToBytes } = require('web3-utils')
+const { Address, bufferToHex } = require("ethereumjs-util");
+const { Transaction } = require("@ethereumjs/tx");
+const { keccak256, hexToBytes } = require("web3-utils");
+const { BN } = require("bn.js");
 
 var nft = artifacts.require("HastenScript");
 var modNft = artifacts.require("HastenMod");
@@ -10,6 +13,36 @@ function getExpectedAddress(address, bytecode, salt) {
     .concat(hexToBytes(salt))
     .concat(hexToBytes(keccak256(bytecode)))
   return '0x' + keccak256(arg).slice(26)
+}
+
+function composeCall(bytecode, salt) {
+  return web3.eth.abi.encodeFunctionCall({
+    name: 'deploy',
+    type: 'function',
+    inputs: [{
+      type: 'bytes',
+      name: '_initCode'
+    }, {
+      type: 'bytes32',
+      name: '_salt'
+    }]
+  }, [bytecode, salt]);
+}
+
+function deterministicDeployment(contractBytes, gasCost) {
+  console.log(composeCall(contractBytes, "0x711"));
+  const deployTx = new Transaction({
+    nonce: 0,
+    gasPrice: new BN(web3.utils.toWei("100", "gwei"), 10),
+    gasLimit: gasCost * 2, // tank a possible EVM gas cost raise
+    value: 0,
+    data: "0x608060405234801561001057600080fd5b50610134806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80634af63f0214602d575b600080fd5b60cf60048036036040811015604157600080fd5b810190602081018135640100000000811115605b57600080fd5b820183602082011115606c57600080fd5b80359060200191846001830284011164010000000083111715608d57600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550509135925060eb915050565b604080516001600160a01b039092168252519081900360200190f35b6000818351602085016000f5939250505056fea26469706673582212206b44f8a82cb6b156bfcc3dc6aadd6df4eefd204bc928a4397fd15dacf6d5320564736f6c63430006020033",
+    // data: composeCall(contractBytes, "0x711"),
+    v: 27,
+    r: "0xBADA1",
+    s: "0xC0FFEE"
+  });
+  return deployTx;
 }
 
 function fixSignature(signature) {
@@ -39,9 +72,42 @@ contract("HastenScript", accounts => {
   const scriptHash = web3.utils.toHex("82244645650067078051647883681477212594888008908680932184588990116864531889524");
 
   it("should upload a script", async () => {
+    const prepareDeployer = async function () {
+      const params = {
+        from: accounts[0],
+        to: "0xBb6e024b9cFFACB947A71991E386681B1Cd1477D",
+        value: web3.utils.toWei("1", "ether"),
+      };
+      await web3.eth.sendTransaction(params);
+      const receipt = await web3.eth.sendSignedTransaction("0xf9016c8085174876e8008303c4d88080b90154608060405234801561001057600080fd5b50610134806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80634af63f0214602d575b600080fd5b60cf60048036036040811015604157600080fd5b810190602081018135640100000000811115605b57600080fd5b820183602082011115606c57600080fd5b80359060200191846001830284011164010000000083111715608d57600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550509135925060eb915050565b604080516001600160a01b039092168252519081900360200190f35b6000818351602085016000f5939250505056fea26469706673582212206b44f8a82cb6b156bfcc3dc6aadd6df4eefd204bc928a4397fd15dacf6d5320564736f6c634300060200331b83247000822470");
+      console.log(receipt);
+      assert.equal("0xce0042B868300000d44A59004Da54A005ffdcf9f", receipt.contractAddress);
+    }
+    await prepareDeployer();
+
+    const nftClone = await nft.new();
+    let receipt = await web3.eth.getTransactionReceipt(nftClone.transactionHash);
+    console.log(receipt);
+
     const contract = await nft.deployed();
-    // console.log(getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0x711"));
-    // console.log(contract.address);
+
+    // const deployTx = deterministicDeployment(nft.bytecode, receipt.gasUsed);
+    // const sender = Address.fromPublicKey(deployTx.getSenderPublicKey());
+    // console.log(sender.toString());
+    // const sendethTx = {
+    //   from: accounts[0],
+    //   to: sender.toString(),
+    //   value: web3.utils.toWei("1", "ether"),
+    // };
+    // const rtx = await web3.eth.sendTransaction(sendethTx);
+    // console.log(rtx);
+    // console.log(bufferToHex(deployTx.serialize()));
+    // const dtx = await web3.eth.sendSignedTransaction(bufferToHex(deployTx.serialize()));
+    // console.log(dtx);
+
+    const expectedAddr = getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0x000000000000000000000000000000000000000000000000000000000000beef");
+    console.log(expectedAddr);
+
     scriptContract = contract;
     assert.equal(await contract.totalSupply.call(), 0);
     const emptyCode = new Uint8Array(1024);
@@ -55,6 +121,49 @@ contract("HastenScript", accounts => {
     assert.equal(script.scriptBytes, codeHex);
     const scriptFromHash = await contract.scriptFromHash.call(scriptHash);
     assert.equal(scriptFromHash.scriptBytes, script.scriptBytes);
+
+    const deployerContract = new web3.eth.Contract([
+      {
+        "constant": false,
+        "inputs": [
+          {
+            "internalType": "bytes",
+            "name": "_initCode",
+            "type": "bytes"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "_salt",
+            "type": "bytes32"
+          }
+        ],
+        "name": "deploy",
+        "outputs": [
+          {
+            "internalType": "address payable",
+            "name": "createdContract",
+            "type": "address"
+          }
+        ],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ], "0xce0042B868300000d44A59004Da54A005ffdcf9f");
+    const deployedTx = await deployerContract.methods.deploy(nft.bytecode, "0x000000000000000000000000000000000000000000000000000000000000beef").send({
+      from: accounts[0],
+      // gasPrice: "10000000000000",
+      gas: receipt.gasUsed + 500000
+    });
+    console.log(deployedTx);
+
+    const uniqueContract = new web3.eth.Contract(nft.abi, expectedAddr);
+    const uniquedTx = await uniqueContract.methods.upload("", emptyCode).send({
+      from: accounts[0],
+      // gasPrice: "10000000000000",
+      gas: 300000
+   });
+    console.log(uniquedTx);
   });
 
   it("should not upload a script", async () => {
