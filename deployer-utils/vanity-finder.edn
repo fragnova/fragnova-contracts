@@ -1,4 +1,4 @@
-(def Root (Node))
+(defnode Root)
 
 (defchain find-address
   "0xFF" (HexToBytes) >= .bytes
