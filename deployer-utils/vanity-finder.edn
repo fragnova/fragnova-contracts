@@ -1,3 +1,5 @@
+(def bytecode (slurp "bytecode.txt"))
+
 (defnode Root)
 
 (defchain find-address
@@ -8,12 +10,23 @@
   .bytes (Hash.Keccak256) (ToHex) (Slice :From 26) >= .res
   "0x" (PrependTo .res) .res)
 
-(defchain test
-  ["0xce0042B868300000d44A59004Da54A005ffdcf9f"
-   "0x000000000000000000000000000000000000000000000000000000000000beef"
-   (slurp "bytecode.txt")]
-  (Do find-address)
-  (Log))
+(defchain random-try
+  "0xce0042B868300000d44A59004Da54A005ffdcf9f" >> .args
+  (RandomBytes 32) (ToHex) >> .args = .salt
+  bytecode >> .args
+  .args (Do find-address) = .address
+  .address (Set .res "address")
+  .salt (Set .res "salt")
+  .res (Log))
 
-(schedule Root test)
+(defloop try-many
+  ;; nil (Expand 10 random-try :Threads 1) (Log)
+  nil (Expand 100 random-try :Threads 4)
+  (ForEach (-> = .record
+            (Take "address") (Slice :From 2 :To 8)
+            (When (Is "c0ffee") (-> .record = .result
+                                    "results.txt" (FS.Write .result :Append true)))))
+  )
+
+(schedule Root try-many)
 (run Root)
