@@ -17,7 +17,11 @@ contract HastenScript is ERC721 {
     function scriptFromHash(uint256 scriptHash)
         public
         view
-        returns (bytes memory scriptBytes, bytes memory environment)
+        returns (
+            bytes memory scriptBytes,
+            bytes memory environment,
+            uint256 id
+        )
     {
         uint256 scriptIdx = _hash2Idx[scriptHash];
         require(
@@ -25,20 +29,28 @@ contract HastenScript is ERC721 {
             "HastenScript: script query for nonexistent token"
         );
 
-        return (_scripts[scriptIdx], _environments[scriptIdx]);
+        return (_scripts[scriptIdx], _environments[scriptIdx], scriptIdx);
     }
 
     function scriptFromId(uint256 tokenId)
         public
         view
-        returns (bytes memory scriptBytes, bytes memory environment)
+        returns (
+            bytes memory scriptBytes,
+            bytes memory environment,
+            uint256 hash
+        )
     {
         require(
             _exists(tokenId),
             "HastenScript: script query for nonexistent token"
         );
 
-        return (_scripts[tokenId], _environments[tokenId]);
+        return (
+            _scripts[tokenId],
+            _environments[tokenId],
+            uint256(keccak256(_scripts[tokenId]))
+        );
     }
 
     function upload(string memory tokenURI, bytes memory scriptBytes) public {

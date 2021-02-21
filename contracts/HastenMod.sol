@@ -34,17 +34,21 @@ contract HastenMod is ERC721, Ownable {
     function script(uint256 modId)
         public
         view
-        returns (bytes memory scriptBytes, bytes memory environment)
+        returns (
+            bytes memory scriptBytes,
+            bytes memory environment,
+            uint256 scriptHash
+        )
     {
         require(
             _exists(modId),
             "HastenScript: script query for nonexistent token"
         );
 
-        (bytes memory byteCode, ) =
+        (bytes memory byteCode, , uint256 hash) =
             _scriptsLibrary.scriptFromId(_scripts[modId]);
 
-        return (byteCode, _environments[modId]);
+        return (byteCode, _environments[modId], hash);
     }
 
     function setDelegate(uint256 scriptId, address delegate) public {
