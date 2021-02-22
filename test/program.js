@@ -107,7 +107,7 @@ contract("HastenScript", accounts => {
     // const dtx = await web3.eth.sendSignedTransaction(bufferToHex(deployTx.serialize()));
     // console.log(dtx);
 
-    const expectedAddr = getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0x000000000000000000000000000000000000000000000000000000000000beef");
+    const expectedAddr = getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0x454888c34c736a3de55b0e6ed69d245df3548040292a92c17e52fdb045543d9f");
     console.log(expectedAddr);
 
     scriptContract = contract;
@@ -153,7 +153,7 @@ contract("HastenScript", accounts => {
       }
     ], "0xce0042B868300000d44A59004Da54A005ffdcf9f");
     // console.log(nft.bytecode);
-    const deployedTx = await deployerContract.methods.deploy(nft.bytecode, "0x000000000000000000000000000000000000000000000000000000000000beef").send({
+    const deployedTx = await deployerContract.methods.deploy(nft.bytecode, "0x454888c34c736a3de55b0e6ed69d245df3548040292a92c17e52fdb045543d9f").send({
       from: accounts[0],
       // gasPrice: "10000000000000",
       gas: receipt.gasUsed + 500000
@@ -167,6 +167,7 @@ contract("HastenScript", accounts => {
       gas: 300000
     });
     console.log(uniquedTx);
+    assert.equal(uniquedTx.gasUsed, 273361);
 
     fs.writeFile("deployer-utils/bytecode.txt", nft.bytecode, (_r, _e) => {});
   });
