@@ -22,12 +22,11 @@
 (defloop try-many
   nil (Expand 4096 random-try :Threads 128)
   (ForEach (-> = .record
-            (Take "address") (Slice :From 2 :To 8)
-            (When (Is "c0ffee") (-> .record (ToString) = .result
-                                    "results.txt" 
-                                    (FS.Write .result :Append true)
-                                    (FS.Write "\n" :Append true)))))
-  )
+               (Take "address") (Slice :From 2 :To 8)
+               (When (Is "c0deba5e") (-> .record (ToString) = .result
+                                         "results.txt"
+                                         (FS.Write .result :Append true)
+                                         (FS.Write "\n" :Append true))))))
 
 (schedule Root try-many)
 (run Root)
