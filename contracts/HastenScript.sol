@@ -4,53 +4,18 @@ import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 
 contract HastenScript is ERC721 {
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIds;
-
     // mapping for scripts storage
-    mapping(uint256 => uint256) private _hash2Idx;
-    mapping(uint256 => bytes) private _scripts;
-    mapping(uint256 => bytes) private _environments;
+    mapping(uint160 => bytes) private _scripts;
+    mapping(uint160 => bytes) private _environments;
 
     constructor() ERC721("Hasten Script NFT", "HSTNsV0") {}
 
-    function scriptFromHash(uint256 scriptHash)
+    function script(uint160 scriptHash)
         public
         view
-        returns (
-            bytes memory scriptBytes,
-            bytes memory environment,
-            uint256 id
-        )
+        returns (bytes memory scriptBytes, bytes memory environment)
     {
-        uint256 scriptIdx = _hash2Idx[scriptHash];
-        require(
-            scriptIdx != 0 && _exists(scriptIdx),
-            "HastenScript: script query for nonexistent token"
-        );
-
-        return (_scripts[scriptIdx], _environments[scriptIdx], scriptIdx);
-    }
-
-    function scriptFromId(uint256 tokenId)
-        public
-        view
-        returns (
-            bytes memory scriptBytes,
-            bytes memory environment,
-            uint256 hash
-        )
-    {
-        require(
-            _exists(tokenId),
-            "HastenScript: script query for nonexistent token"
-        );
-
-        return (
-            _scripts[tokenId],
-            _environments[tokenId],
-            uint256(keccak256(_scripts[tokenId]))
-        );
+        return (_scripts[scriptHash], _environments[scriptHash]);
     }
 
     function upload(string memory tokenURI, bytes memory scriptBytes) public {
@@ -66,29 +31,21 @@ contract HastenScript is ERC721 {
         // mint a new token and upload it
         // but make scripts unique by hashing them
         // keccak256 seems the cheapest hashing function
-        uint256 hash = uint256(keccak256(scriptBytes));
-        require(
-            _hash2Idx[hash] == 0,
-            "HastenScript: script hash already minted"
-        );
+        uint160 hash = uint160(uint256(keccak256(scriptBytes)));
+        require(!_exists(hash), "HastenScript: script already minted");
 
-        _tokenIds.increment();
-        uint256 newItemId = _tokenIds.current();
+        _mint(msg.sender, hash);
 
-        _mint(msg.sender, newItemId);
-
-        _hash2Idx[hash] = newItemId;
-        _scripts[newItemId] = scriptBytes;
-        _environments[newItemId] = environment;
-        _setTokenURI(newItemId, tokenURI);
+        _scripts[hash] = scriptBytes;
+        _environments[hash] = environment;
+        _setTokenURI(hash, tokenURI);
     }
 
-    function update(uint256 tokenId, bytes memory environment) public {
+    function update(uint160 scriptHash, bytes memory environment) public {
         require(
-            _exists(tokenId) && msg.sender == ownerOf(tokenId),
+            _exists(scriptHash) && msg.sender == ownerOf(scriptHash),
             "Only the owner of the script can update its environment"
         );
-
-        _environments[tokenId] = environment;
+        _environments[scriptHash] = environment;
     }
 }

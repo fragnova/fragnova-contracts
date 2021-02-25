@@ -16,7 +16,7 @@ contract HastenMod is ERC721, Ownable {
     uint256 internal constant UIntMax = uint256(-1);
 
     // mapping for scripts storage
-    mapping(uint256 => uint256) private _scripts;
+    mapping(uint256 => uint160) private _scripts;
     mapping(uint256 => bytes) private _environments;
     mapping(uint256 => address) private _signers;
     mapping(address => uint256) private _rewardBlocks;
@@ -34,21 +34,14 @@ contract HastenMod is ERC721, Ownable {
     function script(uint256 modId)
         public
         view
-        returns (
-            bytes memory scriptBytes,
-            bytes memory environment,
-            uint256 scriptHash
-        )
+        returns (bytes memory scriptBytes, bytes memory environment)
     {
         require(
             _exists(modId),
             "HastenScript: script query for nonexistent token"
         );
-
-        (bytes memory byteCode, , uint256 hash) =
-            _scriptsLibrary.scriptFromId(_scripts[modId]);
-
-        return (byteCode, _environments[modId], hash);
+        (bytes memory byteCode, ) = _scriptsLibrary.script(_scripts[modId]);
+        return (byteCode, _environments[modId]);
     }
 
     function setDelegate(uint256 scriptId, address delegate) public {
@@ -62,7 +55,7 @@ contract HastenMod is ERC721, Ownable {
 
     function _upload(
         string memory tokenURI,
-        uint256 scriptId,
+        uint160 scriptId,
         bytes memory environment
     ) internal {
         _tokenIds.increment();
@@ -75,7 +68,7 @@ contract HastenMod is ERC721, Ownable {
 
     function upload(
         string memory tokenURI,
-        uint256 scriptId,
+        uint160 scriptId,
         bytes memory environment
     ) public {
         require(
@@ -92,7 +85,7 @@ contract HastenMod is ERC721, Ownable {
     function uploadWithDelegateAuth(
         bytes memory signature,
         string memory tokenURI,
-        uint256 scriptId,
+        uint160 scriptId,
         bytes memory environment
     ) public {
         bytes32 hash =
