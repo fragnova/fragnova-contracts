@@ -12,8 +12,7 @@ contract HastenMod is ERC721, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    uint256 internal OwnerReward = 1 * (10**16);
-    uint256 internal constant UIntMax = uint256(-1);
+    uint256 internal _ownerReward = 1 * (10**16);
 
     // mapping for scripts storage
     mapping(uint256 => uint160) private _scripts;
@@ -22,10 +21,10 @@ contract HastenMod is ERC721, Ownable {
     mapping(address => uint256) private _rewardBlocks;
 
     HastenScript internal immutable _scriptsLibrary;
-    HastenDAOToken internal immutable _daoToken;
+    HastenDAOToken internal _daoToken;
 
     constructor(address libraryAddress, address daoAddress)
-        ERC721("Hasten Mod NFT", "HSTNmV0")
+        ERC721("Hasten Mod NFT v0", "MOD")
     {
         _scriptsLibrary = HastenScript(libraryAddress);
         _daoToken = HastenDAOToken(daoAddress);
@@ -115,24 +114,40 @@ contract HastenMod is ERC721, Ownable {
         uint256 tokenId
     ) internal override {
         // ensure not a mint or burn
-        if (to != address(0) && from != address(0)) {
+        if (
+            to != address(0) &&
+            from != address(0) &&
+            address(_daoToken) != address(0)
+        ) {
             address scriptOwner = _scriptsLibrary.ownerOf(_scripts[tokenId]);
             if (
                 _rewardBlocks[scriptOwner] != block.number &&
-                _daoToken.balanceOf(address(this)) > OwnerReward
+                _daoToken.balanceOf(address(this)) > _ownerReward
             ) {
-                _daoToken.increaseAllowance(address(this), OwnerReward);
-                _daoToken.transferFrom(address(this), scriptOwner, OwnerReward);
+                _daoToken.increaseAllowance(address(this), _ownerReward);
+                _daoToken.transferFrom(
+                    address(this),
+                    scriptOwner,
+                    _ownerReward
+                );
                 _rewardBlocks[scriptOwner] = block.number;
             }
         }
     }
 
     function setScriptOwnerReward(uint256 amount) public onlyOwner {
-        OwnerReward = amount;
+        _ownerReward = amount;
     }
 
     function getScriptOwnerReward() public view returns (uint256) {
-        return OwnerReward;
+        return _ownerReward;
+    }
+
+    function setDAOToken(address addr) public onlyOwner {
+        _daoToken = HastenDAOToken(addr);
+    }
+
+    function getDAOToken() public view returns (address) {
+        return address(_daoToken);
     }
 }
