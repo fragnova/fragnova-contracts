@@ -1,4 +1,4 @@
-(def bytecode (slurp "bytecode.txt"))
+(def bytecode (slurp "nft-bytecode.txt"))
 
 (defnode Root)
 
@@ -22,8 +22,8 @@
 (defloop try-many
   nil (Expand 4096 random-try :Threads 128)
   (ForEach (-> = .record
-               (Take "address") (Slice :From 2 :To 6)
-               (When (Is "c0de") (-> .record (ToString) = .result
+               (Take "address") (Slice :From 2 :To 9)
+               (When (Is "c0de721") (-> .record (ToString) = .result
                                          "results.txt"
                                          (FS.Write .result :Append true)
                                          (FS.Write "\n" :Append true))))))

@@ -2,8 +2,8 @@ pragma solidity ^0.7.4;
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
-import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "./HastenDAOToken.sol";
+import "./Ownable.sol";
 
 contract HastenScript is ERC721, Ownable {
     // mapping for scripts storage
@@ -15,7 +15,12 @@ contract HastenScript is ERC721, Ownable {
     mapping(address => uint256) private _rewardBlocks;
     HastenDAOToken internal _daoToken = HastenDAOToken(address(0));
 
-    constructor() ERC721("Hasten Script NFT v0", "CODE") {}
+    constructor()
+        ERC721("Hasten Script NFT v0", "CODE")
+        Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
+    {
+        _setBaseURI("ipfs://");
+    }
 
     function script(uint160 scriptHash)
         public

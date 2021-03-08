@@ -167,7 +167,8 @@ contract("HastenScript", accounts => {
     });
     console.log(uniquedTx);
 
-    fs.writeFile("deployer-utils/bytecode.txt", nft.bytecode, (_r, _e) => {});
+    fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => {});
+    fs.writeFile("deployer-utils/dao-bytecode.txt", dao.bytecode, (_r, _e) => {});
   });
 
   it("should not upload a script", async () => {

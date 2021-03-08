@@ -3,10 +3,10 @@ pragma solidity ^0.7.4;
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
-import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
 import "./HastenScript.sol";
 import "./HastenDAOToken.sol";
+import "./Ownable.sol";
 
 contract HastenMod is ERC721, Ownable {
     using Counters for Counters.Counter;
@@ -25,6 +25,7 @@ contract HastenMod is ERC721, Ownable {
 
     constructor(address libraryAddress, address daoAddress)
         ERC721("Hasten Mod NFT v0", "MOD")
+        Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {
         _scriptsLibrary = HastenScript(libraryAddress);
         _daoToken = HastenDAOToken(daoAddress);
