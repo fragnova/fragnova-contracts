@@ -6,6 +6,9 @@ import "./HastenDAOToken.sol";
 import "./Ownable.sol";
 
 contract HastenScript is ERC721, Ownable {
+    // reserved by proxy
+    address internal _impl = address(0);
+
     // mapping for scripts storage
     mapping(uint160 => bytes) private _scripts;
     mapping(uint160 => bytes) private _environments;

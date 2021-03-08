@@ -2,7 +2,6 @@ const { Address, bufferToHex } = require("ethereumjs-util");
 const { Transaction } = require("@ethereumjs/tx");
 const { keccak256, hexToBytes, bytesToHex } = require("web3-utils");
 const { BN } = require("bn.js");
-const fs = require('fs');
 
 var nft = artifacts.require("HastenScript");
 var modNft = artifacts.require("HastenMod");
@@ -166,9 +165,6 @@ contract("HastenScript", accounts => {
       gas: 300000
     });
     console.log(uniquedTx);
-
-    fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => {});
-    fs.writeFile("deployer-utils/dao-bytecode.txt", dao.bytecode, (_r, _e) => {});
   });
 
   it("should not upload a script", async () => {

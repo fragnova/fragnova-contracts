@@ -1,4 +1,5 @@
-(def bytecode (slurp "nft-bytecode.txt"))
+(def bytecode1 (slurp "nft-bytecode.txt"))
+(def bytecode2 (slurp "pnft-bytecode.txt"))
 
 (defnode Root)
 
@@ -10,23 +11,28 @@
   .bytes (Hash.Keccak256) (ToHex) (Slice :From 26) >= .res
   "0x" (PrependTo .res) .res)
 
-(defchain random-try
-  "0xce0042B868300000d44A59004Da54A005ffdcf9f" >> .args
-  (RandomBytes 32) (ToHex) >> .args = .salt
-  bytecode >> .args
-  .args (Do find-address) = .address
-  .address (Set .res "address")
-  .salt (Set .res "salt")
-  .res)
+(defn random-try [bytecode]
+  (Chain "random-try"
+         "0xce0042B868300000d44A59004Da54A005ffdcf9f" >> .args
+         (RandomBytes 32) (ToHex) >> .args = .salt
+         bytecode >> .args
+         .args (Do find-address) = .address
+         .address (Set .res "address")
+         .salt (Set .res "salt")
+         .res))
 
-(defloop try-many
-  nil (Expand 4096 random-try :Threads 128)
-  (ForEach (-> = .record
-               (Take "address") (Slice :From 2 :To 9)
-               (When (Is "c0de721") (-> .record (ToString) = .result
-                                         "results.txt"
-                                         (FS.Write .result :Append true)
-                                         (FS.Write "\n" :Append true))))))
+(defn try-many [n bytecode]
+  (Chain "try-many" :Looped
+         nil (Expand 4096 (random-try bytecode) :Threads 128)
+         (ForEach (-> = .record
+                      (Take "address") (Slice :From 2 :To 9)
+                      (When (Is "c0de721") (->
+                                            (FS.Write n :Append true)
+                                            .record (ToString) = .result
+                                            "results.txt"
+                                            (FS.Write .result :Append true)
+                                            (FS.Write "\n" :Append true)))))))
 
-(schedule Root try-many)
+(schedule Root (try-many "1: " bytecode1))
+(schedule Root (try-many "2: " bytecode2))
 (run Root)

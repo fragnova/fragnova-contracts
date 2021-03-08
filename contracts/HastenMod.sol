@@ -9,6 +9,9 @@ import "./HastenDAOToken.sol";
 import "./Ownable.sol";
 
 contract HastenMod is ERC721, Ownable {
+    // reserved by proxy
+    address internal _impl = address(0);
+
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
