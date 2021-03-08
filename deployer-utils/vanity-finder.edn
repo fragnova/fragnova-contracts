@@ -27,9 +27,9 @@
          (ForEach (-> = .record
                       (Take "address") (Slice :From 2 :To 9)
                       (When (Is "c0de721") (->
-                                            (FS.Write n :Append true)
                                             .record (ToString) = .result
                                             "results.txt"
+                                            (FS.Write n :Append true)
                                             (FS.Write .result :Append true)
                                             (FS.Write "\n" :Append true)))))))
 
