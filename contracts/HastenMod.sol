@@ -1,6 +1,6 @@
 pragma solidity ^0.7.4;
 
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import "./ERC721.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";

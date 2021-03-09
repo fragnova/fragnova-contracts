@@ -9,6 +9,10 @@ abstract contract Ownable {
     );
 
     constructor(address initialOwner) internal {
+        _bootstrap(initialOwner);
+    }
+
+    function _bootstrap(address initialOwner) internal {
         _owner = initialOwner;
         emit OwnershipTransferred(address(0), initialOwner);
     }

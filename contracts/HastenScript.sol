@@ -1,11 +1,11 @@
 pragma solidity ^0.7.4;
 
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
-import "openzeppelin-solidity/contracts/utils/Counters.sol";
-import "./HastenDAOToken.sol";
+import "./ERC721.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-solidity/contracts/proxy/Initializable.sol";
 import "./Ownable.sol";
 
-contract HastenScript is ERC721, Ownable {
+contract HastenScript is ERC721, Ownable, Initializable {
     // reserved by proxy
     address internal _impl = address(0);
 
@@ -16,12 +16,21 @@ contract HastenScript is ERC721, Ownable {
     // rewards related
     uint256 internal _mintReward = 1 * (10**16);
     mapping(address => uint256) private _rewardBlocks;
-    HastenDAOToken internal _daoToken = HastenDAOToken(address(0));
+    IERC20 internal _daoToken = IERC20(address(0));
 
     constructor()
         ERC721("Hasten Script NFT v0", "CODE")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {
+        _setBaseURI("ipfs://");
+    }
+
+    function bootstrap() public payable initializer {
+        // Ownable
+        Ownable._bootstrap(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
+        // ERC721
+        ERC721._bootstrap("Hasten Script NFT v0", "CODE");
+
         _setBaseURI("ipfs://");
     }
 
@@ -81,7 +90,7 @@ contract HastenScript is ERC721, Ownable {
                 _rewardBlocks[msg.sender] != block.number &&
                 _daoToken.balanceOf(address(this)) > _mintReward
             ) {
-                _daoToken.increaseAllowance(address(this), _mintReward);
+                _daoToken.approve(address(this), _mintReward);
                 _daoToken.transferFrom(address(this), msg.sender, _mintReward);
                 _rewardBlocks[msg.sender] = block.number;
             }
@@ -97,7 +106,7 @@ contract HastenScript is ERC721, Ownable {
     }
 
     function setDAOToken(address addr) public onlyOwner {
-        _daoToken = HastenDAOToken(addr);
+        _daoToken = IERC20(addr);
     }
 
     function getDAOToken() public view returns (address) {
