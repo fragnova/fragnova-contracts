@@ -31,17 +31,16 @@ function composeCall(bytecode, salt) {
 }
 
 function deterministicDeployment(contractBytes, gasCost) {
-  console.log(composeCall(contractBytes, "0x711"));
+  // console.log(composeCall(contractBytes, "0x711"));
   const deployTx = new Transaction({
     nonce: 0,
-    gasPrice: new BN(web3.utils.toWei("100", "gwei"), 10),
-    gasLimit: gasCost * 2, // tank a possible EVM gas cost raise
+    gasPrice: new BN(web3.utils.toWei("500", "gwei"), 10),
+    gasLimit: 200000, // tank a possible EVM gas cost raise
     value: 0,
     data: "0x608060405234801561001057600080fd5b50610134806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80634af63f0214602d575b600080fd5b60cf60048036036040811015604157600080fd5b810190602081018135640100000000811115605b57600080fd5b820183602082011115606c57600080fd5b80359060200191846001830284011164010000000083111715608d57600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550509135925060eb915050565b604080516001600160a01b039092168252519081900360200190f35b6000818351602085016000f5939250505056fea26469706673582212206b44f8a82cb6b156bfcc3dc6aadd6df4eefd204bc928a4397fd15dacf6d5320564736f6c63430006020033",
-    // data: composeCall(contractBytes, "0x711"),
     v: 27,
-    r: "0xBADA1",
-    s: "0xC0FFEE"
+    r: "0x247000",
+    s: "0x2470"
   });
   return deployTx;
 }
@@ -103,9 +102,9 @@ contract("HastenScript", accounts => {
     const rwSetTx = await contract.setDAOToken(dao20.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
     console.log(rwSetTx);
 
-    // const deployTx = deterministicDeployment(nft.bytecode, receipt.gasUsed);
-    // const sender = Address.fromPublicKey(deployTx.getSenderPublicKey());
-    // console.log(sender.toString());
+    const deployTx = deterministicDeployment(nft.bytecode, receipt.gasUsed);
+    const sender = Address.fromPublicKey(deployTx.getSenderPublicKey());
+    console.log(sender.toString());
     // const sendethTx = {
     //   from: accounts[0],
     //   to: sender.toString(),
@@ -113,7 +112,7 @@ contract("HastenScript", accounts => {
     // };
     // const rtx = await web3.eth.sendTransaction(sendethTx);
     // console.log(rtx);
-    // console.log(bufferToHex(deployTx.serialize()));
+    console.log(bufferToHex(deployTx.serialize()));
     // const dtx = await web3.eth.sendSignedTransaction(bufferToHex(deployTx.serialize()));
     // console.log(dtx);
 
