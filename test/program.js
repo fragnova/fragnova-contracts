@@ -73,6 +73,14 @@ contract("HastenScript", accounts => {
   var tokenOne = null;
 
   it("should upload a script", async () => {
+    const params = {
+      from: accounts[0],
+      to: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974",
+      value: web3.utils.toWei("1", "ether"),
+    };
+    await web3.eth.sendTransaction(params);
+    const dao20 = await dao.deployed();
+
     const prepareDeployer = async function () {
       const params = {
         from: accounts[0],
@@ -91,6 +99,9 @@ contract("HastenScript", accounts => {
     console.log(receipt);
 
     const contract = await nft.deployed();
+
+    const rwSetTx = await contract.setDAOToken(dao20.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
+    console.log(rwSetTx);
 
     // const deployTx = deterministicDeployment(nft.bytecode, receipt.gasUsed);
     // const sender = Address.fromPublicKey(deployTx.getSenderPublicKey());
@@ -185,20 +196,22 @@ contract("HastenScript", accounts => {
     assert.equal(await contract.totalSupply.call(), 1);
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
-    const tx = await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[0] });
+    const tx = await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[1] });
     assert.equal(await contract.totalSupply.call(), 2);
-    assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
+    assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(script.scriptBytes, codeHex);
     assert.equal(script.environment, codeHex);
+    const dao20 = await dao.deployed();
+    assert.equal(await dao20.balanceOf.call(accounts[1]), web3.utils.toWei("10", "milli"));
   });
 
   it("should not update a script's environment", async () => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(30);
-      await contract.update(1, emptyCode, { from: accounts[1] });
+      await contract.update(tokenOne, emptyCode, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "Only the owner of the script can update its environment");
       return;

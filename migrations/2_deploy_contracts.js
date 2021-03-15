@@ -6,7 +6,9 @@ var nftProxy = artifacts.require("HastenScriptProxy");
 var nftMod = artifacts.require("HastenMod");
 var admin = artifacts.require("HastenProxyAdmin");
 
-module.exports = async function(deployer) {
+module.exports = async function(deployer, network) {
+  console.log("Network: " + network);
+
   await deployer.deploy(daoToken);
   await deployer.deploy(nft);
   // await deployer.deploy(nftProxy);
@@ -14,6 +16,7 @@ module.exports = async function(deployer) {
   await deployer.deploy(nftMod, nft.address, daoToken.address);
   const dao = await daoToken.deployed();
   await dao.transfer(nftMod.address, web3.utils.toWei("1024", "ether"));
+  await dao.transfer(nft.address, web3.utils.toWei("1024", "ether"));
 
   fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => {});
   fs.writeFile("deployer-utils/pnft-bytecode.txt", nftProxy.bytecode, (_r, _e) => {});
