@@ -13,7 +13,7 @@
 
 (defn random-try [bytecode]
   (Chain "random-try"
-         "0xce0042B868300000d44A59004Da54A005ffdcf9f" >> .args
+         "0x53aab8351206a3eee51096c2be27d6e5ca9c5ecd" >> .args
          (RandomBytes 32) (ToHex) >> .args = .salt
          bytecode >> .args
          .args (Do find-address) = .address
