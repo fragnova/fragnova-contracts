@@ -1,6 +1,11 @@
 import Crypto
 
 pub contract HastenUtility {
+  pub fun ownerAddress(): Address {
+    return Address(0xf8d6e0586b0a20c7)
+    // return Address(0xf8d51e8d9f1ceb86) // testnet
+  }
+
   pub fun sha3_160(bytes: [UInt8]): UInt256 {
     var hbytes = Crypto.hash(bytes, algorithm: Crypto.SHA3_256)
     var uhash = 0 as UInt256

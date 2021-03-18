@@ -1,4 +1,4 @@
-import HastenUtility from 0xf8d6e0586b0a20c7
+import HastenUtility from "./utility.cdc"
 
 pub contract HastenIndex {
   pub resource NFTReference {

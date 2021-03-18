@@ -10,8 +10,8 @@
 // Learn more about non-fungible tokens in this tutorial: https://docs.onflow.org/docs/non-fungible-tokens
 
 import Crypto
-import HastenUtility from 0xf8d6e0586b0a20c7
-import HastenIndex from 0xf8d6e0586b0a20c7
+import HastenUtility from "./utility.cdc"
+import HastenIndex from "./index.cdc"
 
 pub contract HastenScript {
   pub event NewReceiver(addr: Address?)
@@ -79,7 +79,7 @@ pub contract HastenScript {
     // adds it to the collections dictionary
     pub fun deposit(token: @Script) {
       // update the global index
-      let indexAccount = getAccount(0xf8d6e0586b0a20c7)
+      let indexAccount = getAccount(HastenUtility.ownerAddress())
       let index = indexAccount.getCapability<&{HastenIndex.Index}>(/public/HastenIndex)
                         .borrow() ?? panic("Could not borrow index")
       index.update(hashId: token.hashId, ownerAddr: self.owner!.address)
@@ -126,7 +126,7 @@ pub contract HastenScript {
       let hashId = HastenUtility.sha3_160(bytes: code)
 
        // find if the script already exists in the global index
-      let indexAccount = getAccount(0xf8d6e0586b0a20c7)
+      let indexAccount = getAccount(HastenUtility.ownerAddress())
       let index = indexAccount.getCapability<&{HastenIndex.Index}>(/public/HastenIndex)
                         .borrow() ?? panic("Could not borrow index")
       let maybeOwner = index.find(hashId: hashId)

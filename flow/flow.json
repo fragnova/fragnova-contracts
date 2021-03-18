@@ -7,32 +7,18 @@
 		}
 	},
 	"contracts": {
-		"HastenUtility": {
-			"source": "./utility.cdc",
-			"aliases": {
-				"emulator": "0xf8d6e0586b0a20c7",
-				"testnet": "0x9a0766d93b6608b7"
-			}
-		},
-		"HastenIndex": {
-			"source": "./index.cdc",
-			"aliases": {
-				"emulator": "0xf8d6e0586b0a20c7",
-				"testnet": "0x9a0766d93b6608b7"
-			}
-		},
-		"HastenScript": {
-			"source": "./script.cdc",
-			"aliases": {
-				"emulator": "0xf8d6e0586b0a20c7",
-				"testnet": "0x9a0766d93b6608b7"
-			}
-		}
+		"HastenUtility": "./utility.cdc",
+		"HastenIndex": "./index.cdc",
+		"HastenScript": "./script.cdc"
 	},
 	"networks": {
 		"emulator": {
 			"host": "127.0.0.1:3569",
 			"chain": "flow-emulator"
+		},
+		"testnet": {
+			"host": "access.testnet.nodes.onflow.org:9000",
+			"chain": "flow-testnet"
 		}
 	},
 	"accounts": {
@@ -45,11 +31,23 @@
 			"address": "01cf0e2f2f715450",
 			"keys": "0b209829348a9a047ce2470bd0050a9aeb0affaea04dfb1884d69ea36ef323f0",
 			"chain": "flow-emulator"
+		},
+		"testnet-account": {
+			"address": "f8d51e8d9f1ceb86",
+			"keys": "${FLOW_PRIVATE_KEY}",
+			"chain": "flow-testnet"
 		}
 	},
 	"deployments": {
 		"emulator": {
 			"emulator-account": [
+				"HastenUtility",
+				"HastenIndex",
+				"HastenScript"
+			]
+		},
+		"testnet": {
+			"testnet-account": [
 				"HastenUtility",
 				"HastenIndex",
 				"HastenScript"
