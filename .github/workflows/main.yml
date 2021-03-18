@@ -24,9 +24,5 @@ jobs:
     - uses: actions/setup-go@v2
     - name: Test
       run: |
-        cd flow
         go get github.com/onflow/flow-go-sdk
-        flow project start-emulator &
-        sleep 5
-        flow project deploy
-        flow transactions send -c .\mint.cdc --results
+
