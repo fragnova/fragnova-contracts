@@ -31,9 +31,6 @@
 			"address": "01cf0e2f2f715450",
 			"keys": "0b209829348a9a047ce2470bd0050a9aeb0affaea04dfb1884d69ea36ef323f0",
 			"chain": "flow-emulator"
-		},
-		"testnet-account": {
-			"chain": "flow-testnet"
 		}
 	},
 	"deployments": {
