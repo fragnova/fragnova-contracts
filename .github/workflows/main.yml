@@ -28,4 +28,4 @@ jobs:
         flow project start-emulator &
         sleep 5
         flow project deploy
-        flow transactions send -c .\mint.cdc --results
+        flow transactions send -c mint.cdc --results
