@@ -11,8 +11,9 @@
 
 import Crypto
 import HastenUtility from 0xf8d6e0586b0a20c7
+import HastenIndex from 0xf8d6e0586b0a20c7
 
-pub contract Script {
+pub contract HastenScript {
   pub event NewReceiver(addr: Address?)
 
   pub event Withdraw(id: UInt256, addr: Address?)
@@ -77,9 +78,17 @@ pub contract Script {
     // Function that takes a NFT as an argument and
     // adds it to the collections dictionary
     pub fun deposit(token: @NFT) {
+      // update the global index
+      let indexAccount = getAccount(0xf8d6e0586b0a20c7)
+      let index = indexAccount.getCapability<&{HastenIndex.Index}>(/public/HastenIndex)
+                        .borrow() ?? panic("Could not borrow index")
+      index.update(hashId: token.hashId, ownerAddr: self.owner!.address)
+
+      // emit a deposit event
+      emit Deposit(id: token.hashId, addr: self.owner?.address)
+
       // add the new token to the dictionary with a force assignment
       // if there is already a value at that key, it will fail and revert
-      emit Deposit(id: token.hashId, addr: self.owner?.address)
       self.ownedNFTs[token.hashId] <-! token
     }
 

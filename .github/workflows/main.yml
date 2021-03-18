@@ -16,3 +16,17 @@ jobs:
         ganache-cli -q -u 0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974 &
         sleep 5
         truffle test --network development
+
+  Tests-Flow:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+    - name: Test
+      run: |
+        cd flow
+        go get github.com/onflow/flow-go-sdk
+        flow project start-emulator &
+        sleep 5
+        flow project deploy
+        flow transactions send -c .\mint.cdc --results
