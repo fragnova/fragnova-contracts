@@ -24,6 +24,10 @@ jobs:
     - uses: actions/setup-go@v2
     - name: Setup
       run: go get github.com/onflow/flow-go-sdk
+    - name: Setup env
+      run: |
+        echo "::set-env name=GOPATH::$(dirname $GITHUB_WORKSPACE)"
+        echo "::add-path::$(dirname $GITHUB_WORKSPACE)/bin"
     - name: Test
       run: |
         cd flow
