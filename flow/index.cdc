@@ -1,5 +1,4 @@
 import HastenUtility from 0xf8d6e0586b0a20c7
-// import HastenScript from 0xf8d6e0586b0a20c7
 
 pub contract HastenIndex {
   pub resource NFTReference {
@@ -23,8 +22,12 @@ pub contract HastenIndex {
     }
 
     pub fun find(hashId: UInt256): Address? {
-      let nft = &self.nftToAddr[hashId] as &NFTReference
-      return nft.tokenOwner
+      if self.nftToAddr[hashId] != nil {
+        let nft = &self.nftToAddr[hashId] as &NFTReference
+        return nft.tokenOwner
+      } else {
+        return nil
+      }
     }
 
     pub fun update(hashId: UInt256, ownerAddr: Address) {

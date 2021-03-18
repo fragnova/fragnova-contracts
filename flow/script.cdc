@@ -1,11 +1,11 @@
-// NFTv2.cdc
+// Scriptv2.cdc
 //
-// This is a complete version of the ExampleNFT contract
+// This is a complete version of the ExampleScript contract
 // that includes withdraw and deposit functionality, as well as a
-// collection resource that can be used to bundle NFTs together.
+// collection resource that can be used to bundle Scripts together.
 //
 // It also includes a definition for the Minter resource,
-// which can be used by admins to mint new NFTs.
+// which can be used by admins to mint new Scripts.
 //
 // Learn more about non-fungible tokens in this tutorial: https://docs.onflow.org/docs/non-fungible-tokens
 
@@ -20,9 +20,9 @@ pub contract HastenScript {
 
   pub event Deposit(id: UInt256, addr: Address?)
 
-  // Declare the NFT resource type
-  pub resource NFT {
-    // The unique ID that differentiates each NFT
+  // Declare the Script resource type
+  pub resource Script {
+    // The unique ID that differentiates each Script
     pub let hashId: UInt256
 
     // The binary compressed code
@@ -36,48 +36,48 @@ pub contract HastenScript {
   }
 
   // We define this interface purely as a way to allow users
-  // to create public, restricted references to their NFT Collection.
+  // to create public, restricted references to their Script Collection.
   // They would use this to only expose the deposit, getIDs,
   // and idExists fields in their Collection
-  pub resource interface NFTReceiver {
-    pub fun deposit(token: @NFT)
+  pub resource interface ScriptReceiver {
+    pub fun deposit(token: @Script)
 
     pub fun getIDs(): [UInt256]
 
     pub fun idExists(id: UInt256): Bool
 
-    pub fun view(id: UInt256): &NFT;
+    pub fun view(id: UInt256): &Script;
   }
 
   // The definition of the Collection resource that
-  // holds the NFTs that a user owns
-  pub resource Collection: NFTReceiver {
-    // dictionary of NFT conforming tokens
-    // NFT is a resource type with an `UInt64` ID field
-    pub var ownedNFTs: @{UInt256: NFT}
+  // holds the Scripts that a user owns
+  pub resource Collection: ScriptReceiver {
+    // dictionary of Script conforming tokens
+    // Script is a resource type with an `UInt64` ID field
+    pub var ownedScripts: @{UInt256: Script}
 
-    // Initialize the NFTs field to an empty collection
+    // Initialize the Scripts field to an empty collection
     init () {
-      self.ownedNFTs <- {}
+      self.ownedScripts <- {}
       emit NewReceiver(addr: self.owner?.address)
     }
 
     // withdraw
     //
-    // Function that removes an NFT from the collection
+    // Function that removes an Script from the collection
     // and moves it to the calling context
-    pub fun withdraw(withdrawID: UInt256): @NFT {
-      // If the NFT isn't found, the transaction panics and reverts
-      let token <- self.ownedNFTs.remove(key: withdrawID)!
+    pub fun withdraw(withdrawID: UInt256): @Script {
+      // If the Script isn't found, the transaction panics and reverts
+      let token <- self.ownedScripts.remove(key: withdrawID)!
       emit Withdraw(id: token.hashId, addr: self.owner?.address)
       return <-token
     }
 
     // deposit
     //
-    // Function that takes a NFT as an argument and
+    // Function that takes a Script as an argument and
     // adds it to the collections dictionary
-    pub fun deposit(token: @NFT) {
+    pub fun deposit(token: @Script) {
       // update the global index
       let indexAccount = getAccount(0xf8d6e0586b0a20c7)
       let index = indexAccount.getCapability<&{HastenIndex.Index}>(/public/HastenIndex)
@@ -89,26 +89,26 @@ pub contract HastenScript {
 
       // add the new token to the dictionary with a force assignment
       // if there is already a value at that key, it will fail and revert
-      self.ownedNFTs[token.hashId] <-! token
+      self.ownedScripts[token.hashId] <-! token
     }
 
-    // idExists checks to see if a NFT
+    // idExists checks to see if a Script
     // with the given ID exists in the collection
     pub fun idExists(id: UInt256): Bool {
-      return self.ownedNFTs[id] != nil
+      return self.ownedScripts[id] != nil
     }
 
     // getIDs returns an array of the IDs that are in the collection
     pub fun getIDs(): [UInt256] {
-      return self.ownedNFTs.keys
+      return self.ownedScripts.keys
     }
 
-    pub fun view(id: UInt256): &NFT {
-      return &self.ownedNFTs[id] as &NFT
+    pub fun view(id: UInt256): &Script {
+      return &self.ownedScripts[id] as &Script
     }
 
     destroy() {
-      destroy self.ownedNFTs
+      destroy self.ownedScripts
     }
   }
 
@@ -117,41 +117,38 @@ pub contract HastenScript {
     return <- create Collection()
   }
 
-  // NFTMinter
+  // ScriptMinter
   //
   // Resource that would be owned by an admin or by a smart contract
-  // that allows them to mint new NFTs when needed
-  pub resource NFTMinter {
-    pub var mintedNFTs: [UInt256]
-
-    init () {
-      self.mintedNFTs = []
-    }
-
-    pub fun mintNFT(code: [UInt8]): @NFT {
+  // that allows them to mint new Scripts when needed
+  pub resource ScriptMinter {
+    pub fun mintScript(code: [UInt8]): @Script {
       let hashId = HastenUtility.sha3_160(bytes: code)
 
-      if self.mintedNFTs.contains(hashId) {
-        panic("Code was already minted")
+       // find if the script already exists in the global index
+      let indexAccount = getAccount(0xf8d6e0586b0a20c7)
+      let index = indexAccount.getCapability<&{HastenIndex.Index}>(/public/HastenIndex)
+                        .borrow() ?? panic("Could not borrow index")
+      let maybeOwner = index.find(hashId: hashId)
+      if let existingOwner = maybeOwner {
+        panic("This Script already exists")
       }
 
-      // create a new NFT
-      var newNFT <- create NFT(hashId: hashId, code: code)
+      // create a new Script
+      var newScript <- create Script(hashId: hashId, code: code)
 
-      self.mintedNFTs.append(hashId)
-
-      return <-newNFT
+      return <-newScript
     }
   }
 
   init() {
-    // store an empty NFT Collection in account storage
-    self.account.save(<- self.createEmptyCollection(), to: /storage/NFTCollection)
+    // store an empty Script Collection in account storage
+    self.account.save(<- self.createEmptyCollection(), to: /storage/ScriptCollection)
 
     // publish a reference to the Collection in storage
-    self.account.link<&{NFTReceiver}>(/public/NFTReceiver, target: /storage/NFTCollection)
+    self.account.link<&{ScriptReceiver}>(/public/ScriptReceiver, target: /storage/ScriptCollection)
 
     // store a minter resource in account storage
-    self.account.save(<- create NFTMinter(), to: /storage/NFTMinter)
+    self.account.save(<- create ScriptMinter(), to: /storage/ScriptMinter)
   }
 }

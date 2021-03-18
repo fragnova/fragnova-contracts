@@ -2,7 +2,8 @@
 	"emulators": {
 		"default": {
 			"port": 3569,
-			"serviceAccount": "emulator-account"
+			"serviceAccount": "emulator-account",
+			"simple-addresses": true
 		}
 	},
 	"contracts": {
@@ -38,6 +39,11 @@
 		"emulator-account": {
 			"address": "f8d6e0586b0a20c7",
 			"keys": "47e006544fcf23de19a94ce2fd514940d4ee86f4b50d6d98028d65c0d3bd0645",
+			"chain": "flow-emulator"
+		},
+		"acc1": {
+			"address": "01cf0e2f2f715450",
+			"keys": "0b209829348a9a047ce2470bd0050a9aeb0affaea04dfb1884d69ea36ef323f0",
 			"chain": "flow-emulator"
 		}
 	},
