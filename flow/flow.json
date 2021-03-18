@@ -33,7 +33,7 @@
 			"chain": "flow-emulator"
 		},
 		"testnet-account": {
-			"address": "f8d51e8d9f1ceb86",
+			"address": "${FLOW_ADDRESS}",
 			"keys": "${FLOW_PRIVATE_KEY}",
 			"chain": "flow-testnet"
 		}
