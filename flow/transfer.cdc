@@ -13,7 +13,7 @@ transaction {
     prepare(acct: AuthAccount) {
 
         // Borrow a reference from the stored collection
-        let collectionRef = acct.borrow<&HastenScript.Collection>(from: /storage/ScriptCollection)
+        let collectionRef = acct.borrow<&HastenScript.Collection>(from: /storage/HastenScriptCollectionM0m0)
             ?? panic("Could not borrow a reference to the owner's collection")
 
         // Call the withdraw function on the sender's Collection
