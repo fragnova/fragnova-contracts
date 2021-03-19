@@ -30,6 +30,9 @@ jobs:
         flow accounts create --key f262c25a256f488e62273a2171065c9ee406b48186938626d10645a42121e3d53fe1b4a95cb3ae71614bcd5a4e634f9294483d820e6c8cb60a6687421ff2d1ff --results
         flow project deploy
         flow transactions send -c mint.cdc --results
+        flow transactions send -c set_env.cdc --results
         flow transactions send -c setup_account.cdc --results -s acc1
         flow transactions send -c transfer.cdc --results
+        flow transactions send -c set_env.cdc --results -s acc1
         flow transactions send -c transfer_back.cdc --results -s acc1
+        flow transactions send -c set_env.cdc --results

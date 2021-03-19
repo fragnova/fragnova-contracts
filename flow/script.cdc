@@ -14,24 +14,45 @@ import HastenUtility from "./utility.cdc"
 import HastenIndex from "./index.cdc"
 
 pub contract HastenScript {
-  pub event NewReceiver(addr: Address?)
+  pub resource interface ScriptView {
+    pub let hashId: UInt256
+    pub let metadata: String
+    pub fun getCode(): [UInt8]
+    pub fun getEnvironment(): [UInt8]
+  }
 
-  pub event Withdraw(id: UInt256, addr: Address?)
-
-  pub event Deposit(id: UInt256, addr: Address?)
-
-  // Declare the Script resource type
-  pub resource Script {
-    // The unique ID that differentiates each Script
+  pub resource Script : ScriptView {
+    // The unique hash of the code also our index id
     pub let hashId: UInt256
 
+    // The script json metadata
+    pub let metadata: String
+
     // The binary compressed code
-    pub let code: [UInt8]
+    access(self) let code: [UInt8]
+
+    pub fun getCode(): [UInt8] {
+      return self.code
+    }
+
+    // The binary compressed environment
+    // script owners can change this
+    access(self) var environment: [UInt8]
+
+    pub fun getEnvironment(): [UInt8] {
+      return self.environment
+    }
+
+    pub fun setEnvironment(environment: [UInt8]) {
+      self.environment = environment
+    }
 
     // Initialize both fields in the init function
-    init(hashId: UInt256, code: [UInt8]) {
+    init(hashId: UInt256, metadata: String, code: [UInt8], environment: [UInt8]) {
       self.hashId = hashId
+      self.metadata = metadata
       self.code = code
+      self.environment = environment
     }
   }
 
@@ -46,15 +67,15 @@ pub contract HastenScript {
 
     pub fun idExists(id: UInt256): Bool
 
-    pub fun view(id: UInt256): &Script;
+    pub fun view(id: UInt256): &{ScriptView};
   }
 
   // The definition of the Collection resource that
   // holds the Scripts that a user owns
-  pub resource Collection: ScriptReceiver {
+  pub resource Collection : ScriptReceiver {
     // dictionary of Script conforming tokens
     // Script is a resource type with an `UInt64` ID field
-    pub var ownedScripts: @{UInt256: Script}
+    access(self) var ownedScripts: @{UInt256: Script}
 
     // Initialize the Scripts field to an empty collection
     init () {
@@ -103,7 +124,11 @@ pub contract HastenScript {
       return self.ownedScripts.keys
     }
 
-    pub fun view(id: UInt256): &Script {
+    pub fun view(id: UInt256): &{ScriptView} {
+      return &self.ownedScripts[id] as &{ScriptView}
+    }
+
+    pub fun get(id: UInt256) : &Script {
       return &self.ownedScripts[id] as &Script
     }
 
@@ -118,7 +143,7 @@ pub contract HastenScript {
   }
 
   // ScriptMinter
-  pub fun mintScript(code: [UInt8]): @Script {
+  pub fun mintWithEnv(metadata: String, code: [UInt8], environment: [UInt8]): @Script {
     let hashId = HastenUtility.sha3_160(bytes: code)
 
     // find if the script already exists in the global index
@@ -131,9 +156,13 @@ pub contract HastenScript {
     }
 
     // create a new Script
-    var newScript <- create Script(hashId: hashId, code: code)
+    var newScript <- create Script(hashId: hashId, metadata: metadata, code: code, environment: environment)
 
     return <-newScript
+  }
+
+  pub fun mint(metadata: String, code: [UInt8]): @Script {
+    return <- HastenScript.mintWithEnv(metadata: metadata, code: code, environment: [])
   }
 
   init() {
@@ -143,4 +172,8 @@ pub contract HastenScript {
     // publish a reference to the Collection in storage
     self.account.link<&{ScriptReceiver}>(/public/ScriptReceiver, target: /storage/ScriptCollection)
   }
+
+  pub event NewReceiver(addr: Address?)
+  pub event Withdraw(id: UInt256, addr: Address?)
+  pub event Deposit(id: UInt256, addr: Address?)
 }

@@ -15,7 +15,7 @@ pub contract HastenIndex {
   }
 
   pub resource IndexImpl : Index {
-    pub var nftToAddr: @{UInt256: NFTReference}
+    access(self) var nftToAddr: @{UInt256: NFTReference}
 
     init() {
        self.nftToAddr <- {}

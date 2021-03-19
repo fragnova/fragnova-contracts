@@ -19,7 +19,7 @@ transaction {
   execute {
     // Use the minter to mint an Script, which deposits
     // the Script into the collection that is sent as a parameter.
-    let newScript <- HastenScript.mintScript(code: [7 as UInt8, 1 as UInt8, 1 as UInt8])
+    let newScript <- HastenScript.mint(metadata: "Hello", code: [7 as UInt8, 1 as UInt8, 1 as UInt8])
 
     self.receiverRef.deposit(token: <-newScript)
 
