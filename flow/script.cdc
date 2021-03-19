@@ -170,7 +170,7 @@ pub contract HastenScript {
     self.account.save(<- self.createEmptyCollection(), to: /storage/HastenScriptCollectionM0m0)
 
     // publish a reference to the Collection in storage
-    self.account.link<&{ScriptReceiver}>(/public/HastenScriptCollectionM0m0, target: /storage/HastenScriptCollectionM0m0)
+    self.account.link<&{ScriptReceiver}>(/public/HastenScriptReceiverM0m0, target: /storage/HastenScriptCollectionM0m0)
   }
 
   pub event NewReceiver(addr: Address?)

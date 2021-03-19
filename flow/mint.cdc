@@ -11,7 +11,7 @@ transaction {
 
   prepare(acct: AuthAccount) {
     // Get the owner's collection capability and borrow a reference
-    self.receiverRef = acct.getCapability<&{HastenScript.ScriptReceiver}>(/public/HastenScriptCollectionM0m0)
+    self.receiverRef = acct.getCapability<&{HastenScript.ScriptReceiver}>(/public/HastenScriptReceiverM0m0)
       .borrow()
       ?? panic("Could not borrow receiver reference")
   }
