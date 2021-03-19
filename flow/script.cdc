@@ -118,27 +118,22 @@ pub contract HastenScript {
   }
 
   // ScriptMinter
-  //
-  // Resource that would be owned by an admin or by a smart contract
-  // that allows them to mint new Scripts when needed
-  pub resource ScriptMinter {
-    pub fun mintScript(code: [UInt8]): @Script {
-      let hashId = HastenUtility.sha3_160(bytes: code)
+  pub fun mintScript(code: [UInt8]): @Script {
+    let hashId = HastenUtility.sha3_160(bytes: code)
 
-       // find if the script already exists in the global index
-      let indexAccount = getAccount(HastenUtility.ownerAddress())
-      let index = indexAccount.getCapability<&{HastenIndex.Index}>(/public/HastenIndex)
-                        .borrow() ?? panic("Could not borrow index")
-      let maybeOwner = index.find(hashId: hashId)
-      if let existingOwner = maybeOwner {
-        panic("This Script already exists")
-      }
-
-      // create a new Script
-      var newScript <- create Script(hashId: hashId, code: code)
-
-      return <-newScript
+    // find if the script already exists in the global index
+    let indexAccount = getAccount(HastenUtility.ownerAddress())
+    let index = indexAccount.getCapability<&{HastenIndex.Index}>(/public/HastenIndex)
+                      .borrow() ?? panic("Could not borrow index")
+    let maybeOwner = index.find(hashId: hashId)
+    if let existingOwner = maybeOwner {
+      panic("This Script already exists")
     }
+
+    // create a new Script
+    var newScript <- create Script(hashId: hashId, code: code)
+
+    return <-newScript
   }
 
   init() {
@@ -147,8 +142,5 @@ pub contract HastenScript {
 
     // publish a reference to the Collection in storage
     self.account.link<&{ScriptReceiver}>(/public/ScriptReceiver, target: /storage/ScriptCollection)
-
-    // store a minter resource in account storage
-    self.account.save(<- create ScriptMinter(), to: /storage/ScriptMinter)
   }
 }
