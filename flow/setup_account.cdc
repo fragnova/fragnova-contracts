@@ -12,12 +12,12 @@ transaction {
         let collection <- HastenScript.createEmptyCollection()
 
         // store the empty Script Collection in account storage
-        acct.save<@HastenScript.Collection>(<-collection, to: /storage/ScriptCollection)
+        acct.save<@HastenScript.Collection>(<-collection, to: /storage/HastenScriptCollectionM0m0)
 
         log("Collection created for account 1")
 
         // create a public capability for the Collection
-        acct.link<&{HastenScript.ScriptReceiver}>(/public/ScriptReceiver, target: /storage/ScriptCollection)
+        acct.link<&{HastenScript.ScriptReceiver}>(/public/HastenScriptReceiverM0m0, target: /storage/HastenScriptCollectionM0m0)
 
         log("Capability created")
     }

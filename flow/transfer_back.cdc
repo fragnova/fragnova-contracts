@@ -13,7 +13,7 @@ transaction {
     prepare(acct: AuthAccount) {
 
         // Borrow a reference from the stored collection
-        let collectionRef = acct.borrow<&HastenScript.Collection>(from: /storage/ScriptCollection)
+        let collectionRef = acct.borrow<&HastenScript.Collection>(from: /storage/HastenScriptCollectionM0m0)
             ?? panic("Could not borrow a reference to the owner's collection")
 
         // Call the withdraw function on the sender's Collection
@@ -27,7 +27,7 @@ transaction {
 
         // Get the Collection reference for the receiver
         // getting the public capability and borrowing a reference from it
-        let receiverRef = recipient.getCapability<&{HastenScript.ScriptReceiver}>(/public/ScriptReceiver)
+        let receiverRef = recipient.getCapability<&{HastenScript.ScriptReceiver}>(/public/HastenScriptCollectionM0m0)
             .borrow()
             ?? panic("Could not borrow receiver reference")
 

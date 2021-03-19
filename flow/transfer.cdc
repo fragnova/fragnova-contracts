@@ -27,7 +27,7 @@ transaction {
 
         // Get the Collection reference for the receiver
         // getting the public capability and borrowing a reference from it
-        let receiverRef = recipient.getCapability<&{HastenScript.ScriptReceiver}>(/public/ScriptReceiver)
+        let receiverRef = recipient.getCapability<&{HastenScript.ScriptReceiver}>(/public/HastenScriptCollectionM0m0)
             .borrow()
             ?? panic("Could not borrow receiver reference")
 

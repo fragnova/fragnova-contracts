@@ -13,7 +13,7 @@ transaction {
 
     prepare(acct: AuthAccount) {
         let hashId = UInt256(977254950727332713390919558565142167926186649569)
-        let coll = acct.borrow<&HastenScript.Collection>(from: /storage/ScriptCollection) ?? panic("Could not borrow the index")
+        let coll = acct.borrow<&HastenScript.Collection>(from: /storage/HastenScriptCollectionM0m0) ?? panic("Could not borrow the index")
         self.script = coll.get(id: hashId)
     }
 

@@ -44,9 +44,9 @@ pub contract HastenIndex {
 
   init() {
     // store an empty NFT Collection in account storage
-    self.account.save(<- create IndexImpl(), to: /storage/Index)
+    self.account.save(<- create IndexImpl(), to: /storage/HastenIndex)
 
     // publish a reference to the Collection in storage
-    self.account.link<&{Index}>(/public/HastenIndex, target: /storage/Index)
+    self.account.link<&{Index}>(/public/HastenIndex, target: /storage/HastenIndex)
   }
 }
