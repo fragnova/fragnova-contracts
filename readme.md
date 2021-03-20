@@ -8,6 +8,8 @@ The following raw transactions can be used by anyone to deploy Hasten contracts 
 
 The resulting contracts will have always the same address no matter on which chain they are.
 
+More details here https://eips.ethereum.org/EIPS/eip-2470
+
 ### HastenProxyAdmin
 
 Gas Used by Transaction:
