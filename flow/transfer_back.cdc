@@ -1,6 +1,7 @@
 // Transaction4.cdc
 
 import HastenScript from 0xf8d6e0586b0a20c7
+import IHastenScript from 0xf8d6e0586b0a20c7
 
 // This transaction transfers an Script from one user's collection
 // to another user's collection.
@@ -8,7 +9,7 @@ transaction {
 
     // The field that will hold the Script as it is being
     // transferred to the other account
-    let transferToken: @HastenScript.Script
+    let transferToken: @IHastenScript.Script
 
     prepare(acct: AuthAccount) {
 
@@ -27,7 +28,7 @@ transaction {
 
         // Get the Collection reference for the receiver
         // getting the public capability and borrowing a reference from it
-        let receiverRef = recipient.getCapability<&{HastenScript.ScriptReceiver}>(/public/HastenScriptReceiverM0m0)
+        let receiverRef = recipient.getCapability<&{IHastenScript.ScriptReceiver}>(/public/HastenScriptReceiverM0m0)
             .borrow()
             ?? panic("Could not borrow receiver reference")
 

@@ -1,5 +1,5 @@
-import HastenScript from 0xf8d51e8d9f1ceb86
-import HastenIndex from 0xf8d51e8d9f1ceb86
+import HastenScript from 0xf8d6e0586b0a20c7
+import HastenIndex from 0xf8d6e0586b0a20c7
 
 transaction {
   let coll: @HastenScript.Collection?

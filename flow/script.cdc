@@ -12,70 +12,15 @@
 import Crypto
 import HastenUtility from "./utility.cdc"
 import HastenIndex from "./index.cdc"
+import IHastenScript from "./iscript.cdc"
 
 pub contract HastenScript {
-  pub resource interface ScriptView {
-    pub let hashId: UInt256
-    pub let metadata: String
-    pub fun getCode(): [UInt8]
-    pub fun getEnvironment(): [UInt8]
-  }
-
-  pub resource Script : ScriptView {
-    // The unique hash of the code also our index id
-    pub let hashId: UInt256
-
-    // The script json metadata
-    pub let metadata: String
-
-    // The binary compressed code
-    access(self) let code: [UInt8]
-
-    pub fun getCode(): [UInt8] {
-      return self.code
-    }
-
-    // The binary compressed environment
-    // script owners can change this
-    access(self) var environment: [UInt8]
-
-    pub fun getEnvironment(): [UInt8] {
-      return self.environment
-    }
-
-    pub fun setEnvironment(environment: [UInt8]) {
-      self.environment = environment
-    }
-
-    // Initialize both fields in the init function
-    init(hashId: UInt256, metadata: String, code: [UInt8], environment: [UInt8]) {
-      self.hashId = hashId
-      self.metadata = metadata
-      self.code = code
-      self.environment = environment
-    }
-  }
-
-  // We define this interface purely as a way to allow users
-  // to create public, restricted references to their Script Collection.
-  // They would use this to only expose the deposit, getIDs,
-  // and idExists fields in their Collection
-  pub resource interface ScriptReceiver {
-    pub fun deposit(token: @Script)
-
-    pub fun getIDs(): [UInt256]
-
-    pub fun idExists(id: UInt256): Bool
-
-    pub fun view(id: UInt256): &{ScriptView};
-  }
-
   // The definition of the Collection resource that
   // holds the Scripts that a user owns
-  pub resource Collection : ScriptReceiver {
+  pub resource Collection : IHastenScript.ScriptReceiver {
     // dictionary of Script conforming tokens
     // Script is a resource type with an `UInt64` ID field
-    access(self) var ownedScripts: @{UInt256: Script}
+    access(self) var ownedScripts: @{UInt256: IHastenScript.Script}
 
     // Initialize the Scripts field to an empty collection
     init () {
@@ -87,7 +32,7 @@ pub contract HastenScript {
     //
     // Function that removes an Script from the collection
     // and moves it to the calling context
-    pub fun withdraw(withdrawID: UInt256): @Script {
+    pub fun withdraw(withdrawID: UInt256): @IHastenScript.Script {
       // If the Script isn't found, the transaction panics and reverts
       let token <- self.ownedScripts.remove(key: withdrawID)!
       emit Withdraw(id: token.hashId, addr: self.owner?.address)
@@ -98,16 +43,9 @@ pub contract HastenScript {
     //
     // Function that takes a Script as an argument and
     // adds it to the collections dictionary
-    pub fun deposit(token: @Script) {
-      // update the global index
-      let indexAccount = getAccount(HastenUtility.ownerAddress())
-      let index = indexAccount.getCapability<&{HastenIndex.Index}>(/public/HastenIndex)
-                        .borrow() ?? panic("Could not borrow index")
-      index.update(hashId: token.hashId, ownerAddr: self.owner!.address)
-
+    pub fun deposit(token: @IHastenScript.Script) {
       // emit a deposit event
       emit Deposit(id: token.hashId, addr: self.owner?.address)
-
       // add the new token to the dictionary with a force assignment
       // if there is already a value at that key, it will fail and revert
       self.ownedScripts[token.hashId] <-! token
@@ -124,12 +62,12 @@ pub contract HastenScript {
       return self.ownedScripts.keys
     }
 
-    pub fun view(id: UInt256): &{ScriptView} {
-      return &self.ownedScripts[id] as &{ScriptView}
+    pub fun view(id: UInt256): &{IHastenScript.ScriptView} {
+      return &self.ownedScripts[id] as &{IHastenScript.ScriptView}
     }
 
-    pub fun get(id: UInt256) : &Script {
-      return &self.ownedScripts[id] as &Script
+    pub fun get(id: UInt256) : &IHastenScript.Script {
+      return &self.ownedScripts[id] as &IHastenScript.Script
     }
 
     destroy() {
@@ -143,7 +81,7 @@ pub contract HastenScript {
   }
 
   // ScriptMinter
-  pub fun mintWithEnv(metadata: String, code: [UInt8], environment: [UInt8]): @Script {
+  pub fun mintWithEnv(metadata: String, code: [UInt8], environment: [UInt8]): @IHastenScript.Script {
     let hashId = HastenUtility.sha3_160(bytes: code)
 
     // find if the script already exists in the global index
@@ -156,12 +94,12 @@ pub contract HastenScript {
     }
 
     // create a new Script
-    var newScript <- create Script(hashId: hashId, metadata: metadata, code: code, environment: environment)
+    var newScript <- IHastenScript.createScript(metadata: metadata, code: code, environment: environment)
 
     return <-newScript
   }
 
-  pub fun mint(metadata: String, code: [UInt8]): @Script {
+  pub fun mint(metadata: String, code: [UInt8]): @IHastenScript.Script {
     return <- HastenScript.mintWithEnv(metadata: metadata, code: code, environment: [])
   }
 
@@ -170,7 +108,7 @@ pub contract HastenScript {
     self.account.save(<- self.createEmptyCollection(), to: /storage/HastenScriptCollectionM0m0)
 
     // publish a reference to the Collection in storage
-    self.account.link<&{ScriptReceiver}>(/public/HastenScriptReceiverM0m0, target: /storage/HastenScriptCollectionM0m0)
+    self.account.link<&{IHastenScript.ScriptReceiver}>(/public/HastenScriptReceiverM0m0, target: /storage/HastenScriptCollectionM0m0)
   }
 
   pub event NewReceiver(addr: Address?)

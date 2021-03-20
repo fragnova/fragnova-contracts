@@ -1,6 +1,7 @@
 // Transaction4.cdc
 
 import HastenScript from 0xf8d6e0586b0a20c7
+import IHastenScript from 0xf8d6e0586b0a20c7
 import HastenIndex from 0xf8d6e0586b0a20c7
 import HastenUtility from 0xf8d6e0586b0a20c7
 
@@ -9,7 +10,7 @@ import HastenUtility from 0xf8d6e0586b0a20c7
 transaction {
     // The field that will hold the Script as it is being
     // transferred to the other account
-    let script: &HastenScript.Script
+    let script: &IHastenScript.Script
 
     prepare(acct: AuthAccount) {
         let hashId = UInt256(977254950727332713390919558565142167926186649569)

@@ -1,6 +1,7 @@
 // Transaction3.cdc
 
 import HastenScript from 0xf8d6e0586b0a20c7
+import IHastenScript from 0xf8d6e0586b0a20c7
 
 // This transaction configures a user's account
 // to use the Script contract by creating a new empty collection,
@@ -17,7 +18,7 @@ transaction {
         log("Collection created for account 1")
 
         // create a public capability for the Collection
-        acct.link<&{HastenScript.ScriptReceiver}>(/public/HastenScriptReceiverM0m0, target: /storage/HastenScriptCollectionM0m0)
+        acct.link<&{IHastenScript.ScriptReceiver}>(/public/HastenScriptReceiverM0m0, target: /storage/HastenScriptCollectionM0m0)
 
         log("Capability created")
     }
