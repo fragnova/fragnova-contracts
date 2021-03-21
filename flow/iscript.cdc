@@ -48,6 +48,7 @@ pub contract IHastenScript {
     }
   }
 
+  // this is unsafe, anyone can create and override the Index
   pub fun createScript(metadata: String, code: [UInt8], environment: [UInt8]): @Script {
     let hashId = HastenUtility.sha3_160(bytes: code)
     return <- create Script(hashId: hashId, metadata: metadata, code: code, environment: environment)
