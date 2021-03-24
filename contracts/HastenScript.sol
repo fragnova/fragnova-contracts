@@ -6,17 +6,14 @@ import "openzeppelin-solidity/contracts/proxy/Initializable.sol";
 import "./Ownable.sol";
 
 contract HastenScript is ERC721, Ownable, Initializable {
-    // reserved by proxy
-    address internal _impl = address(0);
-
-    // mapping for scripts storage
-    mapping(uint160 => bytes) private _scripts;
-    mapping(uint160 => bytes) private _environments;
-
     // rewards related
     uint256 internal _mintReward = 1 * (10**16);
     mapping(address => uint256) private _rewardBlocks;
     IERC20 internal _daoToken = IERC20(address(0));
+
+    // mapping for scripts storage
+    mapping(uint160 => bytes) private _scripts;
+    mapping(uint160 => bytes) private _environments;
 
     constructor()
         ERC721("Hasten Script NFT v0", "CODE")
