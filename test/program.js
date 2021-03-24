@@ -120,13 +120,12 @@ contract("HastenScript", accounts => {
     console.log(expectedAddr);
 
     scriptContract = contract;
-    assert.equal(await contract.totalSupply.call(), 0);
+
     const emptyCode = new Uint8Array(1024);
     const tx = await contract.upload("", emptyCode, { from: accounts[0] });
     const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
     const emptyCodeHash = "0x" + keccak256(emptyCode).slice(27); // should be 26 but we truncate a 0 in front
     assert.equal(hexHashId, emptyCodeHash);
-    assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     tokenOne = emptyCodeHash;
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -180,7 +179,6 @@ contract("HastenScript", accounts => {
   it("should not upload a script", async () => {
     try {
       const contract = await nft.deployed();
-      assert.equal(await contract.totalSupply.call(), 1);
       const emptyCode = new Uint8Array(1024);
       await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[0] });
     } catch (e) {
@@ -192,11 +190,9 @@ contract("HastenScript", accounts => {
 
   it("should upload a script with environment", async () => {
     const contract = await nft.deployed();
-    assert.equal(await contract.totalSupply.call(), 1);
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[1] });
-    assert.equal(await contract.totalSupply.call(), 2);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
@@ -235,7 +231,6 @@ contract("HastenScript", accounts => {
     const empty = new Uint8Array(1024);
     const tx = await contract.upload("", tokenOne, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
-    assert.equal(await contract.totalSupply.call(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(empty);
@@ -284,7 +279,6 @@ contract("HastenScript", accounts => {
     await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
     const tx = await contract.uploadWithDelegateAuth(signature, "", tokenOne, empty, { from: accounts[1] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 2);
-    assert.equal(await contract.totalSupply.call(), 2);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(empty);
