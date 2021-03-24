@@ -1,4 +1,4 @@
-pragma solidity ^0.7.4;
+pragma solidity ^0.8.0;
 
 abstract contract Ownable {
     address private _owner;
@@ -8,7 +8,7 @@ abstract contract Ownable {
         address indexed newOwner
     );
 
-    constructor(address initialOwner) internal {
+    constructor(address initialOwner) {
         _bootstrap(initialOwner);
     }
 

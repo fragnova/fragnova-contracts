@@ -1,14 +1,14 @@
-pragma solidity ^0.7.4;
+pragma solidity ^0.8.0;
 
-import "./ERC721.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
-import "openzeppelin-solidity/contracts/cryptography/ECDSA.sol";
+import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import "./HastenScript.sol";
 import "./HastenDAOToken.sol";
 import "./Ownable.sol";
 
-contract HastenMod is ERC721, Ownable {
+contract HastenMod is ERC721URIStorage, Ownable {
     // reserved by proxy
     address internal _impl = address(0);
 

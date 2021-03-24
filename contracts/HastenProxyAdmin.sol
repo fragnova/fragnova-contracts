@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity >=0.6.0 <0.8.0;
+pragma solidity ^0.8.0;
 
 import "./Ownable.sol";
-import "openzeppelin-solidity/contracts/proxy/TransparentUpgradeableProxy.sol";
+import "openzeppelin-solidity/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 /**
  * @dev This is an auxiliary contract meant to be assigned as the admin of a {TransparentUpgradeableProxy}. For an

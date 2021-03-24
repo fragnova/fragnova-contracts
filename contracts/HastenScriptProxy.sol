@@ -1,6 +1,6 @@
-pragma solidity ^0.7.4;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/proxy/TransparentUpgradeableProxy.sol";
+import "openzeppelin-solidity/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract HastenScriptProxy is TransparentUpgradeableProxy {
     constructor()

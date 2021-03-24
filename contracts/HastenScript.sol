@@ -1,11 +1,11 @@
-pragma solidity ^0.7.4;
+pragma solidity ^0.8.0;
 
-import "./ERC721.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-solidity/contracts/proxy/Initializable.sol";
+import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "./Ownable.sol";
 
-contract HastenScript is ERC721, Ownable, Initializable {
+contract HastenScript is ERC721URIStorage, Ownable, Initializable {
     // rewards related
     uint256 internal _mintReward = 1 * (10**16);
     mapping(address => uint256) private _rewardBlocks;
@@ -18,17 +18,18 @@ contract HastenScript is ERC721, Ownable, Initializable {
     constructor()
         ERC721("Hasten Script NFT v0", "CODE")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
-    {
-        _setBaseURI("ipfs://");
-    }
+    {}
 
     function bootstrap() public payable initializer {
         // Ownable
         Ownable._bootstrap(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
         // ERC721
-        ERC721._bootstrap("Hasten Script NFT v0", "CODE");
+        _name = "Hasten Script NFT v0";
+        _symbol = "CODE";
+    }
 
-        _setBaseURI("ipfs://");
+    function _baseURI() internal pure override returns (string memory) {
+        return "ipfs://";
     }
 
     function script(uint160 scriptHash)
