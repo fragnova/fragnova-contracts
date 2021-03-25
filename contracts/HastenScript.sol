@@ -1,17 +1,20 @@
 pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "./Ownable.sol";
 
-contract HastenScript is ERC721URIStorage, Ownable, Initializable {
+contract HastenScript is ERC721, Ownable, Initializable {
     using SafeERC20 for IERC20;
 
     // rewards related
     uint256 internal _mintReward = 1 * (10**16);
     mapping(address => uint256) private _rewardBlocks;
     IERC20 internal _daoToken = IERC20(address(0));
+
+    // mapping for ipfs metadata, storing just 32 bytes of the CIDv0 (minus multihash prefix)
+    mapping(uint160 => bytes32) private _ipfsMetadataV0;
 
     // mapping for scripts storage
     mapping(uint160 => bytes) private _scripts;
@@ -30,8 +33,77 @@ contract HastenScript is ERC721URIStorage, Ownable, Initializable {
         _symbol = "CODE";
     }
 
-    function _baseURI() internal pure override returns (string memory) {
-        return "ipfs://";
+    function reverse(uint8[] memory input)
+        private
+        pure
+        returns (uint8[] memory)
+    {
+        uint8[] memory output = new uint8[](input.length);
+        for (uint32 i = 0; i < input.length; i++) {
+            output[i] = input[input.length - 1 - i];
+        }
+        return output;
+    }
+
+    bytes constant ALPHABET =
+        "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+    function toAlphabet(uint8[] memory indices)
+        private
+        pure
+        returns (bytes memory)
+    {
+        bytes memory output = new bytes(indices.length);
+        for (uint32 i = 0; i < indices.length; i++) {
+            output[i] = ALPHABET[indices[i]];
+        }
+        return output;
+    }
+
+    function toBase58(bytes memory source) private pure returns (bytes memory) {
+        if (source.length == 0) return new bytes(0);
+        uint8[] memory digits = new uint8[](46);
+        digits[0] = 0;
+        uint8 digitlength = 1;
+        for (uint32 i = 0; i < source.length; ++i) {
+            uint256 carry = uint8(source[i]);
+            for (uint32 j = 0; j < digitlength; ++j) {
+                carry += uint256(digits[j]) * 256;
+                digits[j] = uint8(carry % 58);
+                carry = carry / 58;
+            }
+
+            while (carry > 0) {
+                digits[digitlength] = uint8(carry % 58);
+                digitlength++;
+                carry = carry / 58;
+            }
+        }
+        return toAlphabet(reverse(digits));
+    }
+
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        virtual
+        override
+        returns (string memory)
+    {
+        require(
+            _exists(tokenId),
+            "HastenScript: URI query for nonexistent token"
+        );
+
+        bytes32 cidBytes = _ipfsMetadataV0[uint160(tokenId)];
+        return
+            string(
+                abi.encodePacked(
+                    "ipfs://",
+                    toBase58(
+                        abi.encodePacked(uint8(0x12), uint8(0x20), cidBytes)
+                    )
+                )
+            );
     }
 
     function script(uint160 scriptHash)
@@ -43,33 +115,34 @@ contract HastenScript is ERC721URIStorage, Ownable, Initializable {
     }
 
     function upload(
-        string memory tokenURI,
+        bytes32 ipfsMetadata,
         bytes memory scriptBytes,
         bytes memory environment
     ) public {
         // mint a new token and upload it
         // but make scripts unique by hashing them
-        // keccak256 seems the cheapest hashing function
-        uint160 hash = uint160(uint256(keccak256(scriptBytes)));
+        // sha256 is used for broader compatibility
+        uint160 hash = uint160(uint256(sha256(scriptBytes)));
         require(!_exists(hash), "HastenScript: script already minted");
 
         _mint(msg.sender, hash);
 
-        _setTokenURI(hash, tokenURI);
+        _ipfsMetadataV0[hash] = ipfsMetadata;
         _scripts[hash] = scriptBytes;
         _environments[hash] = environment;
     }
 
     function update(
         uint160 scriptHash,
-        string memory tokenURI,
+        bytes32 ipfsMetadata,
         bytes memory environment
     ) public {
         require(
             _exists(scriptHash) && msg.sender == ownerOf(scriptHash),
             "HastenScript: Only the owner of the script can update it"
         );
-        _setTokenURI(scriptHash, tokenURI);
+
+        _ipfsMetadataV0[scriptHash] = ipfsMetadata;
         _environments[scriptHash] = environment;
     }
 

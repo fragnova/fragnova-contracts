@@ -2,6 +2,7 @@ const { Address, bufferToHex } = require("ethereumjs-util");
 const { Transaction } = require("@ethereumjs/tx");
 const { keccak256, hexToBytes, bytesToHex } = require("web3-utils");
 const { BN } = require("bn.js");
+const sha256 = require('js-sha256').sha256;
 
 var nft = artifacts.require("HastenScript");
 var modNft = artifacts.require("HastenMod");
@@ -122,15 +123,25 @@ contract("HastenScript", accounts => {
     scriptContract = contract;
 
     const emptyCode = new Uint8Array(1024);
-    const tx = await contract.upload("", emptyCode, emptyCode, { from: accounts[0] });
+    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, { from: accounts[0] });
     const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
-    const emptyCodeHash = "0x" + keccak256(emptyCode).slice(27); // should be 26 but we truncate a 0 in front
+    console.log(sha256(emptyCode));
+    const emptyCodeHash = "0x" + sha256(emptyCode).slice(24);
     assert.equal(hexHashId, emptyCodeHash);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     tokenOne = emptyCodeHash;
     const script = await contract.script.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(script.scriptBytes, codeHex);
+
+    try {
+      const uri = await contract.tokenURI.call(tx.logs[0].args.tokenId);
+      assert.equal(uri, "ipfs://QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx");
+    } catch (err) {
+      console.log(err);
+      throw err;
+    }
+
     const deployerContract = new web3.eth.Contract([
       {
         "constant": false,
@@ -168,7 +179,7 @@ contract("HastenScript", accounts => {
     console.log(deployedTx);
 
     const uniqueContract = new web3.eth.Contract(nft.abi, expectedAddr);
-    const uniquedTx = await uniqueContract.methods.upload("", emptyCode, emptyCode).send({
+    const uniquedTx = await uniqueContract.methods.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode).send({
       from: accounts[0],
       // gasPrice: "10000000000000",
       gas: 300000
@@ -180,7 +191,7 @@ contract("HastenScript", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(1024);
-      await contract.upload("", emptyCode, emptyCode, { from: accounts[0] });
+      await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, { from: accounts[0] });
     } catch (e) {
       assert(e.reason == "HastenScript: script already minted", e);
       return;
@@ -192,7 +203,7 @@ contract("HastenScript", accounts => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
-    const tx = await contract.upload("", emptyCode, emptyCode, { from: accounts[1] });
+    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
@@ -206,7 +217,7 @@ contract("HastenScript", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(30);
-      await contract.update(tokenOne, "", emptyCode, { from: accounts[1] });
+      await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "HastenScript: Only the owner of the script can update it");
       return;
@@ -217,7 +228,7 @@ contract("HastenScript", accounts => {
   it("should update a script's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
-    await contract.update(tokenOne, "", emptyCode, { from: accounts[0] });
+    await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, { from: accounts[0] });
     const script = await contract.script.call(tokenOne);
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(script.environment, codeHex);
@@ -229,7 +240,7 @@ contract("HastenScript", accounts => {
     const contract = await modNft.deployed();
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
     const empty = new Uint8Array(1024);
-    const tx = await contract.upload("", tokenOne, empty, { from: accounts[0] });
+    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -255,7 +266,7 @@ contract("HastenScript", accounts => {
       await dao.deployed();
       const contract = await modNft.deployed();
       const empty = new Uint8Array(1024);
-      await contract.upload("", tokenOne, empty, { from: accounts[1] });
+      await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "HastenMod: Only the owner of the script can upload mods");
       return;
