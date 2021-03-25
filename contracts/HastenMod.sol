@@ -1,37 +1,36 @@
 pragma solidity ^0.8.0;
 
 import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import "./HastenScript.sol";
-import "./HastenDAOToken.sol";
 import "./Ownable.sol";
 
 contract HastenMod is ERC721URIStorage, Ownable {
-    // reserved by proxy
-    address internal _impl = address(0);
+    using SafeERC20 for IERC20;
+
+    uint256 internal _ownerReward = 1 * (10**16);
+    mapping(address => uint256) private _rewardBlocks;
+    IERC20 internal _daoToken = IERC20(address(0));
+
+    mapping(uint256 => address) private _signers;
 
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    uint256 internal _ownerReward = 1 * (10**16);
-
     // mapping for scripts storage
     mapping(uint256 => uint160) private _scripts;
     mapping(uint256 => bytes) private _environments;
-    mapping(uint256 => address) private _signers;
-    mapping(address => uint256) private _rewardBlocks;
 
     HastenScript internal immutable _scriptsLibrary;
-    HastenDAOToken internal _daoToken;
 
     constructor(address libraryAddress, address daoAddress)
-        ERC721("Hasten Mod NFT v0", "MOD")
+        ERC721("Hasten Mod v0 NFT ", "MOD")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {
         _scriptsLibrary = HastenScript(libraryAddress);
-        _daoToken = HastenDAOToken(daoAddress);
+        _daoToken = IERC20(daoAddress);
     }
 
     function script(uint256 modId)
@@ -128,8 +127,8 @@ contract HastenMod is ERC721URIStorage, Ownable {
                 _rewardBlocks[scriptOwner] != block.number &&
                 _daoToken.balanceOf(address(this)) > _ownerReward
             ) {
-                _daoToken.increaseAllowance(address(this), _ownerReward);
-                _daoToken.transferFrom(
+                _daoToken.safeIncreaseAllowance(address(this), _ownerReward);
+                _daoToken.safeTransferFrom(
                     address(this),
                     scriptOwner,
                     _ownerReward
@@ -148,7 +147,7 @@ contract HastenMod is ERC721URIStorage, Ownable {
     }
 
     function setDAOToken(address addr) public onlyOwner {
-        _daoToken = HastenDAOToken(addr);
+        _daoToken = IERC20(addr);
     }
 
     function getDAOToken() public view returns (address) {

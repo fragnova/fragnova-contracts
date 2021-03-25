@@ -122,7 +122,7 @@ contract("HastenScript", accounts => {
     scriptContract = contract;
 
     const emptyCode = new Uint8Array(1024);
-    const tx = await contract.upload("", emptyCode, { from: accounts[0] });
+    const tx = await contract.upload("", emptyCode, emptyCode, { from: accounts[0] });
     const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
     const emptyCodeHash = "0x" + keccak256(emptyCode).slice(27); // should be 26 but we truncate a 0 in front
     assert.equal(hexHashId, emptyCodeHash);
@@ -168,7 +168,7 @@ contract("HastenScript", accounts => {
     console.log(deployedTx);
 
     const uniqueContract = new web3.eth.Contract(nft.abi, expectedAddr);
-    const uniquedTx = await uniqueContract.methods.upload("", emptyCode).send({
+    const uniquedTx = await uniqueContract.methods.upload("", emptyCode, emptyCode).send({
       from: accounts[0],
       // gasPrice: "10000000000000",
       gas: 300000
@@ -180,7 +180,7 @@ contract("HastenScript", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(1024);
-      await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[0] });
+      await contract.upload("", emptyCode, emptyCode, { from: accounts[0] });
     } catch (e) {
       assert(e.reason == "HastenScript: script already minted", e);
       return;
@@ -192,7 +192,7 @@ contract("HastenScript", accounts => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
-    const tx = await contract.uploadWithEnvironment("", emptyCode, emptyCode, { from: accounts[1] });
+    const tx = await contract.upload("", emptyCode, emptyCode, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
@@ -206,9 +206,9 @@ contract("HastenScript", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(30);
-      await contract.update(tokenOne, emptyCode, { from: accounts[1] });
+      await contract.update(tokenOne, "", emptyCode, { from: accounts[1] });
     } catch (e) {
-      assert(e.reason == "Only the owner of the script can update its environment");
+      assert(e.reason == "HastenScript: Only the owner of the script can update it");
       return;
     }
     assert(false, "expected exception not thrown");
@@ -217,7 +217,7 @@ contract("HastenScript", accounts => {
   it("should update a script's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
-    await contract.update(tokenOne, emptyCode, { from: accounts[0] });
+    await contract.update(tokenOne, "", emptyCode, { from: accounts[0] });
     const script = await contract.script.call(tokenOne);
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(script.environment, codeHex);

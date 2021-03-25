@@ -1,11 +1,13 @@
 pragma solidity ^0.8.0;
 
 import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "./Ownable.sol";
 
 contract HastenScript is ERC721URIStorage, Ownable, Initializable {
+    using SafeERC20 for IERC20;
+
     // rewards related
     uint256 internal _mintReward = 1 * (10**16);
     mapping(address => uint256) private _rewardBlocks;
@@ -16,7 +18,7 @@ contract HastenScript is ERC721URIStorage, Ownable, Initializable {
     mapping(uint160 => bytes) private _environments;
 
     constructor()
-        ERC721("Hasten Script NFT v0", "CODE")
+        ERC721("Hasten Script v0 NFT", "CODE")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {}
 
@@ -24,7 +26,7 @@ contract HastenScript is ERC721URIStorage, Ownable, Initializable {
         // Ownable
         Ownable._bootstrap(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
         // ERC721
-        _name = "Hasten Script NFT v0";
+        _name = "Hasten Script v0 NFT";
         _symbol = "CODE";
     }
 
@@ -40,12 +42,7 @@ contract HastenScript is ERC721URIStorage, Ownable, Initializable {
         return (_scripts[scriptHash], _environments[scriptHash]);
     }
 
-    function upload(string memory tokenURI, bytes memory scriptBytes) public {
-        bytes memory empty = new bytes(0);
-        uploadWithEnvironment(tokenURI, scriptBytes, empty);
-    }
-
-    function uploadWithEnvironment(
+    function upload(
         string memory tokenURI,
         bytes memory scriptBytes,
         bytes memory environment
@@ -63,11 +60,16 @@ contract HastenScript is ERC721URIStorage, Ownable, Initializable {
         _setTokenURI(hash, tokenURI);
     }
 
-    function update(uint160 scriptHash, bytes memory environment) public {
+    function update(
+        uint160 scriptHash,
+        string memory tokenURI,
+        bytes memory environment
+    ) public {
         require(
             _exists(scriptHash) && msg.sender == ownerOf(scriptHash),
-            "Only the owner of the script can update its environment"
+            "HastenScript: Only the owner of the script can update it"
         );
+        _setTokenURI(scriptHash, tokenURI);
         _environments[scriptHash] = environment;
     }
 
@@ -88,8 +90,12 @@ contract HastenScript is ERC721URIStorage, Ownable, Initializable {
                 _rewardBlocks[msg.sender] != block.number &&
                 _daoToken.balanceOf(address(this)) > _mintReward
             ) {
-                _daoToken.approve(address(this), _mintReward);
-                _daoToken.transferFrom(address(this), msg.sender, _mintReward);
+                _daoToken.safeIncreaseAllowance(address(this), _mintReward);
+                _daoToken.safeTransferFrom(
+                    address(this),
+                    msg.sender,
+                    _mintReward
+                );
                 _rewardBlocks[msg.sender] = block.number;
             }
         }
