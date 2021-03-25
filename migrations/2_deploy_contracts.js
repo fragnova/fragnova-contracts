@@ -19,7 +19,7 @@ module.exports = async function(deployer, network) {
   await dao.transfer(nft.address, web3.utils.toWei("1024", "ether"));
 
   fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => {});
-  fs.writeFile("deployer-utils/pnft-bytecode.txt", nftProxy.bytecode, (_r, _e) => {});
-  fs.writeFile("deployer-utils/dao-bytecode.txt", daoToken.bytecode, (_r, _e) => {});
+  fs.writeFile("deployer-utils/nftProxy-bytecode.txt", nftProxy.bytecode, (_r, _e) => {});
+  fs.writeFile("deployer-utils/daoToken-bytecode.txt", daoToken.bytecode, (_r, _e) => {});
   fs.writeFile("deployer-utils/admin-bytecode.txt", admin.bytecode, (_r, _e) => {});
 };

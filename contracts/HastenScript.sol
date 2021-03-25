@@ -55,9 +55,9 @@ contract HastenScript is ERC721URIStorage, Ownable, Initializable {
 
         _mint(msg.sender, hash);
 
+        _setTokenURI(hash, tokenURI);
         _scripts[hash] = scriptBytes;
         _environments[hash] = environment;
-        _setTokenURI(hash, tokenURI);
     }
 
     function update(
