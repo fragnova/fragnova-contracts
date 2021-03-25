@@ -1,5 +1,6 @@
-(def bytecode1 (slurp "admin-bytecode.txt"))
+;; (def bytecode1 (slurp "admin-bytecode.txt"))
 ;; (def bytecode2 (slurp "nft-bytecode.txt"))
+(def bytecode1 (slurp "nftProxy-bytecode.txt"))
 
 (defnode Root)
 
@@ -26,7 +27,7 @@
          nil (Expand 4096 (random-try bytecode) :Threads 128)
          (ForEach (-> = .record
                       (Take "address") (Slice :From 2 :To 8)
-                      (When (Is "c0ffee") (->
+                      (When (Is "c0de00") (->
                                             .record (ToString) = .result
                                             "results.txt"
                                             (FS.Write n :Append true)

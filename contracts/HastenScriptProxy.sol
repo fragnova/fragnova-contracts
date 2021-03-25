@@ -6,7 +6,7 @@ contract HastenScriptProxy is TransparentUpgradeableProxy {
     constructor()
         TransparentUpgradeableProxy(
             address(0xC0DE00d21d6fd31F4A4d4804bc678428DA9ab545), // logic
-            address(0xC0FFee00b68f0F079d904844b49a064E3046AE91), // admin
+            address(0xC0ffee4B437CcF6C7cE62E517D94e48c0389d1Eb), // admin
             new bytes(0)
         )
     {}
