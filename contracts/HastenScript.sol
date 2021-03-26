@@ -122,7 +122,7 @@ contract HastenScript is ERC721, Ownable, Initializable {
         // mint a new token and upload it
         // but make scripts unique by hashing them
         // sha256 is used for broader compatibility
-        uint160 hash = uint160(uint256(sha256(scriptBytes)));
+        uint160 hash = uint160(uint256(keccak256(scriptBytes)));
         require(!_exists(hash), "HastenScript: script already minted");
 
         _mint(msg.sender, hash);

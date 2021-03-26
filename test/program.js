@@ -2,7 +2,6 @@ const { Address, bufferToHex } = require("ethereumjs-util");
 const { Transaction } = require("@ethereumjs/tx");
 const { keccak256, hexToBytes, bytesToHex } = require("web3-utils");
 const { BN } = require("bn.js");
-const sha256 = require('js-sha256').sha256;
 
 var nft = artifacts.require("HastenScript");
 var modNft = artifacts.require("HastenMod");
@@ -125,8 +124,7 @@ contract("HastenScript", accounts => {
     const emptyCode = new Uint8Array(1024);
     const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, { from: accounts[0] });
     const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
-    console.log(sha256(emptyCode));
-    const emptyCodeHash = "0x" + sha256(emptyCode).slice(24);
+    const emptyCodeHash = "0x" + keccak256(emptyCode).slice(27);
     assert.equal(hexHashId, emptyCodeHash);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     tokenOne = emptyCodeHash;
