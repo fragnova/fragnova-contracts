@@ -1,6 +1,6 @@
 ;; (def bytecode1 (slurp "admin-bytecode.txt"))
-;; (def bytecode2 (slurp "nft-bytecode.txt"))
-(def bytecode1 (slurp "nftProxy-bytecode.txt"))
+(def bytecode2 (slurp "nft-bytecode.txt"))
+;; (def bytecode1 (slurp "nftProxy-bytecode.txt"))
 
 (defnode Root)
 
@@ -8,8 +8,8 @@
   "0xFF" (HexToBytes) >= .bytes
   (Input) (Take 0) (HexToBytes) (AppendTo .bytes) ; address
   (Input) (Take 1) (HexToBytes) (AppendTo .bytes) ; salt
-  (Input) (Take 2) (HexToBytes) (Hash.Keccak256) (AppendTo .bytes) ; bytecode
-  .bytes (Hash.Keccak256) (ToHex) (Slice :From 26) >= .res
+  (Input) (Take 2) (HexToBytes) (Hash.Keccak-256) (AppendTo .bytes) ; bytecode
+  .bytes (Hash.Keccak-256) (ToHex) (Slice :From 26) >= .res
   "0x" (PrependTo .res) .res)
 
 (defn random-try [bytecode]
@@ -34,6 +34,6 @@
                                             (FS.Write .result :Append true)
                                             (FS.Write "\n" :Append true)))))))
 
-(schedule Root (try-many "1: " bytecode1))
-;; (schedule Root (try-many "2: " bytecode2))
+;; (schedule Root (try-many "1: " bytecode1))
+(schedule Root (try-many "2: " bytecode2))
 (run Root)
