@@ -12,6 +12,25 @@
   .bytes (Hash.Keccak-256) (ToHex) (Slice :From 26) >= .res
   "0x" (PrependTo .res) .res)
 
+(defchain checksum
+  (Slice :From 2) = .low-addr
+  (Hash.Keccak-256) (ToHex) (Slice :From 2) = .str-hash
+  0 >= .idx
+  "0x" >= .res
+  (Repeat
+   (->
+    .idx (Math.Add 1) = .idx+1
+    .low-addr (Slice :From .idx :To .idx+1) = .a
+    .str-hash (Slice :From .idx :To .idx+1) = .b
+    .b (ParseInt :Base 16)
+    (If (IsMoreEqual 8)
+        (-> .a (String.ToUpper) (AppendTo .res))
+        (-> .a (AppendTo .res)))
+    (Math.Inc .idx))
+   :Forever true
+   :Until (-> .idx (Is 40)))
+  .res)
+
 (defn random-try [bytecode]
   (Chain "random-try"
          "0xe14B5aE0D1E8A4e9039D40e5BF203fD21E2f6241" >> .args
@@ -27,8 +46,9 @@
          nil (Expand 4096 (random-try bytecode) :Threads 128)
          (ForEach
           (-> = .record
-              (Take "address") (Slice :From 2 :To 8)
-              (When (Is "c0de00")
+              (Is "c0de00") (And) ; this acts as barrier
+              (Take "address") (Do checksum) (Slice :From 2 :To 8)
+              (When (Is "C0DE00")
                     (->
                      .record (ToString) = .result
                      "results.txt"
@@ -36,6 +56,11 @@
                      (FS.Write .result :Append true)
                      (FS.Write "\n" :Append true)))))))
 
+(schedule Root (Chain "test"
+                      "0xc0de00d507e4eb2257e5ed7fde17cbfa10c47e57"
+                      (Do checksum)
+                      (Log)
+                      (Assert.Is "0xC0De00D507E4EB2257E5Ed7FdE17cBfa10c47E57" true)))
 (schedule Root (try-many "1: " bytecode1))
 ;; (schedule Root (try-many "2: " bytecode2))
 (run Root)
