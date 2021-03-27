@@ -25,14 +25,16 @@
 (defn try-many [n bytecode]
   (Chain "try-many" :Looped
          nil (Expand 4096 (random-try bytecode) :Threads 128)
-         (ForEach (-> = .record
-                      (Take "address") (Slice :From 2 :To 8)
-                      (When (Is "c0de00") (->
-                                            .record (ToString) = .result
-                                            "results.txt"
-                                            (FS.Write n :Append true)
-                                            (FS.Write .result :Append true)
-                                            (FS.Write "\n" :Append true)))))))
+         (ForEach
+          (-> = .record
+              (Take "address") (Slice :From 2 :To 8)
+              (When (Is "c0de00")
+                    (->
+                     .record (ToString) = .result
+                     "results.txt"
+                     (FS.Write n :Append true)
+                     (FS.Write .result :Append true)
+                     (FS.Write "\n" :Append true)))))))
 
 (schedule Root (try-many "1: " bytecode1))
 ;; (schedule Root (try-many "2: " bytecode2))
