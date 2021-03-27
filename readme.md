@@ -29,6 +29,8 @@ Gas Used by Transaction:
 
 `{salt: 0x423380eb0757fea7d0237040786a41c4b0f007e54e2f129ffe54138f771cca2f, address: 0xc0de00eb3f0f006d54c878bd27063025f6d48b2c}`
 
+https://goerli.etherscan.io/tx/0xcdb2f5c7c98813617793ebadb4edaaf2a772966753f7ec9d44fa1ca3a814a400
+
 ### HastenScriptProxy
 
 Gas Used by Transaction:
@@ -40,11 +42,11 @@ Gas Used by Transaction:
 
 `{salt: 0x4d355592dd1d7ca23fdfcb906429ff2933ea13ce12e8e3106b0169d504bbc7e2, address: 0xC0DE00fF804C46CBc14129aedEFE0e225f967abc}`
 
+https://goerli.etherscan.io/tx/0x573a3fb69d6f1680a84e9fb1bcd6e1d5b3689fa2dd99df91a8214e83bccddb35
+
 **CALL BOOTSTRAP AT THIS POINT**
 
-Gas Used by Transaction:
-182,004 (18.2%)
-
+https://goerli.etherscan.io/tx/0x77c8686cc21ca014e9165e930b1a5785e0b9f3538212647b2ec08ed37b95bafa
 ### AVAX Factory:
 
 Sadly their gas is off and the EIP-2470 data cannot be used
