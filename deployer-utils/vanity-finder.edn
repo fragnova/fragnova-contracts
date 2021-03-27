@@ -36,7 +36,7 @@
          "0xe14B5aE0D1E8A4e9039D40e5BF203fD21E2f6241" >> .args
          (RandomBytes 32) (ToHex) >> .args = .salt
          bytecode >> .args
-         .args (Do find-address) = .address
+         .args (Do find-address) (Do checksum) = .address
          .address (Set .res "address")
          .salt (Set .res "salt")
          .res))
@@ -46,8 +46,7 @@
          nil (Expand 4096 (random-try bytecode) :Threads 128)
          (ForEach
           (-> = .record
-              (Is "c0de00") (And) ; this acts as barrier
-              (Take "address") (Do checksum) (Slice :From 2 :To 8)
+              (Take "address") (Slice :From 2 :To 8)
               (When (Is "C0DE00")
                     (->
                      .record (ToString) = .result
