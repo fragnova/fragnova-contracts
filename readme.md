@@ -29,6 +29,8 @@ Gas Used by Transaction:
 
 `{salt: 0x85c92e91485560e68bb81c868e4a5f54a5fc95efb14068fbaaf8b3a81a031929, address: 0xc0de0006b9055df6f94e971471f46f894a0e5b1f}`
 
+https://goerli.etherscan.io/tx/0x381dbac7467ed2e774d181de09762482271204620bea544e435e72b3ab3b8257
+
 ### HastenScriptProxy
 
 Gas Used by Transaction:
@@ -39,6 +41,8 @@ Gas Used by Transaction:
 ```
 
 `{salt: 0x60416322c503863df7d4d3a1ed9d06273e5d9d9d594716fa16c32a06fa979b05, address: 0xc0de00d0754e2f3daaeafdfd096d7e451eba2d3c}`
+
+https://goerli.etherscan.io/tx/0x99e331ca213f0d7726101641b9cfd424444f091b28cc856b674c47a54271231f
 
 **CALL BOOTSTRAP AT THIS POINT**
 
