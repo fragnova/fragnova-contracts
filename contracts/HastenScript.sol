@@ -23,7 +23,9 @@ contract HastenScript is ERC721, Ownable, Initializable {
     constructor()
         ERC721("Hasten Script v0 NFT", "CODE")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
-    {}
+    {
+        // NOT INVOKED
+    }
 
     function bootstrap() public payable initializer {
         // Ownable
@@ -121,7 +123,6 @@ contract HastenScript is ERC721, Ownable, Initializable {
     ) public {
         // mint a new token and upload it
         // but make scripts unique by hashing them
-        // sha256 is used for broader compatibility
         uint160 hash = uint160(uint256(keccak256(scriptBytes)));
         require(!_exists(hash), "HastenScript: script already minted");
 
