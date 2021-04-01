@@ -76,6 +76,14 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
         _upload(ipfsMetadata, scriptId, environment);
     }
 
+    function getChainId() private view returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
+    }
+
     /*
         This is to allow any user to upload something as long as the owner of the script authorizes.
     */
@@ -90,6 +98,7 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
                 keccak256(
                     abi.encodePacked(
                         msg.sender,
+                        getChainId(),
                         ipfsMetadata,
                         scriptId,
                         environment

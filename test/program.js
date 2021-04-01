@@ -276,6 +276,7 @@ contract("HastenScript", accounts => {
     const empty = new Uint8Array(1024);
     const parts = [
       { t: "address", v: accounts[1] },
+      { t: "uint256", v: "0x1" },
       { t: "bytes32", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
       { t: "uint160", v: tokenOne },
       { t: "bytes", v: web3.utils.bytesToHex(empty) }
@@ -301,7 +302,8 @@ contract("HastenScript", accounts => {
       const empty = new Uint8Array(1024);
       const parts = [
         { t: "address", v: accounts[1] },
-        { t: "string", v: "" },
+        { t: "uint256", v: "0x1" },
+        { t: "string", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
         { t: "uint160", v: tokenOne },
         { t: "bytes", v: web3.utils.bytesToHex(empty) }
       ];
