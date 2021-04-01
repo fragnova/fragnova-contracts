@@ -276,7 +276,7 @@ contract("HastenScript", accounts => {
     const empty = new Uint8Array(1024);
     const parts = [
       { t: "address", v: accounts[1] },
-      { t: "string", v: "" },
+      { t: "bytes32", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
       { t: "uint160", v: tokenOne },
       { t: "bytes", v: web3.utils.bytesToHex(empty) }
     ];
@@ -286,7 +286,7 @@ contract("HastenScript", accounts => {
     const dao20 = await dao.deployed();
     const contract = await modNft.deployed();
     await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
-    const tx = await contract.uploadWithDelegateAuth(signature, "", tokenOne, empty, { from: accounts[1] });
+    const tx = await contract.uploadWithDelegateAuth(signature, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[1] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 2);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.script.call(tx.logs[0].args.tokenId);
@@ -311,7 +311,7 @@ contract("HastenScript", accounts => {
       await dao.deployed();
       const contract = await modNft.deployed();
       await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
-      await contract.uploadWithDelegateAuth(signature, "", tokenOne, empty, { from: accounts[1] });
+      await contract.uploadWithDelegateAuth(signature, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "HastenMod: Invalid signature", e);
       return;

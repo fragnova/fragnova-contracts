@@ -1,24 +1,20 @@
 pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
-import "./Ownable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./HastenNFT.sol";
+import "./IpfsMetadataV0.sol";
+import "./ScriptStorageV0.sol";
 
-contract HastenScript is ERC721, Ownable, Initializable {
+// this contract uses proxy, let's keep any storage inside other modules
+// this should make it easier to upgrade
+contract HastenScript is
+    HastenNFT,
+    Initializable,
+    IpfsMetadataV0,
+    ScriptStorageV0
+{
     using SafeERC20 for IERC20;
-
-    // rewards related
-    uint256 internal _mintReward = 1 * (10**16);
-    mapping(address => uint256) private _rewardBlocks;
-    IERC20 internal _daoToken = IERC20(address(0));
-
-    // mapping for ipfs metadata, storing just 32 bytes of the CIDv0 (minus multihash prefix)
-    mapping(uint160 => bytes32) private _ipfsMetadataV0;
-
-    // mapping for scripts storage
-    mapping(uint160 => bytes) private _scripts;
-    mapping(uint160 => bytes) private _environments;
 
     constructor()
         ERC721("Hasten Script v0 NFT", "CODE")
@@ -35,55 +31,6 @@ contract HastenScript is ERC721, Ownable, Initializable {
         _symbol = "CODE";
     }
 
-    function reverse(uint8[] memory input)
-        private
-        pure
-        returns (uint8[] memory)
-    {
-        uint8[] memory output = new uint8[](input.length);
-        for (uint32 i = 0; i < input.length; i++) {
-            output[i] = input[input.length - 1 - i];
-        }
-        return output;
-    }
-
-    bytes constant ALPHABET =
-        "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-
-    function toAlphabet(uint8[] memory indices)
-        private
-        pure
-        returns (bytes memory)
-    {
-        bytes memory output = new bytes(indices.length);
-        for (uint32 i = 0; i < indices.length; i++) {
-            output[i] = ALPHABET[indices[i]];
-        }
-        return output;
-    }
-
-    function toBase58(bytes memory source) private pure returns (bytes memory) {
-        if (source.length == 0) return new bytes(0);
-        uint8[] memory digits = new uint8[](46);
-        digits[0] = 0;
-        uint8 digitlength = 1;
-        for (uint32 i = 0; i < source.length; ++i) {
-            uint256 carry = uint8(source[i]);
-            for (uint32 j = 0; j < digitlength; ++j) {
-                carry += uint256(digits[j]) * 256;
-                digits[j] = uint8(carry % 58);
-                carry = carry / 58;
-            }
-
-            while (carry > 0) {
-                digits[digitlength] = uint8(carry % 58);
-                digitlength++;
-                carry = carry / 58;
-            }
-        }
-        return toAlphabet(reverse(digits));
-    }
-
     function tokenURI(uint256 tokenId)
         public
         view
@@ -95,17 +42,7 @@ contract HastenScript is ERC721, Ownable, Initializable {
             _exists(tokenId),
             "HastenScript: URI query for nonexistent token"
         );
-
-        bytes32 cidBytes = _ipfsMetadataV0[uint160(tokenId)];
-        return
-            string(
-                abi.encodePacked(
-                    "ipfs://",
-                    toBase58(
-                        abi.encodePacked(uint8(0x12), uint8(0x20), cidBytes)
-                    )
-                )
-            );
+        return getUrl(tokenId);
     }
 
     function script(uint160 scriptHash)
@@ -162,13 +99,13 @@ contract HastenScript is ERC721, Ownable, Initializable {
         ) {
             if (
                 _rewardBlocks[msg.sender] != block.number &&
-                _daoToken.balanceOf(address(this)) > _mintReward
+                _daoToken.balanceOf(address(this)) > _reward
             ) {
-                _daoToken.safeIncreaseAllowance(address(this), _mintReward);
+                _daoToken.safeIncreaseAllowance(address(this), _reward);
                 _daoToken.safeTransferFrom(
                     address(this),
                     msg.sender,
-                    _mintReward
+                    _reward
                 );
                 _rewardBlocks[msg.sender] = block.number;
             }
@@ -176,18 +113,10 @@ contract HastenScript is ERC721, Ownable, Initializable {
     }
 
     function setMintReward(uint256 amount) public onlyOwner {
-        _mintReward = amount;
+        _reward = amount;
     }
 
     function getMintReward() public view returns (uint256) {
-        return _mintReward;
-    }
-
-    function setDAOToken(address addr) public onlyOwner {
-        _daoToken = IERC20(addr);
-    }
-
-    function getDAOToken() public view returns (address) {
-        return address(_daoToken);
+        return _reward;
     }
 }

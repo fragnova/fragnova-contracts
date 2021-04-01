@@ -1,18 +1,13 @@
 pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
+import "./HastenNFT.sol";
 import "./HastenScript.sol";
-import "./Ownable.sol";
+import "./IpfsMetadataV0.sol";
 
-contract HastenMod is ERC721URIStorage, Ownable {
+contract HastenMod is HastenNFT, IpfsMetadataV0 {
     using SafeERC20 for IERC20;
-
-    uint256 internal _ownerReward = 1 * (10**16);
-    mapping(address => uint256) private _rewardBlocks;
-    IERC20 internal _daoToken = IERC20(address(0));
 
     mapping(uint256 => address) private _signers;
 
@@ -56,20 +51,20 @@ contract HastenMod is ERC721URIStorage, Ownable {
     }
 
     function _upload(
-        string memory tokenURI,
+        bytes32 ipfsMetadata,
         uint160 scriptId,
         bytes memory environment
     ) internal {
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
         _mint(msg.sender, newItemId);
+        _ipfsMetadataV0[newItemId] = ipfsMetadata;
         _scripts[newItemId] = scriptId;
         _environments[newItemId] = environment;
-        _setTokenURI(newItemId, tokenURI);
     }
 
     function upload(
-        string memory tokenURI,
+        bytes32 ipfsMetadata,
         uint160 scriptId,
         bytes memory environment
     ) public {
@@ -78,7 +73,7 @@ contract HastenMod is ERC721URIStorage, Ownable {
             "HastenMod: Only the owner of the script can upload mods"
         );
 
-        _upload(tokenURI, scriptId, environment);
+        _upload(ipfsMetadata, scriptId, environment);
     }
 
     /*
@@ -86,7 +81,7 @@ contract HastenMod is ERC721URIStorage, Ownable {
     */
     function uploadWithDelegateAuth(
         bytes memory signature,
-        string memory tokenURI,
+        bytes32 ipfsMetadata,
         uint160 scriptId,
         bytes memory environment
     ) public {
@@ -95,18 +90,19 @@ contract HastenMod is ERC721URIStorage, Ownable {
                 keccak256(
                     abi.encodePacked(
                         msg.sender,
-                        tokenURI,
+                        ipfsMetadata,
                         scriptId,
                         environment
                     )
                 )
             );
         require(
-            _signers[scriptId] == ECDSA.recover(hash, signature),
+            _signers[scriptId] != address(0x0) &&
+                _signers[scriptId] == ECDSA.recover(hash, signature),
             "HastenMod: Invalid signature"
         );
 
-        _upload(tokenURI, scriptId, environment);
+        _upload(ipfsMetadata, scriptId, environment);
     }
 
     // reward the owner of the Script
@@ -125,32 +121,20 @@ contract HastenMod is ERC721URIStorage, Ownable {
             address scriptOwner = _scriptsLibrary.ownerOf(_scripts[tokenId]);
             if (
                 _rewardBlocks[scriptOwner] != block.number &&
-                _daoToken.balanceOf(address(this)) > _ownerReward
+                _daoToken.balanceOf(address(this)) > _reward
             ) {
-                _daoToken.safeIncreaseAllowance(address(this), _ownerReward);
-                _daoToken.safeTransferFrom(
-                    address(this),
-                    scriptOwner,
-                    _ownerReward
-                );
+                _daoToken.safeIncreaseAllowance(address(this), _reward);
+                _daoToken.safeTransferFrom(address(this), scriptOwner, _reward);
                 _rewardBlocks[scriptOwner] = block.number;
             }
         }
     }
 
     function setScriptOwnerReward(uint256 amount) public onlyOwner {
-        _ownerReward = amount;
+        _reward = amount;
     }
 
     function getScriptOwnerReward() public view returns (uint256) {
-        return _ownerReward;
-    }
-
-    function setDAOToken(address addr) public onlyOwner {
-        _daoToken = IERC20(addr);
-    }
-
-    function getDAOToken() public view returns (address) {
-        return address(_daoToken);
+        return _reward;
     }
 }
