@@ -127,6 +127,11 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
                 _daoToken.safeTransferFrom(address(this), scriptOwner, _reward);
                 _rewardBlocks[scriptOwner] = block.number;
             }
+        } else if (to == address(0)) {
+            // burn, cleanup storage, it's the end
+            _scripts[tokenId] = 0x0;
+            _environments[tokenId] = new bytes(0);
+            _ipfsMetadataV0[tokenId] = 0x0;
         }
     }
 

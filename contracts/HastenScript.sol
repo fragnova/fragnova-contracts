@@ -82,6 +82,7 @@ contract HastenScript is
 
         _ipfsMetadataV0[scriptHash] = ipfsMetadata;
         _environments[scriptHash] = environment;
+        emit EnvironmentUpdated(scriptHash);
     }
 
     // reward minting
