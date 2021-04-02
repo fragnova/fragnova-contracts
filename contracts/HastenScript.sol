@@ -42,6 +42,7 @@ contract HastenScript is
             _exists(tokenId),
             "HastenScript: URI query for nonexistent token"
         );
+
         return getUrl(tokenId);
     }
 

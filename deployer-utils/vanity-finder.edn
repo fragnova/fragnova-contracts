@@ -32,7 +32,7 @@
   .res)
 
 (defn random-try [bytecode]
-  (Chain "random-try"
+  (Chain "random-try" :SStack
          "0xe14B5aE0D1E8A4e9039D40e5BF203fD21E2f6241" >> .args
          (RandomBytes 32) (ToHex) >> .args = .salt
          bytecode >> .args
