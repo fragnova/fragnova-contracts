@@ -4,9 +4,11 @@ import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import "./HastenNFT.sol";
 import "./HastenScript.sol";
-import "./IpfsMetadataV0.sol";
+import "./Utility.sol";
 
-contract HastenMod is HastenNFT, IpfsMetadataV0 {
+contract HastenMod is HastenNFT {
+    uint8 private constant mutableVersion = 0x1;
+
     using SafeERC20 for IERC20;
 
     mapping(uint256 => address) private _signers;
@@ -16,7 +18,7 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
 
     // mapping for scripts storage
     mapping(uint256 => uint160) private _scripts;
-    mapping(uint256 => bytes) private _environments;
+    mapping(uint256 => bytes) private _mutable;
 
     HastenScript internal immutable _scriptsLibrary;
 
@@ -28,17 +30,45 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
         _daoToken = IERC20(daoAddress);
     }
 
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        virtual
+        override
+        returns (string memory)
+    {
+        require(
+            _exists(tokenId),
+            "HastenScript: URI query for nonexistent token"
+        );
+
+        bytes memory ipfsCid = new bytes(32);
+        bytes storage data = _mutable[tokenId];
+        for (uint256 i = 0; i < 32; i++) {
+            ipfsCid[i] = data[i + 1]; // skip 1 byte, version number
+        }
+        return
+            string(
+                abi.encodePacked(
+                    "ipfs://",
+                    Utility.toBase58(
+                        abi.encodePacked(uint8(0x12), uint8(0x20), ipfsCid)
+                    )
+                )
+            );
+    }
+
     function dataOf(uint256 modId)
         public
         view
-        returns (bytes memory scriptBytes, bytes memory environment)
+        returns (bytes memory immutableData, bytes memory mutableData)
     {
         require(
             _exists(modId),
             "HastenScript: script query for nonexistent token"
         );
         (bytes memory byteCode, ) = _scriptsLibrary.dataOf(_scripts[modId]);
-        return (byteCode, _environments[modId]);
+        return (byteCode, _mutable[modId]);
     }
 
     function setDelegate(uint256 scriptId, address delegate) public {
@@ -57,10 +87,15 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
     ) internal {
         _tokenIds.increment();
         uint256 newItemId = _tokenIds.current();
+
         _mint(msg.sender, newItemId);
-        _ipfsMetadataV0[newItemId] = ipfsMetadata;
+
         _scripts[newItemId] = scriptId;
-        _environments[newItemId] = environment;
+        _mutable[newItemId] = abi.encodePacked(
+            mutableVersion,
+            ipfsMetadata,
+            environment
+        );
     }
 
     function upload(
@@ -74,14 +109,6 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
         );
 
         _upload(ipfsMetadata, scriptId, environment);
-    }
-
-    function getChainId() private view returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
     }
 
     /*
@@ -98,7 +125,7 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
                 keccak256(
                     abi.encodePacked(
                         msg.sender,
-                        getChainId(),
+                        Utility.getChainId(),
                         ipfsMetadata,
                         scriptId,
                         environment
@@ -139,8 +166,7 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
         } else if (to == address(0)) {
             // burn, cleanup storage, it's the end
             _scripts[tokenId] = 0x0;
-            _environments[tokenId] = new bytes(0);
-            _ipfsMetadataV0[tokenId] = 0x0;
+            _mutable[tokenId] = new bytes(0);
         }
     }
 

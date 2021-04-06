@@ -4,6 +4,7 @@ import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./HastenNFT.sol";
 import "./ScriptStorage.sol";
+import "./Utility.sol";
 
 // this contract uses proxy, let's keep any storage inside other modules
 // this should make it easier to upgrade
@@ -19,7 +20,7 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
         ERC721("Hasten Script v0 NFT", "CODE")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {
-        // NOT INVOKED IF PROXY
+        // NOT INVOKED IF PROXIED
     }
 
     function bootstrap() public payable initializer {
@@ -42,7 +43,20 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
             "HastenScript: URI query for nonexistent token"
         );
 
-        return getUrl(tokenId, 1);
+        bytes memory ipfsCid = new bytes(32);
+        bytes storage data = _mutable[tokenId];
+        for (uint256 i = 0; i < 32; i++) {
+            ipfsCid[i] = data[i + 1]; // skip 1 byte, version number
+        }
+        return
+            string(
+                abi.encodePacked(
+                    "ipfs://",
+                    Utility.toBase58(
+                        abi.encodePacked(uint8(0x12), uint8(0x20), ipfsCid)
+                    )
+                )
+            );
     }
 
     function dataOf(uint160 scriptHash)
@@ -71,6 +85,7 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
             uint32(block.timestamp), // good until Sun Feb 07 2106 ...
             scriptBytes
         );
+
         _mutable[hash] = abi.encodePacked(
             mutableVersion,
             ipfsMetadata,
@@ -93,6 +108,7 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
             ipfsMetadata,
             environment
         );
+
         emit Updated(scriptHash);
     }
 

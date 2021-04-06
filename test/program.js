@@ -244,7 +244,8 @@ contract("HastenScript", accounts => {
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(empty);
-    assert.equal("0x" + script.scriptBytes.slice(52), codeHex);
+    assert.equal("0x" + script.immutableData.slice(52), codeHex);
+    assert.equal("0x" + script.mutableData.slice(68), codeHex);
     // mint should not trigger rewards
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
   });
@@ -293,7 +294,8 @@ contract("HastenScript", accounts => {
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(empty);
-    assert.equal("0x" + script.scriptBytes.slice(52), codeHex);
+    assert.equal("0x" + script.immutableData.slice(52), codeHex);
+    assert.equal("0x" + script.mutableData.slice(68), codeHex);
     // mint - no rewards
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
   });

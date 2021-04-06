@@ -1,9 +1,6 @@
 pragma solidity ^0.8.0;
 
-contract IpfsMetadataV0 {
-    // mapping for ipfs metadata, storing just 32 bytes of the CIDv0 (minus multihash prefix)
-    mapping(uint256 => bytes32) internal _ipfsMetadataV0;
-
+library Utility {
     function reverse(uint8[] memory input)
         private
         pure
@@ -31,7 +28,11 @@ contract IpfsMetadataV0 {
         return output;
     }
 
-    function toBase58(bytes memory source) private pure returns (bytes memory) {
+    function toBase58(bytes memory source)
+        internal
+        pure
+        returns (bytes memory)
+    {
         if (source.length == 0) return new bytes(0);
         uint8[] memory digits = new uint8[](46);
         digits[0] = 0;
@@ -53,19 +54,11 @@ contract IpfsMetadataV0 {
         return toAlphabet(reverse(digits));
     }
 
-    function getUrl(uint256 tokenId) internal view returns (string memory) {
-        return
-            string(
-                abi.encodePacked(
-                    "ipfs://",
-                    toBase58(
-                        abi.encodePacked(
-                            uint8(0x12),
-                            uint8(0x20),
-                            _ipfsMetadataV0[uint160(tokenId)]
-                        )
-                    )
-                )
-            );
+    function getChainId() internal view returns (uint256) {
+        uint256 id;
+        assembly {
+            id := chainid()
+        }
+        return id;
     }
 }
