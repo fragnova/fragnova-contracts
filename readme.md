@@ -2,6 +2,17 @@
 
 Solidity and Flow contracts to support **hasten.app** NFTs and FTs.
 
+## Rough costs
+
+### Uploading a Script
+https://goerli.etherscan.io/tx/0x722548d6d6b3254947b3ff4510833b182a36dc7f8fcd46e6a862a68226e32d38
+```
+Gas Used by Transaction:
+617,608 (66.67%)
+[info] [2021-04-06 11:11:30.798] [T-6818088] [logging.cpp::51] [Main] compressed source size: 337
+[info] [2021-04-06 11:11:30.808] [T-6818088] [logging.cpp::51] [Main] compressed env size: 286
+```
+
 ## Deterministic contracts (EVM chains)
 
 The following raw transactions can be used by anyone to deploy Hasten contracts to any chain.
