@@ -28,7 +28,7 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
         _daoToken = IERC20(daoAddress);
     }
 
-    function script(uint256 modId)
+    function dataOf(uint256 modId)
         public
         view
         returns (bytes memory scriptBytes, bytes memory environment)
@@ -37,7 +37,7 @@ contract HastenMod is HastenNFT, IpfsMetadataV0 {
             _exists(modId),
             "HastenScript: script query for nonexistent token"
         );
-        (bytes memory byteCode, ) = _scriptsLibrary.script(_scripts[modId]);
+        (bytes memory byteCode, ) = _scriptsLibrary.dataOf(_scripts[modId]);
         return (byteCode, _environments[modId]);
     }
 

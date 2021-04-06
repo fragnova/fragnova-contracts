@@ -123,14 +123,15 @@ contract("HastenScript", accounts => {
 
     const emptyCode = new Uint8Array(1024);
     const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, { from: accounts[0] });
+    console.log("Mint tx", tx);
     const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
     const emptyCodeHash = "0x" + keccak256(emptyCode).slice(27);
     assert.equal(hexHashId, emptyCodeHash);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     tokenOne = emptyCodeHash;
-    const script = await contract.script.call(tx.logs[0].args.tokenId);
+    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal(script.scriptBytes, codeHex);
+    assert.equal("0x" + script.immutableData.slice(52), codeHex);
 
     try {
       const uri = await contract.tokenURI.call(tx.logs[0].args.tokenId);
@@ -203,10 +204,10 @@ contract("HastenScript", accounts => {
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-    const script = await contract.script.call(tx.logs[0].args.tokenId);
+    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal(script.scriptBytes, codeHex);
-    assert.equal(script.environment, codeHex);
+    assert.equal("0x" + script.immutableData.slice(52), codeHex);
+    assert.equal("0x" + script.mutableData.slice(68), codeHex);
     const dao20 = await dao.deployed();
     assert.equal(await dao20.balanceOf.call(accounts[1]), web3.utils.toWei("10", "milli"));
   });
@@ -227,9 +228,9 @@ contract("HastenScript", accounts => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
     await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, { from: accounts[0] });
-    const script = await contract.script.call(tokenOne);
+    const script = await contract.dataOf.call(tokenOne);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal(script.environment, codeHex);
+    assert.equal("0x" + script.mutableData.slice(68), codeHex);
   });
 
   it("should upload a mod", async () => {
@@ -241,9 +242,9 @@ contract("HastenScript", accounts => {
     const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
-    const script = await contract.script.call(tx.logs[0].args.tokenId);
+    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(empty);
-    assert.equal(script.scriptBytes, codeHex);
+    assert.equal("0x" + script.scriptBytes.slice(52), codeHex);
     // mint should not trigger rewards
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
   });
@@ -290,9 +291,9 @@ contract("HastenScript", accounts => {
     const tx = await contract.uploadWithDelegateAuth(signature, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[1] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 2);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-    const script = await contract.script.call(tx.logs[0].args.tokenId);
+    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(empty);
-    assert.equal(script.scriptBytes, codeHex);
+    assert.equal("0x" + script.scriptBytes.slice(52), codeHex);
     // mint - no rewards
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
   });

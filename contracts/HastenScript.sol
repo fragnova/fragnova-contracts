@@ -3,24 +3,23 @@ pragma solidity ^0.8.0;
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./HastenNFT.sol";
-import "./IpfsMetadataV0.sol";
-import "./ScriptStorageV0.sol";
+import "./ScriptStorage.sol";
 
 // this contract uses proxy, let's keep any storage inside other modules
 // this should make it easier to upgrade
-contract HastenScript is
-    HastenNFT,
-    Initializable,
-    IpfsMetadataV0,
-    ScriptStorageV0
-{
+contract HastenScript is HastenNFT, Initializable, ScriptStorage {
+    uint8 private constant mutableVersion = 0x1;
+    uint8 private constant immutableVersion = 0x1;
+
     using SafeERC20 for IERC20;
+
+    event Updated(uint256 indexed tokenId);
 
     constructor()
         ERC721("Hasten Script v0 NFT", "CODE")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {
-        // NOT INVOKED
+        // NOT INVOKED IF PROXY
     }
 
     function bootstrap() public payable initializer {
@@ -43,15 +42,15 @@ contract HastenScript is
             "HastenScript: URI query for nonexistent token"
         );
 
-        return getUrl(tokenId);
+        return getUrl(tokenId, 1);
     }
 
-    function script(uint160 scriptHash)
+    function dataOf(uint160 scriptHash)
         public
         view
-        returns (bytes memory scriptBytes, bytes memory environment)
+        returns (bytes memory immutableData, bytes memory mutableData)
     {
-        return (_scripts[scriptHash], _environments[scriptHash]);
+        return (_immutable[scriptHash], _mutable[scriptHash]);
     }
 
     function upload(
@@ -66,9 +65,17 @@ contract HastenScript is
 
         _mint(msg.sender, hash);
 
-        _ipfsMetadataV0[hash] = ipfsMetadata;
-        _scripts[hash] = scriptBytes;
-        _environments[hash] = environment;
+        _immutable[hash] = abi.encodePacked(
+            immutableVersion,
+            msg.sender,
+            uint32(block.timestamp), // good until Sun Feb 07 2106 ...
+            scriptBytes
+        );
+        _mutable[hash] = abi.encodePacked(
+            mutableVersion,
+            ipfsMetadata,
+            environment
+        );
     }
 
     function update(
@@ -81,9 +88,12 @@ contract HastenScript is
             "HastenScript: Only the owner of the script can update it"
         );
 
-        _ipfsMetadataV0[scriptHash] = ipfsMetadata;
-        _environments[scriptHash] = environment;
-        emit EnvironmentUpdated(scriptHash);
+        _mutable[scriptHash] = abi.encodePacked(
+            mutableVersion,
+            ipfsMetadata,
+            environment
+        );
+        emit Updated(scriptHash);
     }
 
     // reward minting
@@ -104,11 +114,7 @@ contract HastenScript is
                 _daoToken.balanceOf(address(this)) > _reward
             ) {
                 _daoToken.safeIncreaseAllowance(address(this), _reward);
-                _daoToken.safeTransferFrom(
-                    address(this),
-                    msg.sender,
-                    _reward
-                );
+                _daoToken.safeTransferFrom(address(this), msg.sender, _reward);
                 _rewardBlocks[msg.sender] = block.number;
             }
         }

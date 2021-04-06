@@ -17,6 +17,4 @@ abstract contract HastenNFT is ERC721, Ownable {
     function getDAOToken() public view returns (address) {
         return address(_daoToken);
     }
-
-    event EnvironmentUpdated(uint256 indexed tokenId);
 }
