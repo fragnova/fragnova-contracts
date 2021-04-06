@@ -81,8 +81,8 @@ contract HastenMod is HastenNFT {
     }
 
     function _upload(
-        bytes32 ipfsMetadata,
         uint160 scriptId,
+        bytes32 ipfsMetadata,
         bytes memory environment
     ) internal {
         _tokenIds.increment();
@@ -99,16 +99,19 @@ contract HastenMod is HastenNFT {
     }
 
     function upload(
-        bytes32 ipfsMetadata,
         uint160 scriptId,
-        bytes memory environment
+        bytes32 ipfsMetadata,
+        bytes memory environment,
+        uint256 amount
     ) public {
         require(
             msg.sender == _scriptsLibrary.ownerOf(scriptId),
             "HastenMod: Only the owner of the script can upload mods"
         );
 
-        _upload(ipfsMetadata, scriptId, environment);
+        for (uint256 i = 0; i < amount; i++) {
+            _upload(scriptId, ipfsMetadata, environment);
+        }
     }
 
     /*
@@ -116,9 +119,10 @@ contract HastenMod is HastenNFT {
     */
     function uploadWithDelegateAuth(
         bytes memory signature,
-        bytes32 ipfsMetadata,
         uint160 scriptId,
-        bytes memory environment
+        bytes32 ipfsMetadata,
+        bytes memory environment,
+        uint256 amount
     ) public {
         bytes32 hash =
             ECDSA.toEthSignedMessageHash(
@@ -126,9 +130,10 @@ contract HastenMod is HastenNFT {
                     abi.encodePacked(
                         msg.sender,
                         Utility.getChainId(),
-                        ipfsMetadata,
                         scriptId,
-                        environment
+                        ipfsMetadata,
+                        environment,
+                        amount
                     )
                 )
             );
@@ -138,7 +143,9 @@ contract HastenMod is HastenNFT {
             "HastenMod: Invalid signature"
         );
 
-        _upload(ipfsMetadata, scriptId, environment);
+        for (uint256 i = 0; i < amount; i++) {
+            _upload(scriptId, ipfsMetadata, environment);
+        }
     }
 
     // reward the owner of the Script

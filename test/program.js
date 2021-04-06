@@ -239,7 +239,7 @@ contract("HastenScript", accounts => {
     const contract = await modNft.deployed();
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
     const empty = new Uint8Array(1024);
-    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[0] });
+    const tx = await contract.upload(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
@@ -266,7 +266,7 @@ contract("HastenScript", accounts => {
       await dao.deployed();
       const contract = await modNft.deployed();
       const empty = new Uint8Array(1024);
-      await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[1] });
+      await contract.upload(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "HastenMod: Only the owner of the script can upload mods");
       return;
@@ -279,9 +279,10 @@ contract("HastenScript", accounts => {
     const parts = [
       { t: "address", v: accounts[1] },
       { t: "uint256", v: "0x1" },
-      { t: "bytes32", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
       { t: "uint160", v: tokenOne },
-      { t: "bytes", v: web3.utils.bytesToHex(empty) }
+      { t: "bytes32", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
+      { t: "bytes", v: web3.utils.bytesToHex(empty) },
+      { t: "uint256", v: "2" },
     ];
     const messageHex = web3.utils.soliditySha3(...parts);
     const signature = await signMessage(accounts[2], messageHex);
@@ -289,13 +290,23 @@ contract("HastenScript", accounts => {
     const dao20 = await dao.deployed();
     const contract = await modNft.deployed();
     await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
-    const tx = await contract.uploadWithDelegateAuth(signature, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[1] });
-    assert.equal(tx.logs[0].args.tokenId.toString(), 2);
-    assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
-    const codeHex = web3.utils.bytesToHex(empty);
-    assert.equal("0x" + script.immutableData.slice(52), codeHex);
-    assert.equal("0x" + script.mutableData.slice(68), codeHex);
+    const tx = await contract.uploadWithDelegateAuth(signature, tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 2, { from: accounts[1] });
+    {
+      assert.equal(tx.logs[0].args.tokenId.toString(), 2);
+      assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
+      const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
+      const codeHex = web3.utils.bytesToHex(empty);
+      assert.equal("0x" + script.immutableData.slice(52), codeHex);
+      assert.equal("0x" + script.mutableData.slice(68), codeHex);
+    }
+    {
+      assert.equal(tx.logs[1].args.tokenId.toString(), 3);
+      assert.equal(await contract.ownerOf.call(tx.logs[1].args.tokenId), accounts[1]);
+      const script = await contract.dataOf.call(tx.logs[1].args.tokenId);
+      const codeHex = web3.utils.bytesToHex(empty);
+      assert.equal("0x" + script.immutableData.slice(52), codeHex);
+      assert.equal("0x" + script.mutableData.slice(68), codeHex);
+    }
     // mint - no rewards
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
   });
@@ -306,9 +317,10 @@ contract("HastenScript", accounts => {
       const parts = [
         { t: "address", v: accounts[1] },
         { t: "uint256", v: "0x1" },
-        { t: "string", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
         { t: "uint160", v: tokenOne },
-        { t: "bytes", v: web3.utils.bytesToHex(empty) }
+        { t: "string", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
+        { t: "bytes", v: web3.utils.bytesToHex(empty) },
+        { t: "uint256", v: "1" },
       ];
       const messageHex = web3.utils.soliditySha3(...parts);
       const signature = await signMessage(accounts[3], messageHex);
@@ -316,7 +328,7 @@ contract("HastenScript", accounts => {
       await dao.deployed();
       const contract = await modNft.deployed();
       await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
-      await contract.uploadWithDelegateAuth(signature, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", tokenOne, empty, { from: accounts[1] });
+      await contract.uploadWithDelegateAuth(signature, tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "HastenMod: Invalid signature", e);
       return;
