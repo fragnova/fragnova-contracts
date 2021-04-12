@@ -4,6 +4,7 @@ var daoToken = artifacts.require("HastenDAOToken");
 var nft = artifacts.require("HastenScript");
 var nftProxy = artifacts.require("HastenScriptProxy");
 var nftMod = artifacts.require("HastenMod");
+var nftModProxy = artifacts.require("HastenModProxy");
 var admin = artifacts.require("HastenProxyAdmin");
 
 module.exports = async function(deployer, network) {
@@ -20,6 +21,7 @@ module.exports = async function(deployer, network) {
 
   fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => {});
   fs.writeFile("deployer-utils/nftProxy-bytecode.txt", nftProxy.bytecode, (_r, _e) => {});
-  fs.writeFile("deployer-utils/daoToken-bytecode.txt", daoToken.bytecode, (_r, _e) => {});
+  fs.writeFile("deployer-utils/mod-bytecode.txt", nftMod.bytecode, (_r, _e) => {});
+  fs.writeFile("deployer-utils/modProxy-bytecode.txt", nftModProxy.bytecode, (_r, _e) => {});
   fs.writeFile("deployer-utils/admin-bytecode.txt", admin.bytecode, (_r, _e) => {});
 };

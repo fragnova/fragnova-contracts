@@ -17,8 +17,8 @@ contract HastenMod is HastenNFT {
     Counters.Counter private _tokenIds;
 
     // mapping for scripts storage
-    mapping(uint256 => uint160) private _scripts;
-    mapping(uint256 => bytes) private _mutable;
+    mapping(uint256 => bytes) private _modData;
+    mapping(uint256 => uint160) private _modRefs;
 
     HastenScript internal immutable _scriptsLibrary;
 
@@ -42,8 +42,8 @@ contract HastenMod is HastenNFT {
             "HastenScript: URI query for nonexistent token"
         );
 
+        bytes storage data = _modData[_modRefs[tokenId]];
         bytes memory ipfsCid = new bytes(32);
-        bytes storage data = _mutable[tokenId];
         for (uint256 i = 0; i < 32; i++) {
             ipfsCid[i] = data[i + 1]; // skip 1 byte, version number
         }
@@ -58,6 +58,21 @@ contract HastenMod is HastenNFT {
             );
     }
 
+    function _scriptId(uint256 modId) private view returns (uint160) {
+        uint160 res;
+        bytes storage mutableData = _modData[_modRefs[modId]];
+        {
+            bytes memory scriptIdBytes = new bytes(20);
+            for (uint256 i = 0; i < 20; i++) {
+                scriptIdBytes[i] = mutableData[i + 33]; // skip 33 bytes, version number and ipfs cid
+            }
+            assembly {
+                res := mload(add(scriptIdBytes, 20))
+            }
+        }
+        return res;
+    }
+
     function dataOf(uint256 modId)
         public
         view
@@ -67,8 +82,9 @@ contract HastenMod is HastenNFT {
             _exists(modId),
             "HastenScript: script query for nonexistent token"
         );
-        (bytes memory byteCode, ) = _scriptsLibrary.dataOf(_scripts[modId]);
-        return (byteCode, _mutable[modId]);
+
+        mutableData = _modData[_modRefs[modId]];
+        (immutableData, ) = _scriptsLibrary.dataOf(_scriptId(modId));
     }
 
     function setDelegate(uint256 scriptId, address delegate) public {
@@ -83,19 +99,32 @@ contract HastenMod is HastenNFT {
     function _upload(
         uint160 scriptId,
         bytes32 ipfsMetadata,
-        bytes memory environment
+        bytes memory environment,
+        uint256 amount
     ) internal {
-        _tokenIds.increment();
-        uint256 newItemId = _tokenIds.current();
+        uint160 dataHash =
+            uint160(
+                uint256(keccak256(abi.encodePacked(scriptId, environment)))
+            );
 
-        _mint(msg.sender, newItemId);
+        // store only if not already present
+        if (_modData[dataHash].length == 0) {
+            _modData[dataHash] = abi.encodePacked(
+                mutableVersion,
+                ipfsMetadata,
+                scriptId,
+                environment
+            );
+        }
 
-        _scripts[newItemId] = scriptId;
-        _mutable[newItemId] = abi.encodePacked(
-            mutableVersion,
-            ipfsMetadata,
-            environment
-        );
+        for (uint256 i = 0; i < amount; i++) {
+            _tokenIds.increment();
+            uint256 newItemId = _tokenIds.current();
+
+            _mint(msg.sender, newItemId);
+
+            _modRefs[newItemId] = dataHash;
+        }
     }
 
     function upload(
@@ -109,9 +138,7 @@ contract HastenMod is HastenNFT {
             "HastenMod: Only the owner of the script can upload mods"
         );
 
-        for (uint256 i = 0; i < amount; i++) {
-            _upload(scriptId, ipfsMetadata, environment);
-        }
+        _upload(scriptId, ipfsMetadata, environment, amount);
     }
 
     /*
@@ -143,9 +170,7 @@ contract HastenMod is HastenNFT {
             "HastenMod: Invalid signature"
         );
 
-        for (uint256 i = 0; i < amount; i++) {
-            _upload(scriptId, ipfsMetadata, environment);
-        }
+        _upload(scriptId, ipfsMetadata, environment, amount);
     }
 
     // reward the owner of the Script
@@ -161,7 +186,7 @@ contract HastenMod is HastenNFT {
             from != address(0) &&
             address(_daoToken) != address(0)
         ) {
-            address scriptOwner = _scriptsLibrary.ownerOf(_scripts[tokenId]);
+            address scriptOwner = _scriptsLibrary.ownerOf(_scriptId(tokenId));
             if (
                 _rewardBlocks[scriptOwner] != block.number &&
                 _daoToken.balanceOf(address(this)) > _reward
@@ -171,9 +196,9 @@ contract HastenMod is HastenNFT {
                 _rewardBlocks[scriptOwner] = block.number;
             }
         } else if (to == address(0)) {
-            // burn, cleanup storage, it's the end
-            _scripts[tokenId] = 0x0;
-            _mutable[tokenId] = new bytes(0);
+            // burn, cleanup some memory
+            // altho big storage is not cleared
+            _modRefs[tokenId] = 0x0;
         }
     }
 
