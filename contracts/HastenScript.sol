@@ -70,16 +70,25 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
     function referencesOf(uint160 scriptHash)
         public
         view
-        returns (bytes memory packedRefs)
+        returns (uint160[] memory packedRefs)
     {
         return _references[scriptHash];
+    }
+
+    function includeCostOf(uint160 scriptHash)
+        public
+        view
+        returns (uint256 cost)
+    {
+        return _includeCost[scriptHash];
     }
 
     function upload(
         bytes32 ipfsMetadata,
         bytes memory scriptBytes,
         bytes memory environment,
-        bytes memory references // tight packed uint160s
+        uint160[] memory references,
+        uint256 includeCost
     ) public {
         // mint a new token and upload it
         // but make scripts unique by hashing them
@@ -98,10 +107,6 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
             scriptBytes
         );
 
-        if (references.length > 0) {
-            _references[hash] = references;
-        }
-
         if (environment.length > 0) {
             _mutable[hash] = abi.encodePacked(
                 mutableVersion,
@@ -111,6 +116,19 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
         } else {
             _mutable[hash] = abi.encodePacked(mutableVersion, ipfsMetadata);
         }
+
+        if (references.length > 0) {
+            _references[hash] = references;
+            // TODO incentives, pay referenced script's owners
+            // for (uint256 i = 0; i < references.length; i++) {
+            //     uint256 cost = includeCostOf(references[i]);
+            //     if (cost > 0) {
+            //         address owner = ownerOf(references[i]);
+            //     }
+            // }
+        }
+
+        _includeCost[hash] = includeCost;
     }
 
     function update(
