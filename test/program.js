@@ -122,7 +122,7 @@ contract("HastenScript", accounts => {
     scriptContract = contract;
 
     const emptyCode = new Uint8Array(1024);
-    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, { from: accounts[0] });
+    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], { from: accounts[0] });
     console.log("Mint tx", tx);
     const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
     const emptyCodeHash = "0x" + keccak256(emptyCode).slice(27);
@@ -178,7 +178,7 @@ contract("HastenScript", accounts => {
     console.log(deployedTx);
 
     const uniqueContract = new web3.eth.Contract(nft.abi, expectedAddr);
-    const uniquedTx = await uniqueContract.methods.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode).send({
+    const uniquedTx = await uniqueContract.methods.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, []).send({
       from: accounts[0],
       // gasPrice: "10000000000000",
       gas: 300000
@@ -190,7 +190,7 @@ contract("HastenScript", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(1024);
-      await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, { from: accounts[0] });
+      await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], { from: accounts[0] });
     } catch (e) {
       assert(e.reason == "HastenScript: script already minted", e);
       return;
@@ -202,7 +202,7 @@ contract("HastenScript", accounts => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
-    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, { from: accounts[1] });
+    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);

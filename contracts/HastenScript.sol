@@ -67,14 +67,26 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
         return (_immutable[scriptHash], _mutable[scriptHash]);
     }
 
+    function referencesOf(uint160 scriptHash)
+        public
+        view
+        returns (bytes memory packedRefs)
+    {
+        return _references[scriptHash];
+    }
+
     function upload(
         bytes32 ipfsMetadata,
         bytes memory scriptBytes,
-        bytes memory environment
+        bytes memory environment,
+        bytes memory references // tight packed uint160s
     ) public {
         // mint a new token and upload it
         // but make scripts unique by hashing them
-        uint160 hash = uint160(uint256(keccak256(scriptBytes)));
+        uint160 hash =
+            uint160(
+                uint256(keccak256(abi.encodePacked(scriptBytes, references)))
+            );
         require(!_exists(hash), "HastenScript: script already minted");
 
         _mint(msg.sender, hash);
@@ -86,11 +98,19 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
             scriptBytes
         );
 
-        _mutable[hash] = abi.encodePacked(
-            mutableVersion,
-            ipfsMetadata,
-            environment
-        );
+        if (references.length > 0) {
+            _references[hash] = references;
+        }
+
+        if (environment.length > 0) {
+            _mutable[hash] = abi.encodePacked(
+                mutableVersion,
+                ipfsMetadata,
+                environment
+            );
+        } else {
+            _mutable[hash] = abi.encodePacked(mutableVersion, ipfsMetadata);
+        }
     }
 
     function update(
