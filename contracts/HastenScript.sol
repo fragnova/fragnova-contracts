@@ -102,7 +102,7 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
 
         _immutable[hash] = abi.encodePacked(
             immutableVersion,
-            msg.sender,
+            msg.sender, // we want those persistent even on non archive nodes.. not depending on transaction data
             uint32(block.timestamp), // good until Sun Feb 07 2106 ...
             scriptBytes
         );
@@ -119,13 +119,21 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
 
         if (references.length > 0) {
             _references[hash] = references;
-            // TODO incentives, pay referenced script's owners
-            // for (uint256 i = 0; i < references.length; i++) {
-            //     uint256 cost = includeCostOf(references[i]);
-            //     if (cost > 0) {
-            //         address owner = ownerOf(references[i]);
-            //     }
-            // }
+            if (address(_daoToken) != address(0)) {
+                uint256 balance = _daoToken.balanceOf(msg.sender);
+                for (uint256 i = 0; i < references.length; i++) {
+                    uint256 cost = includeCostOf(references[i]);
+                    if (cost > 0) {
+                        require(
+                            balance >= cost,
+                            "HastenScript: not enough balance to reference script"
+                        );
+                        address owner = ownerOf(references[i]);
+                        _daoToken.safeTransferFrom(msg.sender, owner, cost);
+                        balance -= cost;
+                    }
+                }
+            }
         }
 
         _includeCost[hash] = includeCost;
