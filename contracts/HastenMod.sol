@@ -1,12 +1,13 @@
 pragma solidity ^0.8.0;
 
+import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import "./HastenNFT.sol";
 import "./HastenScript.sol";
 import "./Utility.sol";
 
-contract HastenMod is HastenNFT {
+contract HastenMod is HastenNFT, Initializable {
     uint8 private constant mutableVersion = 0x1;
 
     using SafeERC20 for IERC20;
@@ -20,7 +21,7 @@ contract HastenMod is HastenNFT {
     mapping(uint256 => bytes) private _modData;
     mapping(uint256 => uint160) private _modRefs;
 
-    HastenScript internal immutable _scriptsLibrary;
+    HastenScript internal _scriptsLibrary;
 
     constructor(address libraryAddress, address daoAddress)
         ERC721("Hasten Mod v0 NFT ", "MOD")
@@ -28,6 +29,17 @@ contract HastenMod is HastenNFT {
     {
         _scriptsLibrary = HastenScript(libraryAddress);
         _daoToken = IERC20(daoAddress);
+    }
+
+    function bootstrap() public payable initializer {
+        // Ownable
+        Ownable._bootstrap(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
+        // ERC721
+        _name = "Hasten Mod v0 NFT";
+        _symbol = "MOD";
+
+        _scriptsLibrary = HastenScript(0xC0DE00ce4dc54b06BEa5EB116E4D6eF1e0A5Df49);
+        _daoToken = IERC20(address(0));
     }
 
     function tokenURI(uint256 tokenId)

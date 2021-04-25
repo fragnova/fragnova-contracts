@@ -1,5 +1,6 @@
 (def bytecode1 (slurp "admin-bytecode.txt"))
-(def bytecode2 (slurp "nft-bytecode.txt"))
+;; (def bytecode2 (slurp "nft-bytecode.txt"))
+(def bytecode2 (slurp "mod-bytecode.txt"))
 ;; (def bytecode1 (slurp "nftProxy-bytecode.txt"))
 
 (defnode Root)
@@ -41,25 +42,26 @@
          .salt (Set .res "salt")
          .res))
 
-(defn try-many [n bytecode]
+(defn try-many [n bytecode pattern from to]
   (Chain "try-many" :Looped
          nil (Expand 4096 (random-try bytecode) :Threads 128)
          (ForEach
           (-> = .record
-              (Take "address") (Slice :From 2 :To 8)
-              (When (Is "C0DE00")
-                    (->
-                     .record (ToString) = .result
-                     "results.txt"
-                     (FS.Write n :Append true)
-                     (FS.Write .result :Append true)
-                     (FS.Write "\n" :Append true)))))))
+              (Take "address") (Slice :From from :To to)
+              (When
+               (Any pattern)
+               (->
+                .record (ToString) = .result
+                "results.txt"
+                (FS.Write n :Append true)
+                (FS.Write .result :Append true)
+                (FS.Write "\n" :Append true)))))))
 
 (schedule Root (Chain "test"
                       "0xc0de00d507e4eb2257e5ed7fde17cbfa10c47e57"
                       (Do checksum)
                       (Log)
                       (Assert.Is "0xC0De00D507E4EB2257E5Ed7FdE17cBfa10c47E57" true)))
-(schedule Root (try-many "1: " bytecode1))
-(schedule Root (try-many "2: " bytecode2))
+(schedule Root (try-many "1: " bytecode1 ["C0ffee" "C0FFEE" "CAFFEE" "Caffee"] 2 8))
+(schedule Root (try-many "2: " bytecode2 ["001DEA" "001dea" "1dea00" "1DEA00"] 2 8))
 (run Root)
