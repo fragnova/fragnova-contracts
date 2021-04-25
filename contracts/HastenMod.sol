@@ -38,7 +38,7 @@ contract HastenMod is HastenNFT, Initializable {
         _name = "Hasten Mod v0 NFT";
         _symbol = "MOD";
 
-        _scriptsLibrary = HastenScript(0xC0DE00ce4dc54b06BEa5EB116E4D6eF1e0A5Df49);
+        _scriptsLibrary = HastenScript(0xC0DE00ce4dc54b06BEa5EB116E4D6eF1e0A5Df49); // proxy script library
         _daoToken = IERC20(address(0));
     }
 

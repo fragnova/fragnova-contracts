@@ -6,7 +6,7 @@ contract HastenModProxy is TransparentUpgradeableProxy {
     constructor()
         TransparentUpgradeableProxy(
             address(0xC0DE00D0Fd0Af66d767D3dD13B01EeEa9Ef213AB), // logic
-            address(0xC0ffee4B437CcF6C7cE62E517D94e48c0389d1Eb), // admin
+            address(0xC0FFEEaAd4F914eD5eC6c87DfCE1e453fC16646A), // admin
             new bytes(0)
         )
     {}
