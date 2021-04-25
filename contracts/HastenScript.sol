@@ -120,6 +120,7 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
         if (references.length > 0) {
             _references[hash] = references;
             if (address(_daoToken) != address(0)) {
+                // We need to ensure that _daoToken is always populated after beign launched or we break incentives
                 uint256 balance = _daoToken.balanceOf(msg.sender);
                 for (uint256 i = 0; i < references.length; i++) {
                     uint256 cost = includeCostOf(references[i]);
@@ -142,7 +143,8 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
     function update(
         uint160 scriptHash,
         bytes32 ipfsMetadata,
-        bytes memory environment
+        bytes memory environment,
+        uint256 includeCost
     ) public {
         require(
             _exists(scriptHash) && msg.sender == ownerOf(scriptHash),
@@ -154,6 +156,8 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
             ipfsMetadata,
             environment
         );
+
+        _includeCost[scriptHash] = includeCost;
 
         emit Updated(scriptHash);
     }

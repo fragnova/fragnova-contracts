@@ -1,6 +1,6 @@
-;; (def bytecode1 (slurp "admin-bytecode.txt"))
-;; (def bytecode2 (slurp "nft-bytecode.txt"))
-(def bytecode1 (slurp "nftProxy-bytecode.txt"))
+(def bytecode1 (slurp "admin-bytecode.txt"))
+(def bytecode2 (slurp "nft-bytecode.txt"))
+;; (def bytecode1 (slurp "nftProxy-bytecode.txt"))
 
 (defnode Root)
 
@@ -61,5 +61,5 @@
                       (Log)
                       (Assert.Is "0xC0De00D507E4EB2257E5Ed7FdE17cBfa10c47E57" true)))
 (schedule Root (try-many "1: " bytecode1))
-;; (schedule Root (try-many "2: " bytecode2))
+(schedule Root (try-many "2: " bytecode2))
 (run Root)

@@ -216,7 +216,7 @@ contract("HastenScript", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(30);
-      await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, { from: accounts[1] });
+      await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, 0, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "HastenScript: Only the owner of the script can update it");
       return;
@@ -227,10 +227,47 @@ contract("HastenScript", accounts => {
   it("should update a script's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
-    await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, { from: accounts[0] });
+    await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, 10, { from: accounts[0] });
     const script = await contract.dataOf.call(tokenOne);
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal("0x" + script.mutableData.slice(68), codeHex);
+    const includeCost = await contract.includeCostOf.call(tokenOne);
+    assert.equal(10, includeCost.toNumber());
+  });
+
+  it("should upload a script with reference, paying referenced", async () => {
+    const contract = await nft.deployed();
+    const dao20 = await dao.deployed();
+    // disable rewards, testing that too
+    await contract.setMintReward(0, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
+    const emptyCode = new Uint8Array(1024);
+    const initialBalance = await dao20.balanceOf.call(accounts[1]);
+    await dao20.approve(contract.address, 10, { from: accounts[1] });
+    emptyCode[0] = 1; // make a small change in order to succeed
+    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [tokenOne], 0, { from: accounts[1] });
+    assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
+    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
+    const codeHex = web3.utils.bytesToHex(emptyCode);
+    assert.equal("0x" + script.immutableData.slice(52), codeHex);
+    assert.equal("0x" + script.mutableData.slice(68), codeHex);
+    const finalBalance = await dao20.balanceOf.call(accounts[1]);
+    assert(initialBalance.sub(new BN(10, 10)).eq(finalBalance));
+  });
+
+  it("should not upload a script with reference, paying referenced", async () => {
+    try {
+      const contract = await nft.deployed();
+      const dao20 = await dao.deployed();
+      // disable rewards, testing that too
+      await contract.setMintReward(0, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
+      const emptyCode = new Uint8Array(1024);
+      emptyCode[0] = 2; // make a small change in order to succeed
+      await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [tokenOne], 0, { from: accounts[2] });
+    } catch (e) {
+      assert(e.reason == "HastenScript: not enough balance to reference script");
+      return;
+    }
+    assert(false, "expected exception not thrown");
   });
 
   it("should upload a mod", async () => {
