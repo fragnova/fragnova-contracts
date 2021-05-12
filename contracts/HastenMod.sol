@@ -3,14 +3,12 @@ pragma solidity ^0.8.0;
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
-import "./Ownable.sol";
+import "./Flushable.sol";
 import "./HastenScript.sol";
 import "./Utility.sol";
 
-contract HastenMod is ERC721, Ownable, Initializable {
+contract HastenMod is ERC721, Flushable, Initializable {
     uint8 private constant dataVersion = 0x1;
-
-    using SafeERC20 for IERC20;
 
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
@@ -149,14 +147,16 @@ contract HastenMod is ERC721, Ownable, Initializable {
     }
 
     /*
-        This is to allow any user to upload something as long as the owner of the script authorizes.
+        This is to allow public sales.
+        We use a signature to allow an entity off chain to verify that the content is valid and vouch for it.
+        If we want to skip that crafted address and signatures can be used
     */
-    function uploadWithDelegateAuth(
+    function mint(
         bytes memory signature,
         bytes32 ipfsMetadata,
         bytes memory environment,
         uint32 amount
-    ) public {
+    ) public payable {
         bytes32 hash =
             ECDSA.toEthSignedMessageHash(
                 keccak256(
@@ -176,25 +176,18 @@ contract HastenMod is ERC721, Ownable, Initializable {
             "HastenMod: Invalid signature"
         );
 
-        _upload(ipfsMetadata, environment, amount);
-    }
-
-    /*
-        This is to allow public sales.
-    */
-    function uploadForEth(
-        bytes32 ipfsMetadata,
-        bytes memory environment,
-        uint32 amount
-    ) public payable {
         require(_publicMinting, "Public minting not allowed");
+
         require(
             _tokenIds.current() < _publicCap,
             "Public minting limit has been reached"
         );
+
         require(amount <= _maxPublicAmount, "Invalid amount");
+
         uint256 price = amount * _publicMintingPrice;
         require(msg.value >= price, "Not enough value");
+
         _upload(ipfsMetadata, environment, amount);
     }
 
@@ -221,12 +214,4 @@ contract HastenMod is ERC721, Ownable, Initializable {
         );
         _metadataURIs[tokenId] = metadata;
     }
-
-    // reward the owner of the Script
-    // limited to once per block for safety reasons
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal override {}
 }
