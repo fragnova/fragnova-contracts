@@ -149,7 +149,7 @@ contract HastenMod is ERC721, Flushable, Initializable {
     /*
         This is to allow public sales.
         We use a signature to allow an entity off chain to verify that the content is valid and vouch for it.
-        If we want to skip that crafted address and signatures can be used
+        If we want to skip that crafted address and random signatures can be used
     */
     function mint(
         bytes memory signature,
