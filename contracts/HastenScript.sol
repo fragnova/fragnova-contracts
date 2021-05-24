@@ -85,9 +85,9 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
 
     function upload(
         bytes32 ipfsMetadata,
-        bytes memory scriptBytes,
-        bytes memory environment,
-        uint160[] memory references,
+        bytes calldata scriptBytes,
+        bytes calldata environment,
+        uint160[] calldata references,
         uint256 includeCost
     ) public {
         // mint a new token and upload it
@@ -143,7 +143,7 @@ contract HastenScript is HastenNFT, Initializable, ScriptStorage {
     function update(
         uint160 scriptHash,
         bytes32 ipfsMetadata,
-        bytes memory environment,
+        bytes calldata environment,
         uint256 includeCost
     ) public {
         require(

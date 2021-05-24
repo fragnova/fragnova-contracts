@@ -114,7 +114,7 @@ contract HastenMod is ERC721, Flushable, Initializable {
 
     function _upload(
         bytes32 ipfsMetadata,
-        bytes memory environment,
+        bytes calldata environment,
         uint32 amount
     ) internal {
         uint160 dataHash =
@@ -140,7 +140,7 @@ contract HastenMod is ERC721, Flushable, Initializable {
 
     function upload(
         bytes32 ipfsMetadata,
-        bytes memory environment,
+        bytes calldata environment,
         uint32 amount
     ) public onlyOwner {
         _upload(ipfsMetadata, environment, amount);
@@ -152,9 +152,9 @@ contract HastenMod is ERC721, Flushable, Initializable {
         If we want to skip that crafted address and random signatures can be used
     */
     function mint(
-        bytes memory signature,
+        bytes calldata signature,
         bytes32 ipfsMetadata,
-        bytes memory environment,
+        bytes calldata environment,
         uint32 amount
     ) public payable {
         bytes32 hash =
