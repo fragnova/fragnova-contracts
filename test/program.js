@@ -99,8 +99,8 @@ contract("FragmentTemplate", accounts => {
 
     const contract = await nft.deployed();
 
-    const rwSetTx = await contract.setDAOToken(dao20.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
-    console.log(rwSetTx);
+    await contract.setDAOToken(dao20.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
+    await contract.setRewardAllocation(web3.utils.toWei("1", "ether"), { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
 
     const deployTx = deterministicDeployment(nft.bytecode, receipt.gasUsed);
     const sender = Address.fromPublicKey(deployTx.getSenderPublicKey());

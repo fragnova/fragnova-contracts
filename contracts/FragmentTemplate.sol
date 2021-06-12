@@ -47,6 +47,8 @@ contract FragmentTemplate is FragmentNFT, Initializable {
 
     // the amount of $FRAG that is storage fees, on order to separate it from staked one
     uint256 private _storageFeesTotal = 0;
+    // the amount of $FRAG allocated for rewards
+    uint256 private _rewardTotal = 0;
 
     // How much staking is needed to include this fragment
     mapping(uint256 => uint256) private _includeCost;
@@ -284,9 +286,10 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         ) {
             if (
                 _rewardBlocks[msg.sender] != block.number &&
-                _daoToken.balanceOf(address(this)) > _reward
+                _rewardTotal > _reward
             ) {
                 _rewardBlocks[msg.sender] = block.number;
+                _rewardTotal -= _reward;
                 _daoToken.safeIncreaseAllowance(address(this), _reward);
                 _daoToken.safeTransferFrom(address(this), msg.sender, _reward);
             }
@@ -305,5 +308,12 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         uint256 total = _storageFeesTotal;
         _storageFeesTotal = 0;
         _daoToken.safeTransferFrom(address(this), owner(), total);
+    }
+
+    function setRewardAllocation(uint256 amount) public onlyOwner {
+        // This is dangerous!
+        // Make sure to transfer exact amount $FRAG before calling this
+        // we should probably use the EIP for transfer and call
+        _rewardTotal = amount;
     }
 }
