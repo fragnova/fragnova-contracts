@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
+import "openzeppelin-solidity/contracts/utils/structs/EnumerableSet.sol";
 import "./FragmentNFT.sol";
 import "./Utility.sol";
 import "./Flushable.sol";
@@ -19,6 +20,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     uint8 private constant extraStorageVersion = 0x1;
 
     using SafeERC20 for IERC20;
+    using EnumerableSet for EnumerableSet.AddressSet;
 
     event Updated(uint256 indexed tokenId);
     // sidechain will listen to those and allow storage allocations
@@ -55,6 +57,8 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     // Actual amount staked on this fragment
     mapping(address => mapping(uint256 => StakeData))
         private _stakedAddrToAmount;
+    // map token -> stakers set
+    mapping(uint256 => EnumerableSet.AddressSet) private _tokenToStakers;
     // Number of blocks to lock the stake after an action
     uint256 private _stakeLock = 23500; // about half a week
 
@@ -144,6 +148,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         _stakedAddrToAmount[msg.sender][templateHash].blockUnlock =
             block.number +
             _stakeLock;
+        _tokenToStakers[templateHash].add(msg.sender);
         emit Staked(
             templateHash,
             msg.sender,
@@ -167,8 +172,24 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         _stakedAddrToAmount[msg.sender][templateHash].amount = 0;
         _stakedAddrToAmount[msg.sender][templateHash].blockStart = 0;
         _stakedAddrToAmount[msg.sender][templateHash].blockUnlock = 0;
+        _tokenToStakers[templateHash].remove(msg.sender);
         emit Staked(templateHash, msg.sender, 0);
         _daoToken.safeTransferFrom(address(this), msg.sender, amount);
+    }
+
+    function getStakers(uint160 templateHash)
+        public
+        view
+        returns (address[] memory stakers, uint256[] memory amounts)
+    {
+        EnumerableSet.AddressSet storage s = _tokenToStakers[templateHash];
+        uint256 len = s.length();
+        stakers = new address[](len);
+        amounts = new uint256[](len);
+        for (uint256 i = 0; i < len; i++) {
+            stakers[i] = s.at(i);
+            amounts[i] = _stakedAddrToAmount[stakers[i]][templateHash].amount;
+        }
     }
 
     function upload(

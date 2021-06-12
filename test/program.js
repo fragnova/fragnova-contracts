@@ -245,6 +245,8 @@ contract("FragmentTemplate", accounts => {
     const initialBalance = await dao20.balanceOf.call(accounts[1]);
     await dao20.approve(contract.address, 10, { from: accounts[1] });
     await contract.stake(tokenOne, 10, { from: accounts[1] });
+    const staked = await contract.getStakers.call(tokenOne);
+    assert(new BN(10, 10).eq(staked.amounts[0]));
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.upload(emptyCode, emptyCode, [tokenOne], [], [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
