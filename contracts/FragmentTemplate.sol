@@ -71,6 +71,8 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     // Number of blocks to lock the stake after an action
     uint256 private _stakeLock = 23500; // about half a week
 
+    address private _entityLogic = address(0);
+
     // decrease that number to consume a slot in the future
     uint256[32] private _reservedSlots;
 
@@ -355,10 +357,14 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         _rewardTotal = amount;
     }
 
+    function setEntityLogic(address entityLogic) public onlyOwner {
+        _entityLogic = entityLogic;
+    }
+
     function rez(
         uint160 templateHash,
-        string memory tokenName,
-        string memory tokenSymbol
+        string calldata tokenName,
+        string calldata tokenSymbol
     ) public returns (address) {
         require(
             _exists(templateHash) && msg.sender == ownerOf(templateHash),
@@ -374,6 +380,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
                 type(FragmentEntityProxy).creationCode
             );
         // immediately initialize
+        FragmentEntityProxy(payable(newContract)).bootstrapProxy(_entityLogic);
         FragmentEntity(newContract).bootstrap(
             tokenName,
             tokenSymbol,

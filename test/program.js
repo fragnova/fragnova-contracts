@@ -98,9 +98,11 @@ contract("FragmentTemplate", accounts => {
     console.log(receipt);
 
     const contract = await nft.deployed();
+    const entityContract = await entityNft.deployed();
 
     await contract.setDAOToken(dao20.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
     await contract.setRewardAllocation(web3.utils.toWei("1", "ether"), { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
+    await contract.setEntityLogic(entityContract.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
 
     const deployTx = deterministicDeployment(nft.bytecode, receipt.gasUsed);
     const sender = Address.fromPublicKey(deployTx.getSenderPublicKey());
@@ -283,6 +285,11 @@ contract("FragmentTemplate", accounts => {
       return;
     }
     assert(false, "expected exception not thrown");
+  });
+
+  it("should not transfer a template", async () => {
+    const contract = await nft.deployed();
+  await contract.rez(tokenOne, "Token One", "ONE");
   });
 
   // it("should upload a entity", async () => {

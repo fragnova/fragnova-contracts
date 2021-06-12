@@ -1,13 +1,49 @@
 pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "openzeppelin-solidity/contracts/proxy/Proxy.sol";
+import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 
-contract FragmentEntityProxy is TransparentUpgradeableProxy {
-    constructor()
-        TransparentUpgradeableProxy(
-            address(0xc2ea0070878bF71c060554996DdE450f0718d612), // logic
-            address(0xC0FFEEaAd4F914eD5eC6c87DfCE1e453fC16646A), // admin
-            new bytes(0)
-        )
-    {}
+contract FragmentEntityProxy is Proxy {
+    bytes32 private constant _IMPLEMENTATION_SLOT =
+        0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+
+    bytes32 private constant _INIT_SLOT =
+        0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+
+    function bootstrapProxy(address newImplementation) public {
+        bytes32 slot = _INIT_SLOT;
+        bool initialized = true;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            initialized := sload(slot)
+        }
+
+        require(!initialized, "Already initialized");
+
+        initialized = true;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            sstore(slot, initialized)
+        }
+
+        require(
+            Address.isContract(newImplementation),
+            "ERC1967Proxy: new implementation is not a contract"
+        );
+
+        slot = _IMPLEMENTATION_SLOT;
+
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            sstore(slot, newImplementation)
+        }
+    }
+
+    function _implementation() internal view override returns (address impl) {
+        bytes32 slot = _IMPLEMENTATION_SLOT;
+        // solhint-disable-next-line no-inline-assembly
+        assembly {
+            impl := sload(slot)
+        }
+    }
 }

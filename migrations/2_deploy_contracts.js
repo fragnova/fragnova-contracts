@@ -11,6 +11,7 @@ module.exports = async function (deployer, network) {
   console.log("Network: " + network);
 
   await deployer.deploy(nft);
+  await deployer.deploy(nftEntity);
   await deployer.deploy(daoToken);
   const dao = await daoToken.deployed();
   await dao.transfer(nft.address, web3.utils.toWei("1024", "ether"));

@@ -37,8 +37,8 @@ contract FragmentEntity is ERC721, Flushable, Initializable {
     }
 
     function bootstrap(
-        string memory tokenName,
-        string memory tokenSymbol,
+        string calldata tokenName,
+        string calldata tokenSymbol,
         uint160 templateId,
         address templatesLibrary
     ) public initializer {
