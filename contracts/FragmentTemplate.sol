@@ -13,7 +13,7 @@ struct StakeData {
 }
 
 // this contract uses proxy
-contract FragmentTemplate is FragmentNFT, Initializable, Flushable {
+contract FragmentTemplate is FragmentNFT, Initializable {
     uint8 private constant mutableVersion = 0x1;
     uint8 private constant immutableVersion = 0x1;
     uint8 private constant extraStorageVersion = 0x1;
@@ -36,25 +36,28 @@ contract FragmentTemplate is FragmentNFT, Initializable, Flushable {
         uint256 amount
     );
 
-    uint256 internal _byteCost = 0;
+    uint256 private _byteCost = 0;
 
     // Actual brotli compressed edn code/data
-    mapping(uint256 => bytes) internal _immutable;
-    mapping(uint256 => bytes) internal _mutable;
+    mapping(uint256 => bytes) private _immutable;
+    mapping(uint256 => bytes) private _mutable;
 
     // Other on-chain references
-    mapping(uint256 => uint160[]) internal _references;
+    mapping(uint256 => uint160[]) private _references;
+
+    // the amount of $FRAG that is storage fees, on order to separate it from staked one
+    uint256 private _storageFeesTotal = 0;
 
     // How much staking is needed to include this fragment
-    mapping(uint256 => uint256) internal _includeCost;
+    mapping(uint256 => uint256) private _includeCost;
     // Actual amount staked on this fragment
     mapping(address => mapping(uint256 => StakeData))
-        internal _stakedAddrToAmount;
+        private _stakedAddrToAmount;
     // Number of blocks to lock the stake after an action
-    uint256 internal _stakeLock = 23500; // about half a week
+    uint256 private _stakeLock = 23500; // about half a week
 
     // decrease that number to consume a slot in the future
-    uint256[32] _reservedSlots;
+    uint256[32] private _reservedSlots;
 
     constructor()
         ERC721("Fragment Template v0 NFT", "CODE")
@@ -89,7 +92,10 @@ contract FragmentTemplate is FragmentNFT, Initializable, Flushable {
             b58id[i] = data[i + 12];
         }
 
-        return string(abi.encodePacked(_metatataBase, Utility.toBase58(b58id, 27)));
+        return
+            string(
+                abi.encodePacked(_metatataBase, Utility.toBase58(b58id, 27))
+            );
     }
 
     function dataOf(uint160 templateHash)
@@ -126,7 +132,10 @@ contract FragmentTemplate is FragmentNFT, Initializable, Flushable {
 
     function stake(uint160 templateHash, uint256 amount) public {
         uint256 balance = _daoToken.balanceOf(msg.sender);
-        require(balance >= amount, "FragmentTemplate: not enough tokens to stake");
+        require(
+            balance >= amount,
+            "FragmentTemplate: not enough tokens to stake"
+        );
         // sum it as users might add more tokens to the stake
         _stakedAddrToAmount[msg.sender][templateHash].amount += amount;
         _stakedAddrToAmount[msg.sender][templateHash].blockStart = block.number;
@@ -218,6 +227,7 @@ contract FragmentTemplate is FragmentNFT, Initializable, Flushable {
                     balance >= required,
                     "FragmentTemplate: not enough balance to store assets"
                 );
+                _storageFeesTotal += required;
                 _daoToken.safeTransferFrom(msg.sender, address(this), required);
             }
         }
@@ -289,5 +299,11 @@ contract FragmentTemplate is FragmentNFT, Initializable, Flushable {
 
     function getMintReward() public view returns (uint256) {
         return _reward;
+    }
+
+    function withdrawStorageFees() public onlyOwner {
+        uint256 total = _storageFeesTotal;
+        _storageFeesTotal = 0;
+        _daoToken.safeTransferFrom(address(this), owner(), total);
     }
 }
