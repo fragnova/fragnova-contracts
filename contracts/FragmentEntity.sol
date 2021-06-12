@@ -1,10 +1,11 @@
 pragma solidity ^0.8.0;
 
+import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import "./Flushable.sol";
-import "./FragmentTemplate.sol";
+import "./IFragmentTemplate.sol";
 import "./Utility.sol";
 
 contract FragmentEntity is ERC721, Flushable, Initializable {
@@ -18,7 +19,7 @@ contract FragmentEntity is ERC721, Flushable, Initializable {
     mapping(uint256 => bytes32) private _metadataURIs;
     mapping(uint256 => uint160) private _entityRefs;
 
-    FragmentTemplate internal _templatesLibrary;
+    IFragmentTemplate internal _templatesLibrary;
     address internal _delegate;
     uint256 internal _publicMintingPrice;
     uint160 internal _templateId;
@@ -26,41 +27,35 @@ contract FragmentEntity is ERC721, Flushable, Initializable {
     uint32 internal _publicCap;
     bool internal _publicMinting;
 
-    // constructor() ERC721("Entity", "ENTITY") Ownable(address(0)) {
-    //     bootstrap("Entity", "ENTITY", 0, address(0));
-    //     _templatesLibrary = FragmentTemplate(address(0));
-    // }
-
-    constructor(
-        address libraryAddress,
-        uint160 templateId,
-        address owner
-    ) ERC721("Entity", "ENTITY") Ownable(owner) {
+    constructor() ERC721("Entity", "FRAGe") Ownable(address(0)) {
         // this is just for testing - deployment has no constructor args (literally comment out)
-        bootstrap("Entity", "ENTITY", templateId, owner);
-        _templatesLibrary = FragmentTemplate(libraryAddress);
+        // Master template to entity
+        _templateId = 0;
+        // ERC721 - this we must make sure happens only and ever in the beginning
+        // Of course being proxied it might be overwritten but if ownership is finally burned it's going to be fine!
+        _templatesLibrary = IFragmentTemplate(address(0));
     }
 
     function bootstrap(
-        string memory name,
-        string memory symbol,
+        string memory tokenName,
+        string memory tokenSymbol,
         uint160 templateId,
-        address owner
-    ) public payable initializer {
+        address templatesLibrary
+    ) public initializer {
+        _templatesLibrary = IFragmentTemplate(templatesLibrary);
+
+        address towner = _templatesLibrary.ownerOf(templateId);
+
         // Ownable
-        Ownable._bootstrap(owner);
+        Ownable._bootstrap(towner);
 
         // Master template to entity
         _templateId = templateId;
 
         // ERC721 - this we must make sure happens only and ever in the beginning
         // Of course being proxied it might be overwritten but if ownership is finally burned it's going to be fine!
-        _name = name;
-        _symbol = symbol;
-
-        _templatesLibrary = FragmentTemplate(
-            0xC0DE00aa1328aF9263BA5bB5e3d17521AF58b32F
-        ); // proxy template library
+        _name = tokenName;
+        _symbol = tokenSymbol;
     }
 
     function tokenURI(uint256 tokenId)

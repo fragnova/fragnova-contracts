@@ -5,3 +5,5 @@ deployer-utils/bytecode.txt
 deployer-utils/admin-bytecode.txt
 deployer-utils/nft-bytecode.txt
 deployer-utils/nftProxy-bytecode.txt
+deployer-utils/entity-bytecode.txt
+deployer-utils/entityProxy-bytecode.txt

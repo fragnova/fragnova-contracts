@@ -274,6 +274,17 @@ contract("FragmentTemplate", accounts => {
     assert(false, "expected exception not thrown");
   });
 
+  it("should not transfer a template", async () => {
+    try {
+      const contract = await nft.deployed();
+      await contract.safeTransferFrom(accounts[0], accounts[1], tokenOne);
+    } catch (e) {
+      assert(e.reason == "FragmentTemplate: cannot transfer templates");
+      return;
+    }
+    assert(false, "expected exception not thrown");
+  });
+
   // it("should upload a entity", async () => {
   //   await nft.deployed();
   //   const dao20 = await dao.deployed();

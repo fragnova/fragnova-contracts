@@ -3,7 +3,10 @@ pragma solidity ^0.8.0;
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/utils/structs/EnumerableSet.sol";
+import "openzeppelin-solidity/contracts/utils/Create2.sol";
 import "./FragmentNFT.sol";
+import "./FragmentEntityProxy.sol";
+import "./FragmentEntity.sol";
 import "./Utility.sol";
 import "./Flushable.sol";
 
@@ -22,7 +25,9 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    // mutable part updated
     event Updated(uint256 indexed tokenId);
+
     // sidechain will listen to those and allow storage allocations
     event Stored(
         uint256 indexed tokenId,
@@ -31,12 +36,16 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         bytes32 cid,
         uint64 size
     );
+
     // sidechain will listen to those, side chain deals with rewards allocations etc
     event Staked(
         uint256 indexed tokenId,
         address indexed owner,
         uint256 amount
     );
+
+    // a new wild entity appeared on the grid
+    event Rezzed(uint256 indexed tokenId, address newContract);
 
     uint256 private _byteCost = 0;
 
@@ -299,6 +308,14 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         address to,
         uint256
     ) internal override {
+        // prevent transferring, for now templates are no transfer
+        // this is to avoid security classification, in the future
+        // the DAO might decide to remove this limit
+        require(
+            from == address(0),
+            "FragmentTemplate: cannot transfer templates"
+        );
+
         // ensure it is a mint
         if (
             from == address(0) &&
@@ -336,5 +353,34 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         // Make sure to transfer exact amount $FRAG before calling this
         // we should probably use the EIP for transfer and call
         _rewardTotal = amount;
+    }
+
+    function rez(
+        uint160 templateHash,
+        string memory tokenName,
+        string memory tokenSymbol
+    ) public returns (address) {
+        require(
+            _exists(templateHash) && msg.sender == ownerOf(templateHash),
+            "FragmentTemplate: only the owner of the template can rez it"
+        );
+        // create a unique entity contract based on this template
+        address newContract =
+            Create2.deploy(
+                0,
+                keccak256(
+                    abi.encodePacked(templateHash, tokenName, tokenSymbol)
+                ),
+                type(FragmentEntityProxy).creationCode
+            );
+        // immediately initialize
+        FragmentEntity(newContract).bootstrap(
+            tokenName,
+            tokenSymbol,
+            templateHash,
+            address(this)
+        );
+        emit Rezzed(templateHash, newContract);
+        return newContract;
     }
 }
