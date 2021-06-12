@@ -17,4 +17,10 @@ abstract contract HastenNFT is ERC721, Ownable {
     function getDAOToken() public view returns (address) {
         return address(_daoToken);
     }
+
+    string internal _metatataBase = "https://meta.fragcolor.xyz/";
+
+    function setMetadataBase(string calldata base) public onlyOwner {
+        _metatataBase = base;
+    }
 }
