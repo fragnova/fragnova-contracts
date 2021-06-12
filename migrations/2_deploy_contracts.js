@@ -1,11 +1,11 @@
 const fs = require('fs');
 
-var daoToken = artifacts.require("HastenDAOToken");
-var nft = artifacts.require("HastenScript");
-var nftProxy = artifacts.require("HastenScriptProxy");
-var nftMod = artifacts.require("HastenMod");
-var nftModProxy = artifacts.require("HastenModProxy");
-var admin = artifacts.require("HastenProxyAdmin");
+var daoToken = artifacts.require("FragmentDAOToken");
+var nft = artifacts.require("FragmentTemplate");
+var nftProxy = artifacts.require("FragmentTemplateProxy");
+// var nftEntity = artifacts.require("FragmentEntity");
+// var nftEntityProxy = artifacts.require("FragmentEntityProxy");
+var admin = artifacts.require("FragmentProxyAdmin");
 
 module.exports = async function(deployer, network) {
   console.log("Network: " + network);
@@ -14,14 +14,14 @@ module.exports = async function(deployer, network) {
   await deployer.deploy(nft);
   // await deployer.deploy(nftProxy);
   // await deployer.deploy(admin);
-  await deployer.deploy(nftMod, nft.address, daoToken.address);
+  // await deployer.deploy(nftEntity, nft.address, daoToken.address);
   const dao = await daoToken.deployed();
-  await dao.transfer(nftMod.address, web3.utils.toWei("1024", "ether"));
+  // await dao.transfer(nftEntity.address, web3.utils.toWei("1024", "ether"));
   await dao.transfer(nft.address, web3.utils.toWei("1024", "ether"));
 
   fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => {});
   fs.writeFile("deployer-utils/nftProxy-bytecode.txt", nftProxy.bytecode, (_r, _e) => {});
-  fs.writeFile("deployer-utils/mod-bytecode.txt", nftMod.bytecode, (_r, _e) => {});
-  fs.writeFile("deployer-utils/modProxy-bytecode.txt", nftModProxy.bytecode, (_r, _e) => {});
+  // fs.writeFile("deployer-utils/entity-bytecode.txt", nftEntity.bytecode, (_r, _e) => {});
+  // fs.writeFile("deployer-utils/entityProxy-bytecode.txt", nftEntityProxy.bytecode, (_r, _e) => {});
   fs.writeFile("deployer-utils/admin-bytecode.txt", admin.bytecode, (_r, _e) => {});
 };

@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import "openzeppelin-solidity/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-contract HastenModProxy is TransparentUpgradeableProxy {
+contract FragmentEntityProxy is TransparentUpgradeableProxy {
     constructor()
         TransparentUpgradeableProxy(
             address(0xc2ea0070878bF71c060554996DdE450f0718d612), // logic

@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./HastenNFT.sol";
+import "./FragmentNFT.sol";
 import "./Utility.sol";
 import "./Flushable.sol";
 
@@ -13,7 +13,7 @@ struct StakeData {
 }
 
 // this contract uses proxy
-contract HastenScript is HastenNFT, Initializable, Flushable {
+contract FragmentTemplate is FragmentNFT, Initializable, Flushable {
     uint8 private constant mutableVersion = 0x1;
     uint8 private constant immutableVersion = 0x1;
     uint8 private constant extraStorageVersion = 0x1;
@@ -22,7 +22,7 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
 
     event Updated(uint256 indexed tokenId);
     // sidechain will listen to those and allow storage allocations
-    event StorageAdd(
+    event Stored(
         uint256 indexed tokenId,
         address indexed owner,
         uint8 storageVersion,
@@ -30,7 +30,11 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
         uint64 size
     );
     // sidechain will listen to those, side chain deals with rewards allocations etc
-    event Stake(uint256 indexed tokenId, address indexed owner, uint256 amount);
+    event Staked(
+        uint256 indexed tokenId,
+        address indexed owner,
+        uint256 amount
+    );
 
     uint256 internal _byteCost = 0;
 
@@ -53,7 +57,7 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
     uint256[32] _reservedSlots;
 
     constructor()
-        ERC721("Hasten Script v0 NFT", "CODE")
+        ERC721("Fragment Template v0 NFT", "CODE")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {
         // NOT INVOKED IF PROXIED
@@ -63,7 +67,7 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
         // Ownable
         Ownable._bootstrap(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
         // ERC721
-        _name = "Hasten Script v0 NFT";
+        _name = "Fragment Template v0 NFT";
         _symbol = "CODE";
     }
 
@@ -76,7 +80,7 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
     {
         require(
             _exists(tokenId),
-            "HastenScript: URI query for nonexistent token"
+            "FragmentTemplate: URI query for nonexistent token"
         );
 
         bytes memory b58id = new bytes(32);
@@ -88,76 +92,76 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
         return string(abi.encodePacked(_metatataBase, Utility.toBase58(b58id)));
     }
 
-    function dataOf(uint160 scriptHash)
+    function dataOf(uint160 templateHash)
         public
         view
         returns (bytes memory immutableData, bytes memory mutableData)
     {
-        return (_immutable[scriptHash], _mutable[scriptHash]);
+        return (_immutable[templateHash], _mutable[templateHash]);
     }
 
-    function referencesOf(uint160 scriptHash)
+    function referencesOf(uint160 templateHash)
         public
         view
         returns (uint160[] memory packedRefs)
     {
-        return _references[scriptHash];
+        return _references[templateHash];
     }
 
-    function includeCostOf(uint160 scriptHash)
+    function includeCostOf(uint160 templateHash)
         public
         view
         returns (uint256 cost)
     {
-        return _includeCost[scriptHash];
+        return _includeCost[templateHash];
     }
 
-    function stakeOf(address staker, uint160 scriptHash)
+    function stakeOf(address staker, uint160 templateHash)
         public
         view
         returns (uint256 cost)
     {
-        return _stakedAddrToAmount[staker][scriptHash].amount;
+        return _stakedAddrToAmount[staker][templateHash].amount;
     }
 
-    function stake(uint160 scriptHash, uint256 amount) public {
-        assert(address(_daoToken) != address(0));
+    function stake(uint160 templateHash, uint256 amount) public {
         uint256 balance = _daoToken.balanceOf(msg.sender);
-        require(balance >= amount, "HastenScript: Not enough tokens to stake");
-        _stakedAddrToAmount[msg.sender][scriptHash].amount += amount;
-        _stakedAddrToAmount[msg.sender][scriptHash].blockStart = block.number;
-        _stakedAddrToAmount[msg.sender][scriptHash].blockUnlock =
+        require(balance >= amount, "FragmentTemplate: not enough tokens to stake");
+        // sum it as users might add more tokens to the stake
+        _stakedAddrToAmount[msg.sender][templateHash].amount += amount;
+        _stakedAddrToAmount[msg.sender][templateHash].blockStart = block.number;
+        _stakedAddrToAmount[msg.sender][templateHash].blockUnlock =
             block.number +
             _stakeLock;
-        emit Stake(
-            scriptHash,
+        emit Staked(
+            templateHash,
             msg.sender,
-            _stakedAddrToAmount[msg.sender][scriptHash].amount
+            _stakedAddrToAmount[msg.sender][templateHash].amount
         );
         _daoToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    function unstake(uint160 scriptHash) public {
+    function unstake(uint160 templateHash) public {
         assert(address(_daoToken) != address(0));
         // find amount
-        uint256 amount = _stakedAddrToAmount[msg.sender][scriptHash].amount;
+        uint256 amount = _stakedAddrToAmount[msg.sender][templateHash].amount;
         assert(amount > 0);
         // require lock time
         require(
             block.number >=
-                _stakedAddrToAmount[msg.sender][scriptHash].blockUnlock,
-            "HastenScript: Cannot unstake yet"
+                _stakedAddrToAmount[msg.sender][templateHash].blockUnlock,
+            "FragmentTemplate: cannot unstake yet"
         );
         // reset data
-        _stakedAddrToAmount[msg.sender][scriptHash].amount = 0;
-        _stakedAddrToAmount[msg.sender][scriptHash].blockStart = 0;
-        _stakedAddrToAmount[msg.sender][scriptHash].blockUnlock = 0;
-        emit Stake(scriptHash, msg.sender, 0);
+        _stakedAddrToAmount[msg.sender][templateHash].amount = 0;
+        _stakedAddrToAmount[msg.sender][templateHash].blockStart = 0;
+        _stakedAddrToAmount[msg.sender][templateHash].blockUnlock = 0;
+        emit Staked(templateHash, msg.sender, 0);
         _daoToken.safeTransferFrom(address(this), msg.sender, amount);
     }
 
     function upload(
-        bytes calldata scriptBytes,
+        bytes calldata templateBytes,
         bytes calldata environment,
         uint160[] calldata references,
         bytes32[] calldata storageCids,
@@ -167,13 +171,13 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
         assert(storageSizes.length == storageCids.length);
 
         // mint a new token and upload it
-        // but make scripts unique by hashing them
+        // but make templates unique by hashing them
         uint160 hash =
             uint160(
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            scriptBytes,
+                            templateBytes,
                             references,
                             storageCids,
                             storageSizes
@@ -182,11 +186,11 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
                 )
             );
 
-        require(!_exists(hash), "HastenScript: script already minted");
+        require(!_exists(hash), "FragmentTemplate: template already minted");
 
         _mint(msg.sender, hash);
 
-        _immutable[hash] = abi.encodePacked(immutableVersion, scriptBytes);
+        _immutable[hash] = abi.encodePacked(immutableVersion, templateBytes);
 
         if (environment.length > 0) {
             _mutable[hash] = abi.encodePacked(mutableVersion, environment);
@@ -196,14 +200,10 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
 
         if (storageSizes.length > 0) {
             // Pay for storage
-            uint256 balance = 0;
-            if (address(_daoToken) != address(0)) {
-                balance = _daoToken.balanceOf(msg.sender);
-            }
-
+            uint256 balance = _daoToken.balanceOf(msg.sender);
             uint256 required = 0;
             for (uint256 i = 0; i < storageSizes.length; i++) {
-                emit StorageAdd(
+                emit Stored(
                     hash,
                     msg.sender,
                     extraStorageVersion,
@@ -216,7 +216,7 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
             if (required > 0) {
                 require(
                     balance >= required,
-                    "HastenScript: not enough balance to store assets"
+                    "FragmentTemplate: not enough balance to store assets"
                 );
                 _daoToken.safeTransferFrom(msg.sender, address(this), required);
             }
@@ -230,7 +230,7 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
                     _stakedAddrToAmount[msg.sender][references[i]].amount;
                 require(
                     stakeAmount >= cost,
-                    "HastenScript: not enough staked amount to reference script"
+                    "FragmentTemplate: not enough staked amount to reference template"
                 );
                 // lock the stake for a new period
                 _stakedAddrToAmount[msg.sender][references[i]].blockUnlock =
@@ -243,20 +243,20 @@ contract HastenScript is HastenNFT, Initializable, Flushable {
     }
 
     function update(
-        uint160 scriptHash,
+        uint160 templateHash,
         bytes calldata environment,
         uint256 includeCost
     ) public {
         require(
-            _exists(scriptHash) && msg.sender == ownerOf(scriptHash),
-            "HastenScript: Only the owner of the script can update it"
+            _exists(templateHash) && msg.sender == ownerOf(templateHash),
+            "FragmentTemplate: only the owner of the template can update it"
         );
 
-        _mutable[scriptHash] = abi.encodePacked(mutableVersion, environment);
+        _mutable[templateHash] = abi.encodePacked(mutableVersion, environment);
 
-        _includeCost[scriptHash] = includeCost;
+        _includeCost[templateHash] = includeCost;
 
-        emit Updated(scriptHash);
+        emit Updated(templateHash);
     }
 
     // reward minting

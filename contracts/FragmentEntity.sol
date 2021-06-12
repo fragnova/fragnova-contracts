@@ -4,63 +4,63 @@ import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import "./Flushable.sol";
-import "./HastenScript.sol";
+import "./FragmentTemplate.sol";
 import "./Utility.sol";
 
-contract HastenMod is ERC721, Flushable, Initializable {
+contract FragmentEntity is ERC721, Flushable, Initializable {
     uint8 private constant dataVersion = 0x1;
 
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    // mapping for scripts storage
-    mapping(uint256 => bytes) private _modData;
+    // mapping for templates storage
+    mapping(uint256 => bytes) private _entityData;
     mapping(uint256 => bytes32) private _metadataURIs;
-    mapping(uint256 => uint160) private _modRefs;
+    mapping(uint256 => uint160) private _entityRefs;
 
-    HastenScript internal _scriptsLibrary;
+    FragmentTemplate internal _templatesLibrary;
     address internal _delegate;
     uint256 internal _publicMintingPrice;
-    uint160 internal _scriptId;
+    uint160 internal _templateId;
     uint32 internal _maxPublicAmount;
     uint32 internal _publicCap;
     bool internal _publicMinting;
 
-    // constructor() ERC721("Mod", "MOD") Ownable(address(0)) {
-    //     bootstrap("Mod", "MOD", 0, address(0));
-    //     _scriptsLibrary = HastenScript(address(0));
+    // constructor() ERC721("Entity", "ENTITY") Ownable(address(0)) {
+    //     bootstrap("Entity", "ENTITY", 0, address(0));
+    //     _templatesLibrary = FragmentTemplate(address(0));
     // }
 
     constructor(
         address libraryAddress,
-        uint160 scriptId,
+        uint160 templateId,
         address owner
-    ) ERC721("Mod", "MOD") Ownable(owner) {
+    ) ERC721("Entity", "ENTITY") Ownable(owner) {
         // this is just for testing - deployment has no constructor args (literally comment out)
-        bootstrap("Mod", "MOD", scriptId, owner);
-        _scriptsLibrary = HastenScript(libraryAddress);
+        bootstrap("Entity", "ENTITY", templateId, owner);
+        _templatesLibrary = FragmentTemplate(libraryAddress);
     }
 
     function bootstrap(
         string memory name,
         string memory symbol,
-        uint160 scriptId,
+        uint160 templateId,
         address owner
     ) public payable initializer {
         // Ownable
         Ownable._bootstrap(owner);
 
-        // Master script to mod
-        _scriptId = scriptId;
+        // Master template to entity
+        _templateId = templateId;
 
         // ERC721 - this we must make sure happens only and ever in the beginning
         // Of course being proxied it might be overwritten but if ownership is finally burned it's going to be fine!
         _name = name;
         _symbol = symbol;
 
-        _scriptsLibrary = HastenScript(
+        _templatesLibrary = FragmentTemplate(
             0xC0DE00aa1328aF9263BA5bB5e3d17521AF58b32F
-        ); // proxy script library
+        ); // proxy template library
     }
 
     function tokenURI(uint256 tokenId)
@@ -72,7 +72,7 @@ contract HastenMod is ERC721, Flushable, Initializable {
     {
         require(
             _exists(tokenId),
-            "HastenScript: URI query for nonexistent token"
+            "FragmentTemplate: URI query for nonexistent token"
         );
 
         return
@@ -90,22 +90,22 @@ contract HastenMod is ERC721, Flushable, Initializable {
             );
     }
 
-    function dataOf(uint256 modId)
+    function dataOf(uint256 entityId)
         public
         view
         returns (
             bytes memory immutableData,
             bytes memory mutableData,
-            bytes memory modData
+            bytes memory entityData
         )
     {
         require(
-            _exists(modId),
-            "HastenScript: script query for nonexistent token"
+            _exists(entityId),
+            "FragmentTemplate: template query for nonexistent token"
         );
 
-        modData = _modData[_modRefs[modId]];
-        (immutableData, mutableData) = _scriptsLibrary.dataOf(_scriptId);
+        entityData = _entityData[_entityRefs[entityId]];
+        (immutableData, mutableData) = _templatesLibrary.dataOf(_templateId);
     }
 
     function setDelegate(address delegate) public onlyOwner {
@@ -119,12 +119,12 @@ contract HastenMod is ERC721, Flushable, Initializable {
     ) internal {
         uint160 dataHash =
             uint160(
-                uint256(keccak256(abi.encodePacked(_scriptId, environment)))
+                uint256(keccak256(abi.encodePacked(_templateId, environment)))
             );
 
         // store only if not already present
-        if (_modData[dataHash].length == 0) {
-            _modData[dataHash] = abi.encodePacked(dataVersion, environment);
+        if (_entityData[dataHash].length == 0) {
+            _entityData[dataHash] = abi.encodePacked(dataVersion, environment);
         }
 
         for (uint256 i = 0; i < amount; i++) {
@@ -133,7 +133,7 @@ contract HastenMod is ERC721, Flushable, Initializable {
 
             _mint(msg.sender, newItemId);
 
-            _modRefs[newItemId] = dataHash;
+            _entityRefs[newItemId] = dataHash;
             _metadataURIs[newItemId] = ipfsMetadata;
         }
     }
@@ -163,7 +163,7 @@ contract HastenMod is ERC721, Flushable, Initializable {
                     abi.encodePacked(
                         msg.sender,
                         Utility.getChainId(),
-                        _scriptId,
+                        _templateId,
                         ipfsMetadata,
                         environment,
                         amount
@@ -173,7 +173,7 @@ contract HastenMod is ERC721, Flushable, Initializable {
         require(
             _delegate != address(0x0) &&
                 _delegate == ECDSA.recover(hash, signature),
-            "HastenMod: Invalid signature"
+            "FragmentEntity: Invalid signature"
         );
 
         require(_publicMinting, "Public minting not allowed");
@@ -207,10 +207,10 @@ contract HastenMod is ERC721, Flushable, Initializable {
         Allow owners to update metadata
     */
     function updateMetadata(uint256 tokenId, bytes32 metadata) public {
-        require(_exists(tokenId), "HastenScript: nonexistent token");
+        require(_exists(tokenId), "FragmentTemplate: nonexistent token");
         require(
             ownerOf(tokenId) == msg.sender,
-            "HastenScript: not token owner"
+            "FragmentTemplate: not token owner"
         );
         _metadataURIs[tokenId] = metadata;
     }

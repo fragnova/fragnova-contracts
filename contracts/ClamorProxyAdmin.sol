@@ -9,7 +9,7 @@ import "openzeppelin-solidity/contracts/proxy/transparent/TransparentUpgradeable
  * @dev This is an auxiliary contract meant to be assigned as the admin of a {TransparentUpgradeableProxy}. For an
  * explanation of why you would want to use this see the documentation for {TransparentUpgradeableProxy}.
  */
-contract HastenProxyAdmin is Ownable {
+contract FragmentProxyAdmin is Ownable {
     constructor()
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {}

@@ -3,9 +3,9 @@ const { Transaction } = require("@ethereumjs/tx");
 const { keccak256, hexToBytes, bytesToHex } = require("web3-utils");
 const { BN } = require("bn.js");
 
-var nft = artifacts.require("HastenScript");
-var modNft = artifacts.require("HastenMod");
-var dao = artifacts.require("HastenDAOToken");
+var nft = artifacts.require("FragmentTemplate");
+var entityNft = artifacts.require("FragmentEntity");
+var dao = artifacts.require("FragmentDAOToken");
 
 function getExpectedAddress(address, bytecode, salt) {
   const arg = hexToBytes('0xff')
@@ -68,10 +68,10 @@ function toEthSignedMessageHash(messageHex) {
   return web3.utils.sha3(Buffer.concat([prefix, messageBuffer]));
 }
 
-contract("HastenScript", accounts => {
+contract("FragmentTemplate", accounts => {
   var tokenOne = null;
 
-  it("should upload a script", async () => {
+  it("should upload a template", async () => {
     const params = {
       from: accounts[0],
       to: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974",
@@ -119,7 +119,7 @@ contract("HastenScript", accounts => {
     const expectedAddr = getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0xce1e2eeb9663dbc0d7622c024ae0a1a0db6a38867230eaaa67e76174dab8a19b");
     console.log(expectedAddr);
 
-    scriptContract = contract;
+    templateContract = contract;
 
     const emptyCode = new Uint8Array(1024);
     const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], 0, { from: accounts[0] });
@@ -129,9 +129,9 @@ contract("HastenScript", accounts => {
     assert.equal(hexHashId, emptyCodeHash);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     tokenOne = emptyCodeHash;
-    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
+    const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + script.immutableData.slice(52), codeHex);
+    assert.equal("0x" + template.immutableData.slice(52), codeHex);
 
     try {
       const uri = await contract.tokenURI.call(tx.logs[0].args.tokenId);
@@ -186,56 +186,56 @@ contract("HastenScript", accounts => {
     console.log(uniquedTx);
   });
 
-  it("should not upload a script", async () => {
+  it("should not upload a template", async () => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(1024);
       await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], 0, { from: accounts[0] });
     } catch (e) {
-      assert(e.reason == "HastenScript: script already minted", e);
+      assert(e.reason == "FragmentTemplate: template already minted", e);
       return;
     }
     assert(false, "expected exception not thrown");
   });
 
-  it("should upload a script with environment", async () => {
+  it("should upload a template with environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
+    const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + script.immutableData.slice(52), codeHex);
-    assert.equal("0x" + script.mutableData.slice(68), codeHex);
+    assert.equal("0x" + template.immutableData.slice(52), codeHex);
+    assert.equal("0x" + template.mutableData.slice(68), codeHex);
     const dao20 = await dao.deployed();
     assert.equal(await dao20.balanceOf.call(accounts[1]), web3.utils.toWei("10", "milli"));
   });
 
-  it("should not update a script's environment", async () => {
+  it("should not update a template's environment", async () => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(30);
       await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, 0, { from: accounts[1] });
     } catch (e) {
-      assert(e.reason == "HastenScript: Only the owner of the script can update it");
+      assert(e.reason == "FragmentTemplate: Only the owner of the template can update it");
       return;
     }
     assert(false, "expected exception not thrown");
   });
 
-  it("should update a script's environment", async () => {
+  it("should update a template's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
     await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, 10, { from: accounts[0] });
-    const script = await contract.dataOf.call(tokenOne);
+    const template = await contract.dataOf.call(tokenOne);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + script.mutableData.slice(68), codeHex);
+    assert.equal("0x" + template.mutableData.slice(68), codeHex);
     const includeCost = await contract.includeCostOf.call(tokenOne);
     assert.equal(10, includeCost.toNumber());
   });
 
-  it("should upload a script with reference, paying referenced", async () => {
+  it("should upload a template with reference, paying referenced", async () => {
     const contract = await nft.deployed();
     const dao20 = await dao.deployed();
     // disable rewards, testing that too
@@ -246,15 +246,15 @@ contract("HastenScript", accounts => {
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [tokenOne], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
+    const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + script.immutableData.slice(52), codeHex);
-    assert.equal("0x" + script.mutableData.slice(68), codeHex);
+    assert.equal("0x" + template.immutableData.slice(52), codeHex);
+    assert.equal("0x" + template.mutableData.slice(68), codeHex);
     const finalBalance = await dao20.balanceOf.call(accounts[1]);
     assert(initialBalance.sub(new BN(10, 10)).eq(finalBalance));
   });
 
-  it("should not upload a script with reference, paying referenced", async () => {
+  it("should not upload a template with reference, paying referenced", async () => {
     try {
       const contract = await nft.deployed();
       const dao20 = await dao.deployed();
@@ -264,54 +264,54 @@ contract("HastenScript", accounts => {
       emptyCode[0] = 2; // make a small change in order to succeed
       await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [tokenOne], 0, { from: accounts[2] });
     } catch (e) {
-      assert(e.reason == "HastenScript: not enough balance to reference script");
+      assert(e.reason == "FragmentTemplate: not enough balance to reference template");
       return;
     }
     assert(false, "expected exception not thrown");
   });
 
-  it("should upload a mod", async () => {
+  it("should upload a entity", async () => {
     await nft.deployed();
     const dao20 = await dao.deployed();
-    const contract = await modNft.deployed();
+    const contract = await entityNft.deployed();
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
     const empty = new Uint8Array(1024);
     const tx = await contract.upload(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[0] });
     assert.equal(tx.logs[0].args.tokenId.toString(), 1);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
-    const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
+    const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(empty);
-    assert.equal("0x" + script.immutableData.slice(52), codeHex);
-    assert.equal("0x" + script.mutableData.slice(68 + 40), codeHex);
+    assert.equal("0x" + template.immutableData.slice(52), codeHex);
+    assert.equal("0x" + template.mutableData.slice(68 + 40), codeHex);
     // mint should not trigger rewards
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
   });
 
-  it("should transfer a mod", async () => {
+  it("should transfer a entity", async () => {
     await nft.deployed();
     const dao20 = await dao.deployed();
-    const contract = await modNft.deployed();
+    const contract = await entityNft.deployed();
     await contract.safeTransferFrom(accounts[0], accounts[1], 1);
     assert.equal(await contract.ownerOf.call(1), accounts[1]);
     // check reward
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
   });
 
-  it("should not upload a mod", async () => {
+  it("should not upload a entity", async () => {
     try {
       await nft.deployed();
       await dao.deployed();
-      const contract = await modNft.deployed();
+      const contract = await entityNft.deployed();
       const empty = new Uint8Array(1024);
       await contract.upload(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[1] });
     } catch (e) {
-      assert(e.reason == "HastenMod: Only the owner of the script can upload mods");
+      assert(e.reason == "FragmentEntity: Only the owner of the template can upload entitys");
       return;
     }
     assert(false, "expected exception not thrown");
   });
 
-  it("should upload a mod with delegate", async () => {
+  it("should upload a entity with delegate", async () => {
     const empty = new Uint8Array(1024);
     const parts = [
       { t: "address", v: accounts[1] },
@@ -325,30 +325,30 @@ contract("HastenScript", accounts => {
     const signature = await signMessage(accounts[2], messageHex);
     await nft.deployed();
     const dao20 = await dao.deployed();
-    const contract = await modNft.deployed();
+    const contract = await entityNft.deployed();
     await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
     const tx = await contract.uploadWithDelegateAuth(signature, tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 2, { from: accounts[1] });
     {
       assert.equal(tx.logs[0].args.tokenId.toString(), 2);
       assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-      const script = await contract.dataOf.call(tx.logs[0].args.tokenId);
+      const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
       const codeHex = web3.utils.bytesToHex(empty);
-      assert.equal("0x" + script.immutableData.slice(52), codeHex);
-      assert.equal("0x" + script.mutableData.slice(68 + 40), codeHex);
+      assert.equal("0x" + template.immutableData.slice(52), codeHex);
+      assert.equal("0x" + template.mutableData.slice(68 + 40), codeHex);
     }
     {
       assert.equal(tx.logs[1].args.tokenId.toString(), 3);
       assert.equal(await contract.ownerOf.call(tx.logs[1].args.tokenId), accounts[1]);
-      const script = await contract.dataOf.call(tx.logs[1].args.tokenId);
+      const template = await contract.dataOf.call(tx.logs[1].args.tokenId);
       const codeHex = web3.utils.bytesToHex(empty);
-      assert.equal("0x" + script.immutableData.slice(52), codeHex);
-      assert.equal("0x" + script.mutableData.slice(68 + 40), codeHex);
+      assert.equal("0x" + template.immutableData.slice(52), codeHex);
+      assert.equal("0x" + template.mutableData.slice(68 + 40), codeHex);
     }
     // mint - no rewards
     assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
   });
 
-  it("should not upload a mod with delegate", async () => {
+  it("should not upload a entity with delegate", async () => {
     try {
       const empty = new Uint8Array(1024);
       const parts = [
@@ -363,11 +363,11 @@ contract("HastenScript", accounts => {
       const signature = await signMessage(accounts[3], messageHex);
       await nft.deployed();
       await dao.deployed();
-      const contract = await modNft.deployed();
+      const contract = await entityNft.deployed();
       await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
       await contract.uploadWithDelegateAuth(signature, tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[1] });
     } catch (e) {
-      assert(e.reason == "HastenMod: Invalid signature", e);
+      assert(e.reason == "FragmentEntity: Invalid signature", e);
       return;
     }
     assert(false, "expected exception not thrown");
