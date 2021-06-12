@@ -122,7 +122,7 @@ contract("FragmentTemplate", accounts => {
     templateContract = contract;
 
     const emptyCode = new Uint8Array(1024);
-    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], 0, { from: accounts[0] });
+    const tx = await contract.upload(emptyCode, emptyCode, [], [], [], 0, { from: accounts[0] });
     console.log("Mint tx", tx);
     const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
     const emptyCodeHash = "0x" + keccak256(emptyCode).slice(27);
@@ -131,11 +131,12 @@ contract("FragmentTemplate", accounts => {
     tokenOne = emptyCodeHash;
     const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + template.immutableData.slice(52), codeHex);
+    // slice 0x01
+    assert.equal("0x" + template.immutableData.slice(4), codeHex);
 
     try {
       const uri = await contract.tokenURI.call(tx.logs[0].args.tokenId);
-      assert.equal(uri, "ipfs://QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx");
+      assert.equal(uri, "https://meta.fragcolor.xyz/2miLKyaattHF4mnXdZ2Gr2Zu7Ty");
     } catch (err) {
       console.log(err);
       throw err;
@@ -178,7 +179,7 @@ contract("FragmentTemplate", accounts => {
     console.log(deployedTx);
 
     const uniqueContract = new web3.eth.Contract(nft.abi, expectedAddr);
-    const uniquedTx = await uniqueContract.methods.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], 0).send({
+    const uniquedTx = await uniqueContract.methods.upload(emptyCode, emptyCode, [], [], [], 0).send({
       from: accounts[0],
       // gasPrice: "10000000000000",
       gas: 300000
@@ -190,7 +191,7 @@ contract("FragmentTemplate", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(1024);
-      await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], 0, { from: accounts[0] });
+      await contract.upload(emptyCode, emptyCode, [], [], [], 0, { from: accounts[0] });
     } catch (e) {
       assert(e.reason == "FragmentTemplate: template already minted", e);
       return;
@@ -202,12 +203,12 @@ contract("FragmentTemplate", accounts => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
-    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [], 0, { from: accounts[1] });
+    const tx = await contract.upload(emptyCode, emptyCode, [], [], [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + template.immutableData.slice(52), codeHex);
-    assert.equal("0x" + template.mutableData.slice(68), codeHex);
+    assert.equal("0x" + template.immutableData.slice(4), codeHex);
+    assert.equal("0x" + template.mutableData.slice(4), codeHex);
     const dao20 = await dao.deployed();
     assert.equal(await dao20.balanceOf.call(accounts[1]), web3.utils.toWei("10", "milli"));
   });
@@ -216,9 +217,9 @@ contract("FragmentTemplate", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(30);
-      await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, 0, { from: accounts[1] });
+      await contract.update(tokenOne, emptyCode, 0, { from: accounts[1] });
     } catch (e) {
-      assert(e.reason == "FragmentTemplate: Only the owner of the template can update it");
+      assert(e.reason == "FragmentTemplate: only the owner of the template can update it");
       return;
     }
     assert(false, "expected exception not thrown");
@@ -227,10 +228,10 @@ contract("FragmentTemplate", accounts => {
   it("should update a template's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
-    await contract.update(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, 10, { from: accounts[0] });
+    await contract.update(tokenOne, emptyCode, 10, { from: accounts[0] });
     const template = await contract.dataOf.call(tokenOne);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + template.mutableData.slice(68), codeHex);
+    assert.equal("0x" + template.mutableData.slice(4), codeHex);
     const includeCost = await contract.includeCostOf.call(tokenOne);
     assert.equal(10, includeCost.toNumber());
   });
@@ -243,13 +244,14 @@ contract("FragmentTemplate", accounts => {
     const emptyCode = new Uint8Array(1024);
     const initialBalance = await dao20.balanceOf.call(accounts[1]);
     await dao20.approve(contract.address, 10, { from: accounts[1] });
+    await contract.stake(tokenOne, 10, { from: accounts[1] });
     emptyCode[0] = 1; // make a small change in order to succeed
-    const tx = await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [tokenOne], 0, { from: accounts[1] });
+    const tx = await contract.upload(emptyCode, emptyCode, [tokenOne], [], [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + template.immutableData.slice(52), codeHex);
-    assert.equal("0x" + template.mutableData.slice(68), codeHex);
+    assert.equal("0x" + template.immutableData.slice(4), codeHex);
+    assert.equal("0x" + template.mutableData.slice(4), codeHex);
     const finalBalance = await dao20.balanceOf.call(accounts[1]);
     assert(initialBalance.sub(new BN(10, 10)).eq(finalBalance));
   });
@@ -262,114 +264,114 @@ contract("FragmentTemplate", accounts => {
       await contract.setMintReward(0, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
       const emptyCode = new Uint8Array(1024);
       emptyCode[0] = 2; // make a small change in order to succeed
-      await contract.upload("0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", emptyCode, emptyCode, [tokenOne], 0, { from: accounts[2] });
+      await contract.upload(emptyCode, emptyCode, [tokenOne], [], [], 0, { from: accounts[2] });
     } catch (e) {
-      assert(e.reason == "FragmentTemplate: not enough balance to reference template");
+      assert(e.reason == "FragmentTemplate: not enough staked amount to reference template");
       return;
     }
     assert(false, "expected exception not thrown");
   });
 
-  it("should upload a entity", async () => {
-    await nft.deployed();
-    const dao20 = await dao.deployed();
-    const contract = await entityNft.deployed();
-    assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
-    const empty = new Uint8Array(1024);
-    const tx = await contract.upload(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[0] });
-    assert.equal(tx.logs[0].args.tokenId.toString(), 1);
-    assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
-    const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
-    const codeHex = web3.utils.bytesToHex(empty);
-    assert.equal("0x" + template.immutableData.slice(52), codeHex);
-    assert.equal("0x" + template.mutableData.slice(68 + 40), codeHex);
-    // mint should not trigger rewards
-    assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
-  });
+  // it("should upload a entity", async () => {
+  //   await nft.deployed();
+  //   const dao20 = await dao.deployed();
+  //   const contract = await entityNft.deployed();
+  //   assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
+  //   const empty = new Uint8Array(1024);
+  //   const tx = await contract.upload(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[0] });
+  //   assert.equal(tx.logs[0].args.tokenId.toString(), 1);
+  //   assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
+  //   const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
+  //   const codeHex = web3.utils.bytesToHex(empty);
+  //   assert.equal("0x" + template.immutableData.slice(52), codeHex);
+  //   assert.equal("0x" + template.mutableData.slice(68 + 40), codeHex);
+  //   // mint should not trigger rewards
+  //   assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1024", "ether"));
+  // });
 
-  it("should transfer a entity", async () => {
-    await nft.deployed();
-    const dao20 = await dao.deployed();
-    const contract = await entityNft.deployed();
-    await contract.safeTransferFrom(accounts[0], accounts[1], 1);
-    assert.equal(await contract.ownerOf.call(1), accounts[1]);
-    // check reward
-    assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
-  });
+  // it("should transfer a entity", async () => {
+  //   await nft.deployed();
+  //   const dao20 = await dao.deployed();
+  //   const contract = await entityNft.deployed();
+  //   await contract.safeTransferFrom(accounts[0], accounts[1], 1);
+  //   assert.equal(await contract.ownerOf.call(1), accounts[1]);
+  //   // check reward
+  //   assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
+  // });
 
-  it("should not upload a entity", async () => {
-    try {
-      await nft.deployed();
-      await dao.deployed();
-      const contract = await entityNft.deployed();
-      const empty = new Uint8Array(1024);
-      await contract.upload(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[1] });
-    } catch (e) {
-      assert(e.reason == "FragmentEntity: Only the owner of the template can upload entitys");
-      return;
-    }
-    assert(false, "expected exception not thrown");
-  });
+  // it("should not upload a entity", async () => {
+  //   try {
+  //     await nft.deployed();
+  //     await dao.deployed();
+  //     const contract = await entityNft.deployed();
+  //     const empty = new Uint8Array(1024);
+  //     await contract.upload(tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[1] });
+  //   } catch (e) {
+  //     assert(e.reason == "FragmentEntity: Only the owner of the template can upload entitys");
+  //     return;
+  //   }
+  //   assert(false, "expected exception not thrown");
+  // });
 
-  it("should upload a entity with delegate", async () => {
-    const empty = new Uint8Array(1024);
-    const parts = [
-      { t: "address", v: accounts[1] },
-      { t: "uint256", v: "0x1" },
-      { t: "uint160", v: tokenOne },
-      { t: "bytes32", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
-      { t: "bytes", v: web3.utils.bytesToHex(empty) },
-      { t: "uint256", v: "2" },
-    ];
-    const messageHex = web3.utils.soliditySha3(...parts);
-    const signature = await signMessage(accounts[2], messageHex);
-    await nft.deployed();
-    const dao20 = await dao.deployed();
-    const contract = await entityNft.deployed();
-    await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
-    const tx = await contract.uploadWithDelegateAuth(signature, tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 2, { from: accounts[1] });
-    {
-      assert.equal(tx.logs[0].args.tokenId.toString(), 2);
-      assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-      const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
-      const codeHex = web3.utils.bytesToHex(empty);
-      assert.equal("0x" + template.immutableData.slice(52), codeHex);
-      assert.equal("0x" + template.mutableData.slice(68 + 40), codeHex);
-    }
-    {
-      assert.equal(tx.logs[1].args.tokenId.toString(), 3);
-      assert.equal(await contract.ownerOf.call(tx.logs[1].args.tokenId), accounts[1]);
-      const template = await contract.dataOf.call(tx.logs[1].args.tokenId);
-      const codeHex = web3.utils.bytesToHex(empty);
-      assert.equal("0x" + template.immutableData.slice(52), codeHex);
-      assert.equal("0x" + template.mutableData.slice(68 + 40), codeHex);
-    }
-    // mint - no rewards
-    assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
-  });
+  // it("should upload a entity with delegate", async () => {
+  //   const empty = new Uint8Array(1024);
+  //   const parts = [
+  //     { t: "address", v: accounts[1] },
+  //     { t: "uint256", v: "0x1" },
+  //     { t: "uint160", v: tokenOne },
+  //     { t: "bytes32", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
+  //     { t: "bytes", v: web3.utils.bytesToHex(empty) },
+  //     { t: "uint256", v: "2" },
+  //   ];
+  //   const messageHex = web3.utils.soliditySha3(...parts);
+  //   const signature = await signMessage(accounts[2], messageHex);
+  //   await nft.deployed();
+  //   const dao20 = await dao.deployed();
+  //   const contract = await entityNft.deployed();
+  //   await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
+  //   const tx = await contract.uploadWithDelegateAuth(signature, tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 2, { from: accounts[1] });
+  //   {
+  //     assert.equal(tx.logs[0].args.tokenId.toString(), 2);
+  //     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
+  //     const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
+  //     const codeHex = web3.utils.bytesToHex(empty);
+  //     assert.equal("0x" + template.immutableData.slice(52), codeHex);
+  //     assert.equal("0x" + template.mutableData.slice(68 + 40), codeHex);
+  //   }
+  //   {
+  //     assert.equal(tx.logs[1].args.tokenId.toString(), 3);
+  //     assert.equal(await contract.ownerOf.call(tx.logs[1].args.tokenId), accounts[1]);
+  //     const template = await contract.dataOf.call(tx.logs[1].args.tokenId);
+  //     const codeHex = web3.utils.bytesToHex(empty);
+  //     assert.equal("0x" + template.immutableData.slice(52), codeHex);
+  //     assert.equal("0x" + template.mutableData.slice(68 + 40), codeHex);
+  //   }
+  //   // mint - no rewards
+  //   assert.equal(await dao20.balanceOf.call(contract.address), web3.utils.toWei("1023990", "milli"));
+  // });
 
-  it("should not upload a entity with delegate", async () => {
-    try {
-      const empty = new Uint8Array(1024);
-      const parts = [
-        { t: "address", v: accounts[1] },
-        { t: "uint256", v: "0x1" },
-        { t: "uint160", v: tokenOne },
-        { t: "string", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
-        { t: "bytes", v: web3.utils.bytesToHex(empty) },
-        { t: "uint256", v: "1" },
-      ];
-      const messageHex = web3.utils.soliditySha3(...parts);
-      const signature = await signMessage(accounts[3], messageHex);
-      await nft.deployed();
-      await dao.deployed();
-      const contract = await entityNft.deployed();
-      await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
-      await contract.uploadWithDelegateAuth(signature, tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[1] });
-    } catch (e) {
-      assert(e.reason == "FragmentEntity: Invalid signature", e);
-      return;
-    }
-    assert(false, "expected exception not thrown");
-  });
+  // it("should not upload a entity with delegate", async () => {
+  //   try {
+  //     const empty = new Uint8Array(1024);
+  //     const parts = [
+  //       { t: "address", v: accounts[1] },
+  //       { t: "uint256", v: "0x1" },
+  //       { t: "uint160", v: tokenOne },
+  //       { t: "string", v: "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d" },
+  //       { t: "bytes", v: web3.utils.bytesToHex(empty) },
+  //       { t: "uint256", v: "1" },
+  //     ];
+  //     const messageHex = web3.utils.soliditySha3(...parts);
+  //     const signature = await signMessage(accounts[3], messageHex);
+  //     await nft.deployed();
+  //     await dao.deployed();
+  //     const contract = await entityNft.deployed();
+  //     await contract.setDelegate(tokenOne, accounts[2], { from: accounts[0] });
+  //     await contract.uploadWithDelegateAuth(signature, tokenOne, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", empty, 1, { from: accounts[1] });
+  //   } catch (e) {
+  //     assert(e.reason == "FragmentEntity: Invalid signature", e);
+  //     return;
+  //   }
+  //   assert(false, "expected exception not thrown");
+  // });
 });

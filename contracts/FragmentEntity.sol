@@ -84,7 +84,8 @@ contract FragmentEntity is ERC721, Flushable, Initializable {
                             uint8(0x12),
                             uint8(0x20),
                             _metadataURIs[tokenId]
-                        )
+                        ),
+                        46
                     )
                 )
             );

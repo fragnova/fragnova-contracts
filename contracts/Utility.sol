@@ -28,13 +28,13 @@ library Utility {
         return output;
     }
 
-    function toBase58(bytes memory source)
+    function toBase58(bytes memory source, uint256 len)
         internal
         pure
         returns (bytes memory)
     {
         if (source.length == 0) return new bytes(0);
-        uint8[] memory digits = new uint8[](46);
+        uint8[] memory digits = new uint8[](len);
         digits[0] = 0;
         uint8 digitlength = 1;
         for (uint32 i = 0; i < source.length; ++i) {

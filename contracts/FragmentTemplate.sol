@@ -83,13 +83,13 @@ contract FragmentTemplate is FragmentNFT, Initializable, Flushable {
             "FragmentTemplate: URI query for nonexistent token"
         );
 
-        bytes memory b58id = new bytes(32);
+        bytes memory b58id = new bytes(20);
         bytes32 data = bytes32(tokenId);
-        for (uint256 i = 0; i < 32; i++) {
-            b58id[i] = data[i];
+        for (uint256 i = 0; i < 20; i++) {
+            b58id[i] = data[i + 12];
         }
 
-        return string(abi.encodePacked(_metatataBase, Utility.toBase58(b58id)));
+        return string(abi.encodePacked(_metatataBase, Utility.toBase58(b58id, 27)));
     }
 
     function dataOf(uint160 templateHash)
