@@ -106,6 +106,10 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         return _templateId;
     }
 
+    function getLibrary() public view returns (address) {
+        return address(_templatesLibrary);
+    }
+
     function setDelegate(address delegate) public onlyOwner {
         _delegate = delegate;
     }
@@ -120,7 +124,7 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
                 uint256(keccak256(abi.encodePacked(_templateId, environment)))
             );
 
-        uint256 first = _tokenIds.current();
+        uint256 first = _tokenIds.current() + 1;
 
         for (uint256 i = 0; i < amount; i++) {
             _tokenIds.increment();
