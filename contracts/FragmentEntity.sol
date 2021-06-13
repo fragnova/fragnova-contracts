@@ -4,28 +4,44 @@ import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
-import "./Flushable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IFragmentTemplate.sol";
 import "./Utility.sol";
+import "./Ownable.sol";
 
-contract FragmentEntity is ERC721, Flushable, Initializable {
+contract FragmentEntity is ERC721, Ownable, Initializable {
+    using SafeERC20 for IERC20;
+    using Counters for Counters.Counter;
+
     uint8 private constant dataVersion = 0x1;
 
-    using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
     // mapping for templates storage
-    mapping(uint256 => bytes) private _entityData;
     mapping(uint256 => bytes32) private _metadataURIs;
     mapping(uint256 => uint160) private _entityRefs;
 
-    IFragmentTemplate internal _templatesLibrary;
-    address internal _delegate;
-    uint256 internal _publicMintingPrice;
-    uint160 internal _templateId;
-    uint32 internal _maxPublicAmount;
-    uint32 internal _publicCap;
-    bool internal _publicMinting;
+    IFragmentTemplate private _templatesLibrary;
+    address private _delegate;
+    uint256 private _publicMintingPrice;
+    uint160 private _templateId;
+    uint32 private _maxPublicAmount;
+    uint32 private _publicCap;
+    bool private _publicMinting;
+
+    // upload event with data
+    event Upload(
+        uint256 indexed first,
+        uint256 last,
+        uint8 version,
+        bytes environment
+    );
+
+    // royalties event
+    event Earned(uint256 total, uint256 royalties, uint256 vault);
+
+    uint256 private _totalOwnedEarned;
+    uint256 private _totalVaultEarned;
 
     constructor() ERC721("Entity", "FRAGe") Ownable(address(0)) {
         // this is just for testing - deployment has no constructor args (literally comment out)
@@ -86,22 +102,8 @@ contract FragmentEntity is ERC721, Flushable, Initializable {
             );
     }
 
-    function dataOf(uint256 entityId)
-        public
-        view
-        returns (
-            bytes memory immutableData,
-            bytes memory mutableData,
-            bytes memory entityData
-        )
-    {
-        require(
-            _exists(entityId),
-            "FragmentTemplate: template query for nonexistent token"
-        );
-
-        entityData = _entityData[_entityRefs[entityId]];
-        (immutableData, mutableData) = _templatesLibrary.dataOf(_templateId);
+    function getTemplate() public view returns (uint160) {
+        return _templateId;
     }
 
     function setDelegate(address delegate) public onlyOwner {
@@ -118,10 +120,7 @@ contract FragmentEntity is ERC721, Flushable, Initializable {
                 uint256(keccak256(abi.encodePacked(_templateId, environment)))
             );
 
-        // store only if not already present
-        if (_entityData[dataHash].length == 0) {
-            _entityData[dataHash] = abi.encodePacked(dataVersion, environment);
-        }
+        uint256 first = _tokenIds.current();
 
         for (uint256 i = 0; i < amount; i++) {
             _tokenIds.increment();
@@ -132,6 +131,10 @@ contract FragmentEntity is ERC721, Flushable, Initializable {
             _entityRefs[newItemId] = dataHash;
             _metadataURIs[newItemId] = ipfsMetadata;
         }
+
+        uint256 last = _tokenIds.current();
+
+        emit Upload(first, last, dataVersion, environment);
     }
 
     function upload(
@@ -184,6 +187,19 @@ contract FragmentEntity is ERC721, Flushable, Initializable {
         uint256 price = amount * _publicMintingPrice;
         require(msg.value >= price, "Not enough value");
 
+        // pay royalties
+        // for now just send 5% to vault
+        // we should also sort out references royalties
+        uint256 royalties = price - ((price / 100) * 5);
+        uint256 toOwner = price - royalties;
+        payable(owner()).transfer(toOwner);
+        _templatesLibrary.getVault().transfer(royalties);
+        emit Earned(price, 0, royalties);
+
+        _totalOwnedEarned += toOwner;
+        _totalVaultEarned += royalties;
+
+        // mint it
         _upload(ipfsMetadata, environment, amount);
     }
 
@@ -209,5 +225,16 @@ contract FragmentEntity is ERC721, Flushable, Initializable {
             "FragmentTemplate: not token owner"
         );
         _metadataURIs[tokenId] = metadata;
+    }
+
+    function recoverERC20(address tokenAddress, uint256 tokenAmount)
+        public
+        onlyOwner
+    {
+        IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
+    }
+
+    function recoverETH(uint256 amount) public onlyOwner {
+        payable(owner()).transfer(amount);
     }
 }

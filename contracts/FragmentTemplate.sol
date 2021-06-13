@@ -8,7 +8,6 @@ import "./FragmentNFT.sol";
 import "./FragmentEntityProxy.sol";
 import "./FragmentEntity.sol";
 import "./Utility.sol";
-import "./Flushable.sol";
 
 struct StakeData {
     uint256 amount;
@@ -18,18 +17,25 @@ struct StakeData {
 
 // this contract uses proxy
 contract FragmentTemplate is FragmentNFT, Initializable {
-    uint8 private constant mutableVersion = 0x1;
-    uint8 private constant immutableVersion = 0x1;
+    uint8 private constant calldataVersion = 0x1;
     uint8 private constant extraStorageVersion = 0x1;
 
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
 
+    // sidechains can use this to upload data
+    event Upload(
+        uint256 indexed tokenId,
+        uint8 version,
+        bytes templateBytes,
+        bytes environment
+    );
+
     // mutable part updated
-    event Updated(uint256 indexed tokenId);
+    event Update(uint256 indexed tokenId, uint8 version, bytes environment);
 
     // sidechain will listen to those and allow storage allocations
-    event Stored(
+    event Store(
         uint256 indexed tokenId,
         address indexed owner,
         uint8 storageVersion,
@@ -38,26 +44,17 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     );
 
     // sidechain will listen to those, side chain deals with rewards allocations etc
-    event Staked(
-        uint256 indexed tokenId,
-        address indexed owner,
-        uint256 amount
-    );
+    event Stake(uint256 indexed tokenId, address indexed owner, uint256 amount);
 
     // a new wild entity appeared on the grid
-    event Rezzed(uint256 indexed tokenId, address newContract);
+    // this is necessary to make the link with the sidechain
+    event Rez(uint256 indexed tokenId, address newContract);
 
     uint256 private _byteCost = 0;
-
-    // Actual brotli compressed edn code/data
-    mapping(uint256 => bytes) private _immutable;
-    mapping(uint256 => bytes) private _mutable;
 
     // Other on-chain references
     mapping(uint256 => uint160[]) private _references;
 
-    // the amount of $FRAG that is storage fees, on order to separate it from staked one
-    uint256 private _storageFeesTotal = 0;
     // the amount of $FRAG allocated for rewards
     uint256 private _rewardTotal = 0;
 
@@ -71,7 +68,15 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     // Number of blocks to lock the stake after an action
     uint256 private _stakeLock = 23500; // about half a week
 
+    // FragmentEntity logic contract
     address private _entityLogic = address(0);
+
+    // Where management fees go, DAO in the future
+    address payable private _vaultAddr =
+        payable(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974);
+
+    // keep track of rezzed entitites
+    mapping(uint256 => EnumerableSet.AddressSet) private _tokenToEntities;
 
     // decrease that number to consume a slot in the future
     uint256[32] private _reservedSlots;
@@ -115,14 +120,6 @@ contract FragmentTemplate is FragmentNFT, Initializable {
             );
     }
 
-    function dataOf(uint160 templateHash)
-        public
-        view
-        returns (bytes memory immutableData, bytes memory mutableData)
-    {
-        return (_immutable[templateHash], _mutable[templateHash]);
-    }
-
     function referencesOf(uint160 templateHash)
         public
         view
@@ -142,13 +139,16 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     function stakeOf(address staker, uint160 templateHash)
         public
         view
-        returns (uint256 cost)
+        returns (uint256 amount, uint256 blockStart)
     {
-        return _stakedAddrToAmount[staker][templateHash].amount;
+        return (
+            _stakedAddrToAmount[staker][templateHash].amount,
+            _stakedAddrToAmount[staker][templateHash].blockStart
+        );
     }
 
     function stake(uint160 templateHash, uint256 amount) public {
-        uint256 balance = _daoToken.balanceOf(msg.sender);
+        uint256 balance = _utilityToken.balanceOf(msg.sender);
         require(
             balance >= amount,
             "FragmentTemplate: not enough tokens to stake"
@@ -160,16 +160,16 @@ contract FragmentTemplate is FragmentNFT, Initializable {
             block.number +
             _stakeLock;
         _tokenToStakers[templateHash].add(msg.sender);
-        emit Staked(
+        emit Stake(
             templateHash,
             msg.sender,
             _stakedAddrToAmount[msg.sender][templateHash].amount
         );
-        _daoToken.safeTransferFrom(msg.sender, address(this), amount);
+        _utilityToken.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function unstake(uint160 templateHash) public {
-        assert(address(_daoToken) != address(0));
+        assert(address(_utilityToken) != address(0));
         // find amount
         uint256 amount = _stakedAddrToAmount[msg.sender][templateHash].amount;
         assert(amount > 0);
@@ -184,8 +184,8 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         _stakedAddrToAmount[msg.sender][templateHash].blockStart = 0;
         _stakedAddrToAmount[msg.sender][templateHash].blockUnlock = 0;
         _tokenToStakers[templateHash].remove(msg.sender);
-        emit Staked(templateHash, msg.sender, 0);
-        _daoToken.safeTransferFrom(address(this), msg.sender, amount);
+        emit Stake(templateHash, msg.sender, 0);
+        _utilityToken.safeTransfer(msg.sender, amount);
     }
 
     function getStakers(uint160 templateHash)
@@ -200,6 +200,19 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         for (uint256 i = 0; i < len; i++) {
             stakers[i] = s.at(i);
             amounts[i] = _stakedAddrToAmount[stakers[i]][templateHash].amount;
+        }
+    }
+
+    function getEntities(uint160 templateHash)
+        public
+        view
+        returns (address[] memory entities)
+    {
+        EnumerableSet.AddressSet storage s = _tokenToEntities[templateHash];
+        uint256 len = s.length();
+        entities = new address[](len);
+        for (uint256 i = 0; i < len; i++) {
+            entities[i] = s.at(i);
         }
     }
 
@@ -233,20 +246,14 @@ contract FragmentTemplate is FragmentNFT, Initializable {
 
         _mint(msg.sender, hash);
 
-        _immutable[hash] = abi.encodePacked(immutableVersion, templateBytes);
-
-        if (environment.length > 0) {
-            _mutable[hash] = abi.encodePacked(mutableVersion, environment);
-        } else {
-            _mutable[hash] = abi.encodePacked(mutableVersion);
-        }
+        emit Upload(hash, calldataVersion, templateBytes, environment);
 
         if (storageSizes.length > 0) {
             // Pay for storage
-            uint256 balance = _daoToken.balanceOf(msg.sender);
+            uint256 balance = _utilityToken.balanceOf(msg.sender);
             uint256 required = 0;
             for (uint256 i = 0; i < storageSizes.length; i++) {
-                emit Stored(
+                emit Store(
                     hash,
                     msg.sender,
                     extraStorageVersion,
@@ -261,14 +268,21 @@ contract FragmentTemplate is FragmentNFT, Initializable {
                     balance >= required,
                     "FragmentTemplate: not enough balance to store assets"
                 );
-                _storageFeesTotal += required;
-                _daoToken.safeTransferFrom(msg.sender, address(this), required);
+                _utilityToken.safeTransferFrom(
+                    msg.sender,
+                    _vaultAddr,
+                    required
+                );
             }
         }
 
         if (references.length > 0) {
             _references[hash] = references;
             for (uint256 i = 0; i < references.length; i++) {
+                // We always can include our own creations
+                if (ownerOf(references[i]) == msg.sender) continue;
+
+                // Not ours, verify how much we staked on it
                 uint256 cost = _includeCost[references[i]];
                 uint256 stakeAmount =
                     _stakedAddrToAmount[msg.sender][references[i]].amount;
@@ -276,6 +290,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
                     stakeAmount >= cost,
                     "FragmentTemplate: not enough staked amount to reference template"
                 );
+
                 // lock the stake for a new period
                 _stakedAddrToAmount[msg.sender][references[i]].blockUnlock =
                     block.number +
@@ -296,11 +311,9 @@ contract FragmentTemplate is FragmentNFT, Initializable {
             "FragmentTemplate: only the owner of the template can update it"
         );
 
-        _mutable[templateHash] = abi.encodePacked(mutableVersion, environment);
-
         _includeCost[templateHash] = includeCost;
 
-        emit Updated(templateHash);
+        emit Update(templateHash, calldataVersion, environment);
     }
 
     // reward minting
@@ -321,17 +334,17 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         // ensure it is a mint
         if (
             from == address(0) &&
-            address(_daoToken) != address(0) &&
+            address(_utilityToken) != address(0) &&
             to == msg.sender
         ) {
             if (
                 _rewardBlocks[msg.sender] != block.number &&
-                _rewardTotal > _reward
+                _rewardTotal >= _reward
             ) {
                 _rewardBlocks[msg.sender] = block.number;
                 _rewardTotal -= _reward;
-                _daoToken.safeIncreaseAllowance(address(this), _reward);
-                _daoToken.safeTransferFrom(address(this), msg.sender, _reward);
+                _utilityToken.safeIncreaseAllowance(address(this), _reward);
+                _utilityToken.safeTransfer(msg.sender, _reward);
             }
         }
     }
@@ -344,12 +357,6 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         return _reward;
     }
 
-    function withdrawStorageFees() public onlyOwner {
-        uint256 total = _storageFeesTotal;
-        _storageFeesTotal = 0;
-        _daoToken.safeTransferFrom(address(this), owner(), total);
-    }
-
     function setRewardAllocation(uint256 amount) public onlyOwner {
         // This is dangerous!
         // Make sure to transfer exact amount $FRAG before calling this
@@ -359,6 +366,14 @@ contract FragmentTemplate is FragmentNFT, Initializable {
 
     function setEntityLogic(address entityLogic) public onlyOwner {
         _entityLogic = entityLogic;
+    }
+
+    function setVault(address payable vault) public onlyOwner {
+        _vaultAddr = vault;
+    }
+
+    function getVault() public view returns (address payable) {
+        return _vaultAddr;
     }
 
     function rez(
@@ -387,7 +402,10 @@ contract FragmentTemplate is FragmentNFT, Initializable {
             templateHash,
             address(this)
         );
-        emit Rezzed(templateHash, newContract);
+        // keep track of this new contract
+        _tokenToEntities[templateHash].add(newContract);
+        // emit event
+        emit Rez(templateHash, newContract);
         return newContract;
     }
 }

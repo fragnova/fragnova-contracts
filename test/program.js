@@ -100,7 +100,7 @@ contract("FragmentTemplate", accounts => {
     const contract = await nft.deployed();
     const entityContract = await entityNft.deployed();
 
-    await contract.setDAOToken(dao20.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
+    await contract.setUtilityToken(dao20.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
     await contract.setRewardAllocation(web3.utils.toWei("1", "ether"), { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
     await contract.setEntityLogic(entityContract.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
 
@@ -131,10 +131,10 @@ contract("FragmentTemplate", accounts => {
     assert.equal(hexHashId, emptyCodeHash);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     tokenOne = emptyCodeHash;
-    const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
+    const template = { immutableData: tx.logs[1].args.templateBytes, mutableData: tx.logs[1].args.environment };
     const codeHex = web3.utils.bytesToHex(emptyCode);
     // slice 0x01
-    assert.equal("0x" + template.immutableData.slice(4), codeHex);
+    assert.equal(template.immutableData, codeHex);
 
     try {
       const uri = await contract.tokenURI.call(tx.logs[0].args.tokenId);
@@ -207,10 +207,10 @@ contract("FragmentTemplate", accounts => {
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.upload(emptyCode, emptyCode, [], [], [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-    const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
+    const template = { immutableData: tx.logs[1].args.templateBytes, mutableData: tx.logs[1].args.environment };
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + template.immutableData.slice(4), codeHex);
-    assert.equal("0x" + template.mutableData.slice(4), codeHex);
+    assert.equal(template.immutableData, codeHex);
+    assert.equal(template.mutableData, codeHex);
     const dao20 = await dao.deployed();
     assert.equal(await dao20.balanceOf.call(accounts[1]), web3.utils.toWei("10", "milli"));
   });
@@ -230,10 +230,10 @@ contract("FragmentTemplate", accounts => {
   it("should update a template's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
-    await contract.update(tokenOne, emptyCode, 10, { from: accounts[0] });
-    const template = await contract.dataOf.call(tokenOne);
+    const tx = await contract.update(tokenOne, emptyCode, 10, { from: accounts[0] });
+    const template = { mutableData: tx.logs[0].args.environment };
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + template.mutableData.slice(4), codeHex);
+    assert.equal(template.mutableData, codeHex);
     const includeCost = await contract.includeCostOf.call(tokenOne);
     assert.equal(10, includeCost.toNumber());
   });
@@ -252,10 +252,10 @@ contract("FragmentTemplate", accounts => {
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.upload(emptyCode, emptyCode, [tokenOne], [], [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-    const template = await contract.dataOf.call(tx.logs[0].args.tokenId);
+    const template = { immutableData: tx.logs[1].args.templateBytes, mutableData: tx.logs[1].args.environment };
     const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal("0x" + template.immutableData.slice(4), codeHex);
-    assert.equal("0x" + template.mutableData.slice(4), codeHex);
+    assert.equal(template.immutableData, codeHex);
+    assert.equal(template.mutableData, codeHex);
     const finalBalance = await dao20.balanceOf.call(accounts[1]);
     assert(initialBalance.sub(new BN(10, 10)).eq(finalBalance));
   });
@@ -287,9 +287,21 @@ contract("FragmentTemplate", accounts => {
     assert(false, "expected exception not thrown");
   });
 
-  it("should not transfer a template", async () => {
+  it("should rez a entity from template", async () => {
     const contract = await nft.deployed();
-  await contract.rez(tokenOne, "Token One", "ONE");
+    await contract.rez(tokenOne, "Token One", "ONE");
+  });
+
+  it("should not rez a entity from template", async () => {
+    const contract = await nft.deployed();
+    // this one already exists at this point
+    try {
+      await contract.rez(tokenOne, "Token One", "ONE");
+    } catch (e) {
+      assert(e.reason == "Create2: Failed on deploy");
+      return;
+    }
+    assert(false, "expected exception not thrown");
   });
 
   // it("should upload a entity", async () => {
