@@ -287,9 +287,14 @@ contract("FragmentTemplate", accounts => {
     assert(false, "expected exception not thrown");
   });
 
+  var fragmentOneEntity = null;
+
   it("should rez a entity from template", async () => {
     const contract = await nft.deployed();
-    await contract.rez(tokenOne, "Token One", "ONE");
+    const tx = await contract.rez(tokenOne, "Token One", "ONE");
+    fragmentOneEntity = new web3.eth.Contract(entityNft.abi, tx.logs[1].args.newContract);
+    const template = await fragmentOneEntity.methods.getTemplate().call();
+    assert.equal(web3.utils.numberToHex(template), tokenOne);
   });
 
   it("should not rez a entity from template", async () => {
