@@ -124,7 +124,7 @@ contract("FragmentTemplate", accounts => {
     templateContract = contract;
 
     const emptyCode = new Uint8Array(1024);
-    const tx = await contract.upload(emptyCode, emptyCode, [], [], [], 0, { from: accounts[0] });
+    const tx = await contract.upload(emptyCode, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", [], [], [], 0, { from: accounts[0] });
     console.log("Mint tx", tx);
     const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
     const emptyCodeHash = "0x" + keccak256(emptyCode).slice(27);
@@ -138,7 +138,7 @@ contract("FragmentTemplate", accounts => {
 
     try {
       const uri = await contract.tokenURI.call(tx.logs[0].args.tokenId);
-      assert.equal(uri, "https://meta.fragcolor.xyz/2miLKyaattHF4mnXdZ2Gr2Zu7Ty");
+      assert.equal(uri, "ipfs://QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx/metadata.json");
     } catch (err) {
       console.log(err);
       throw err;
@@ -181,7 +181,7 @@ contract("FragmentTemplate", accounts => {
     console.log(deployedTx);
 
     const uniqueContract = new web3.eth.Contract(nft.abi, expectedAddr);
-    const uniquedTx = await uniqueContract.methods.upload(emptyCode, emptyCode, [], [], [], 0).send({
+    const uniquedTx = await uniqueContract.methods.upload(emptyCode, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", [], [], [], 0).send({
       from: accounts[0],
       // gasPrice: "10000000000000",
       gas: 300000
@@ -193,7 +193,7 @@ contract("FragmentTemplate", accounts => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(1024);
-      await contract.upload(emptyCode, emptyCode, [], [], [], 0, { from: accounts[0] });
+      await contract.upload(emptyCode, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", [], [], [], 0, { from: accounts[0] });
     } catch (e) {
       assert(e.reason == "FragmentTemplate: template already minted", e);
       return;
@@ -205,7 +205,7 @@ contract("FragmentTemplate", accounts => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(1024);
     emptyCode[0] = 1; // make a small change in order to succeed
-    const tx = await contract.upload(emptyCode, emptyCode, [], [], [], 0, { from: accounts[1] });
+    const tx = await contract.upload(emptyCode, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", [], [], [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const template = { immutableData: tx.logs[1].args.templateBytes, mutableData: tx.logs[1].args.environment };
     const codeHex = web3.utils.bytesToHex(emptyCode);
@@ -250,7 +250,7 @@ contract("FragmentTemplate", accounts => {
     const staked = await contract.getStakers.call(tokenOne);
     assert(new BN(10, 10).eq(staked.amounts[0]));
     emptyCode[0] = 1; // make a small change in order to succeed
-    const tx = await contract.upload(emptyCode, emptyCode, [tokenOne], [], [], 0, { from: accounts[1] });
+    const tx = await contract.upload(emptyCode, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", [tokenOne], [], [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
     const template = { immutableData: tx.logs[1].args.templateBytes, mutableData: tx.logs[1].args.environment };
     const codeHex = web3.utils.bytesToHex(emptyCode);
@@ -268,7 +268,7 @@ contract("FragmentTemplate", accounts => {
       await contract.setMintReward(0, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
       const emptyCode = new Uint8Array(1024);
       emptyCode[0] = 2; // make a small change in order to succeed
-      await contract.upload(emptyCode, emptyCode, [tokenOne], [], [], 0, { from: accounts[2] });
+      await contract.upload(emptyCode, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", [tokenOne], [], [], 0, { from: accounts[2] });
     } catch (e) {
       assert(e.reason == "FragmentTemplate: not enough staked amount to reference template");
       return;

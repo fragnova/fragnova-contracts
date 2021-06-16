@@ -52,14 +52,15 @@ contract FragmentTemplate is FragmentNFT, Initializable {
 
     uint256 private _byteCost = 0;
 
-    // Other on-chain references
-    mapping(uint256 => uint160[]) private _references;
-
     // the amount of $FRAG allocated for rewards
     uint256 private _rewardTotal = 0;
 
+    // Other on-chain references
+    mapping(uint256 => uint160[]) private _references;
     // How much staking is needed to include this fragment
     mapping(uint256 => uint256) private _includeCost;
+    // the cid of the directory we use as cache, in order to download the fragment fast from ipfs
+    mapping(uint256 => bytes32) private _ipfsCacheDirectory;
     // Actual amount staked on this fragment
     mapping(address => mapping(uint256 => StakeData))
         private _stakedAddrToAmount;
@@ -104,15 +105,21 @@ contract FragmentTemplate is FragmentNFT, Initializable {
             "FragmentTemplate: URI query for nonexistent token"
         );
 
-        bytes memory b58id = new bytes(20);
-        bytes32 data = bytes32(tokenId);
-        for (uint256 i = 0; i < 20; i++) {
-            b58id[i] = data[i + 12];
-        }
-
         return
             string(
-                abi.encodePacked(_metatataBase, Utility.toBase58(b58id, 27))
+                abi.encodePacked(
+                    "ipfs://",
+                    Utility.toBase58(
+                        // multihash headers: uint8(0x12), uint8(0x20)
+                        abi.encodePacked(
+                            uint8(0x12),
+                            uint8(0x20),
+                            _ipfsCacheDirectory[tokenId]
+                        ),
+                        46
+                    ),
+                    "/metadata.json"
+                )
             );
     }
 
@@ -215,6 +222,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     function upload(
         bytes calldata templateBytes,
         bytes calldata environment,
+        bytes32 cacheDirectoryCid,
         uint160[] calldata references,
         bytes32[] calldata storageCids,
         uint64[] calldata storageSizes,
@@ -264,11 +272,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
                     balance >= required,
                     "FragmentTemplate: not enough balance to store assets"
                 );
-                _utilityToken.safeTransferFrom(
-                    msg.sender,
-                    owner(),
-                    required
-                );
+                _utilityToken.safeTransferFrom(msg.sender, owner(), required);
             }
         }
 
@@ -295,6 +299,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         }
 
         _includeCost[hash] = includeCost;
+        _ipfsCacheDirectory[hash] = cacheDirectoryCid;
     }
 
     function update(

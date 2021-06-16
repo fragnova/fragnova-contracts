@@ -11,7 +11,6 @@ abstract contract FragmentNFT is ERC721, Ownable {
     uint256 internal _reward = 1 * (10**16);
     mapping(address => uint256) internal _rewardBlocks;
     IERC20 internal _utilityToken = IERC20(address(0));
-    string internal _metatataBase = "https://meta.fragcolor.xyz/";
 
     function setUtilityToken(address addr) public onlyOwner {
         _utilityToken = IERC20(addr);
@@ -19,10 +18,6 @@ abstract contract FragmentNFT is ERC721, Ownable {
 
     function getUtilityToken() public view returns (address) {
         return address(_utilityToken);
-    }
-
-    function setMetadataBase(string calldata base) public onlyOwner {
-        _metatataBase = base;
     }
 
     function recoverERC20(address tokenAddress, uint256 tokenAmount) public onlyOwner {
