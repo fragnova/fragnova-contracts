@@ -71,10 +71,6 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     // FragmentEntity logic contract
     address private _entityLogic = address(0);
 
-    // Where management fees go, DAO in the future
-    address payable private _vaultAddr =
-        payable(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974);
-
     // keep track of rezzed entitites
     mapping(uint256 => EnumerableSet.AddressSet) private _tokenToEntities;
 
@@ -82,7 +78,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
     uint256[32] private _reservedSlots;
 
     constructor()
-        ERC721("Fragment Template v0 NFT", "CODE")
+        ERC721("Fragment Template v0 NFT", "FRAGt")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {
         // NOT INVOKED IF PROXIED
@@ -93,7 +89,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         Ownable._bootstrap(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
         // ERC721
         _name = "Fragment Template v0 NFT";
-        _symbol = "CODE";
+        _symbol = "FRAGt";
     }
 
     function tokenURI(uint256 tokenId)
@@ -270,7 +266,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
                 );
                 _utilityToken.safeTransferFrom(
                     msg.sender,
-                    _vaultAddr,
+                    owner(),
                     required
                 );
             }
@@ -366,14 +362,6 @@ contract FragmentTemplate is FragmentNFT, Initializable {
 
     function setEntityLogic(address entityLogic) public onlyOwner {
         _entityLogic = entityLogic;
-    }
-
-    function setVault(address payable vault) public onlyOwner {
-        _vaultAddr = vault;
-    }
-
-    function getVault() public view returns (address payable) {
-        return _vaultAddr;
     }
 
     function rez(
