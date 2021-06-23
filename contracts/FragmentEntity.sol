@@ -13,7 +13,15 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
 
-    uint8 private constant dataVersion = 0x1;
+    uint8 private constant _dataVersion = 0x1;
+
+    // royalties distribution table
+    uint256 private constant _p1 = 8000; // percentage with 2 decimals added = 80% - Creator
+    // TODO
+    // uint256 private constant _p2 = 1000; // percentage with 2 decimals added = 10% - Dependencies pool
+    // uint256 private constant _p3 = 250; // percentage with 2 decimals added = 2.5% - Curators pool
+    // uint256 private constant _p4 = 500; // percentage with 2 decimals added = 5% - Foundation vault
+    // uint256 private constant _p5 = 250; // percentage with 2 decimals added = 2.5% - iFRAG swap pool
 
     Counters.Counter private _tokenIds;
 
@@ -39,9 +47,6 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
 
     // royalties event
     event Earned(uint256 total, uint256 royalties, uint256 vault);
-
-    uint256 private _totalOwnedEarned;
-    uint256 private _totalVaultEarned;
 
     constructor() ERC721("Entity", "FRAGe") Ownable(address(0)) {
         // this is just for testing - deployment has no constructor args (literally comment out)
@@ -119,10 +124,9 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         bytes calldata environment,
         uint32 amount
     ) internal {
-        uint160 dataHash =
-            uint160(
-                uint256(keccak256(abi.encodePacked(_templateId, environment)))
-            );
+        uint160 dataHash = uint160(
+            uint256(keccak256(abi.encodePacked(_templateId, environment)))
+        );
 
         uint256 first = _tokenIds.current() + 1;
 
@@ -138,7 +142,7 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
 
         uint256 last = _tokenIds.current();
 
-        emit Upload(first, last, dataVersion, environment);
+        emit Upload(first, last, _dataVersion, environment);
     }
 
     function upload(
@@ -160,19 +164,18 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         bytes calldata environment,
         uint32 amount
     ) public payable {
-        bytes32 hash =
-            ECDSA.toEthSignedMessageHash(
-                keccak256(
-                    abi.encodePacked(
-                        msg.sender,
-                        Utility.getChainId(),
-                        _templateId,
-                        ipfsMetadata,
-                        environment,
-                        amount
-                    )
+        bytes32 hash = ECDSA.toEthSignedMessageHash(
+            keccak256(
+                abi.encodePacked(
+                    msg.sender,
+                    Utility.getChainId(),
+                    _templateId,
+                    ipfsMetadata,
+                    environment,
+                    amount
                 )
-            );
+            )
+        );
         require(
             _delegate != address(0x0) &&
                 _delegate == ECDSA.recover(hash, signature),
@@ -192,16 +195,18 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         require(msg.value >= price, "Not enough value");
 
         // pay royalties
-        // for now just send 5% to vault
-        // we should also sort out references royalties
-        uint256 royalties = price - ((price / 100) * 5);
-        uint256 toOwner = price - royalties;
-        payable(owner()).transfer(toOwner);
-        _templatesLibrary.getVault().transfer(royalties);
-        emit Earned(price, 0, royalties);
+        uint256 remaining = price;
 
-        _totalOwnedEarned += toOwner;
-        _totalVaultEarned += royalties;
+        // Creator/Author royalties
+        {
+            uint256 royalties = (price * _p1) / 10000;
+            payable(owner()).transfer(royalties);
+            remaining -= royalties;
+            emit Earned(price, 0, royalties);
+        }
+
+        // pay all the remaining to the FRAG foundation
+        _templatesLibrary.getVault().transfer(remaining);
 
         // mint it
         _upload(ipfsMetadata, environment, amount);

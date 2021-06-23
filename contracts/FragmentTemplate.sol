@@ -16,7 +16,7 @@ struct StakeData {
 }
 
 // this contract uses proxy
-contract FragmentTemplate is FragmentNFT, Initializable {
+contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
     uint8 private constant calldataVersion = 0x1;
     uint8 private constant extraStorageVersion = 0x1;
 
@@ -232,19 +232,18 @@ contract FragmentTemplate is FragmentNFT, Initializable {
 
         // mint a new token and upload it
         // but make templates unique by hashing them
-        uint160 hash =
-            uint160(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            templateBytes,
-                            references,
-                            storageCids,
-                            storageSizes
-                        )
+        uint160 hash = uint160(
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        templateBytes,
+                        references,
+                        storageCids,
+                        storageSizes
                     )
                 )
-            );
+            )
+        );
 
         require(!_exists(hash), "FragmentTemplate: template already minted");
 
@@ -284,8 +283,10 @@ contract FragmentTemplate is FragmentNFT, Initializable {
 
                 // Not ours, verify how much we staked on it
                 uint256 cost = _includeCost[references[i]];
-                uint256 stakeAmount =
-                    _stakedAddrToAmount[msg.sender][references[i]].amount;
+                uint256 stakeAmount = _stakedAddrToAmount[msg.sender][
+                    references[i]
+                ]
+                .amount;
                 require(
                     stakeAmount >= cost,
                     "FragmentTemplate: not enough staked amount to reference template"
@@ -379,14 +380,11 @@ contract FragmentTemplate is FragmentNFT, Initializable {
             "FragmentTemplate: only the owner of the template can rez it"
         );
         // create a unique entity contract based on this template
-        address newContract =
-            Create2.deploy(
-                0,
-                keccak256(
-                    abi.encodePacked(templateHash, tokenName, tokenSymbol)
-                ),
-                type(FragmentEntityProxy).creationCode
-            );
+        address newContract = Create2.deploy(
+            0,
+            keccak256(abi.encodePacked(templateHash, tokenName, tokenSymbol)),
+            type(FragmentEntityProxy).creationCode
+        );
         // immediately initialize
         FragmentEntityProxy(payable(newContract)).bootstrapProxy(_entityLogic);
         FragmentEntity(newContract).bootstrap(
@@ -400,5 +398,9 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         // emit event
         emit Rez(templateHash, newContract);
         return newContract;
+    }
+
+    function getVault() public view override returns (address payable) {
+        return payable(owner());
     }
 }

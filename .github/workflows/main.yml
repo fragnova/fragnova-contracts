@@ -13,7 +13,7 @@ jobs:
         npm install -g truffle
         npm install -g ganache-cli
         npm install
-        ganache-cli -q -u 0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974 &
+        ganache-cli --chainId 1 -q -u 0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974 &
         sleep 5
         truffle test --network development --show-events
 
