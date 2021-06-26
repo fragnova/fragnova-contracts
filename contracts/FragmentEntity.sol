@@ -17,11 +17,7 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
 
     // royalties distribution table
     uint256 private constant _p1 = 8000; // percentage with 2 decimals added = 80% - Creator
-    // TODO
-    // uint256 private constant _p2 = 1000; // percentage with 2 decimals added = 10% - Dependencies pool
-    // uint256 private constant _p3 = 250; // percentage with 2 decimals added = 2.5% - Curators pool
-    // uint256 private constant _p4 = 500; // percentage with 2 decimals added = 5% - Foundation vault
-    // uint256 private constant _p5 = 250; // percentage with 2 decimals added = 2.5% - iFRAG swap pool
+    uint256 private constant _p2 = 2000; // percentage with 2 decimals added = 20% - Foundation
 
     Counters.Counter private _tokenIds;
 
@@ -32,10 +28,16 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
     IFragmentTemplate private _templatesLibrary;
     address private _delegate;
     uint256 private _publicMintingPrice;
+    uint256 private _dutchStartBlock;
+    uint256 private _dutchStep;
     uint160 private _templateId;
     uint32 private _maxPublicAmount;
     uint32 private _publicCap;
-    bool private _publicMinting;
+    uint8 private _publicMinting; // 0 no, 1 normal, 2 dutch auction
+
+    uint8 private constant NO_PUB_MINTING = 0;
+    uint8 private constant PUB_MINTING = 1;
+    uint8 private constant DUTCH_MINTING = 2;
 
     // upload event with data
     event Upload(
@@ -55,6 +57,18 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         // ERC721 - this we must make sure happens only and ever in the beginning
         // Of course being proxied it might be overwritten but if ownership is finally burned it's going to be fine!
         _templatesLibrary = IFragmentTemplate(address(0));
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        return
+            interfaceId == _INTERFACE_ID_FEES ||
+            super.supportsInterface(interfaceId);
     }
 
     function bootstrap(
@@ -86,10 +100,7 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         override
         returns (string memory)
     {
-        require(
-            _exists(tokenId),
-            "FragmentTemplate: URI query for nonexistent token"
-        );
+        require(_exists(tokenId), "URI query for nonexistent token");
 
         return
             string(
@@ -164,6 +175,20 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         bytes calldata environment,
         uint32 amount
     ) public payable {
+        // Sanity checks
+        require(_publicMinting == PUB_MINTING, "Public minting not allowed");
+
+        require(
+            _tokenIds.current() < _publicCap,
+            "Public minting limit has been reached"
+        );
+
+        require(amount <= _maxPublicAmount, "Invalid amount");
+
+        uint256 price = amount * _publicMintingPrice;
+        require(msg.value >= price, "Not enough value");
+
+        // All good authenticate now
         bytes32 hash = ECDSA.toEthSignedMessageHash(
             keccak256(
                 abi.encodePacked(
@@ -179,23 +204,11 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         require(
             _delegate != address(0x0) &&
                 _delegate == ECDSA.recover(hash, signature),
-            "FragmentEntity: Invalid signature"
+            "Invalid signature"
         );
-
-        require(_publicMinting, "Public minting not allowed");
-
-        require(
-            _tokenIds.current() < _publicCap,
-            "Public minting limit has been reached"
-        );
-
-        require(amount <= _maxPublicAmount, "Invalid amount");
-
-        uint256 price = amount * _publicMintingPrice;
-        require(msg.value >= price, "Not enough value");
 
         // pay royalties
-        uint256 remaining = price;
+        uint256 remaining = msg.value;
 
         // Creator/Author royalties
         {
@@ -205,36 +218,125 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
             emit Earned(price, 0, royalties);
         }
 
-        // pay all the remaining to the FRAG foundation
+        // Foundation royalties
+        // We have no $FRAG token yet, send all to Foundation for now
         _templatesLibrary.getVault().transfer(remaining);
 
         // mint it
         _upload(ipfsMetadata, environment, amount);
     }
 
+    /*
+        This is to allow public auction sales.
+        We use a signature to allow an entity off chain to verify that the content is valid and vouch for it.
+        If we want to skip that crafted address and random signatures can be used
+    */
+    function bid(
+        bytes calldata signature,
+        bytes32 ipfsMetadata,
+        bytes calldata environment
+    ) public payable {
+        // Sanity checks
+        require(_publicMinting == DUTCH_MINTING, "Auction bidding not allowed");
+
+        require(
+            _tokenIds.current() < _publicCap,
+            "Minting limit has been reached"
+        );
+
+        // reduce price over time via blocks
+        uint256 blocksDiff = block.number - _dutchStartBlock;
+        uint256 price = _publicMintingPrice - (_dutchStep * blocksDiff);
+        require(msg.value >= price, "Not enough value");
+
+        // Authenticate
+        bytes32 hash = ECDSA.toEthSignedMessageHash(
+            keccak256(
+                abi.encodePacked(
+                    msg.sender,
+                    Utility.getChainId(),
+                    _templateId,
+                    ipfsMetadata,
+                    environment
+                )
+            )
+        );
+        require(
+            _delegate != address(0x0) &&
+                _delegate == ECDSA.recover(hash, signature),
+            "Invalid signature"
+        );
+
+        // pay royalties
+        uint256 remaining = msg.value;
+
+        // Creator/Author royalties
+        {
+            uint256 royalties = (price * _p1) / 10000;
+            payable(owner()).transfer(royalties);
+            remaining -= royalties;
+            emit Earned(price, 0, royalties);
+        }
+
+        // Foundation royalties
+        // We have no $FRAG token yet, send all to Foundation for now
+        _templatesLibrary.getVault().transfer(remaining);
+
+        // mint it
+        _upload(ipfsMetadata, environment, 1);
+    }
+
+    function currentBidPrice() public view returns (uint256) {
+        assert(_publicMinting == DUTCH_MINTING);
+        // reduce price over time via blocks
+        uint256 blocksDiff = block.number - _dutchStartBlock;
+        uint256 price = _publicMintingPrice - (_dutchStep * blocksDiff);
+        return price;
+    }
+
+    function isMarketOpen() public view returns (bool) {
+        return
+            _publicMinting != NO_PUB_MINTING &&
+            _tokenIds.current() < _publicCap;
+    }
+
     function setPublicSale(
-        bool enabled,
         uint256 price,
         uint32 maxAmount,
         uint32 cap
     ) public onlyOwner {
-        _publicMinting = enabled;
+        _publicMinting = PUB_MINTING;
         _publicMintingPrice = price;
         _maxPublicAmount = maxAmount;
         _publicCap = cap;
+    }
+
+    function openDutchAuction(
+        uint256 maxPrice,
+        uint256 priceStep,
+        uint32 slots
+    ) public onlyOwner {
+        _publicMinting = DUTCH_MINTING;
+        _publicMintingPrice = maxPrice;
+        _dutchStartBlock = block.number;
+        _dutchStep = priceStep;
+        _publicCap = slots;
+    }
+
+    function stopMarket() public onlyOwner {
+        _publicMinting = NO_PUB_MINTING;
     }
 
     /*
         Allow owners to update metadata
     */
     function updateMetadata(uint256 tokenId, bytes32 metadata) public {
-        require(_exists(tokenId), "FragmentTemplate: nonexistent token");
-        require(
-            ownerOf(tokenId) == msg.sender,
-            "FragmentTemplate: not token owner"
-        );
+        require(_exists(tokenId), "Nonexistent token");
+        require(ownerOf(tokenId) == msg.sender, "Not token owner");
         _metadataURIs[tokenId] = metadata;
     }
+
+    // Adds support to recover extra external values sent to this contract
 
     function recoverERC20(address tokenAddress, uint256 tokenAmount)
         public
@@ -245,5 +347,31 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
 
     function recoverETH(uint256 amount) public onlyOwner {
         payable(owner()).transfer(amount);
+    }
+
+    // This should add support for most popular secondary markets royalties on sales
+
+    /*
+     * bytes4(keccak256('getFeeBps(uint256)')) == 0x0ebd4c7f
+     * bytes4(keccak256('getFeeRecipients(uint256)')) == 0xb9c4d9fb
+     *
+     * => 0x0ebd4c7f ^ 0xb9c4d9fb == 0xb7799584
+     */
+    bytes4 private constant _INTERFACE_ID_FEES = 0xb7799584;
+
+    function getFeeRecipients(
+        uint256 /*id*/
+    ) public view returns (address payable[] memory split) {
+        split = new address payable[](2);
+        split[0] = payable(owner());
+        split[1] = payable(_templatesLibrary.getVault());
+    }
+
+    function getFeeBps(
+        uint256 /*id*/
+    ) public pure returns (uint256[] memory split) {
+        split = new uint256[](2);
+        split[0] = _p1 / 10;
+        split[1] = _p2 / 10;
     }
 }

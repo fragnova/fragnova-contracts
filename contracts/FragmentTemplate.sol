@@ -22,6 +22,7 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
 
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet for EnumerableSet.UintSet;
 
     // sidechains can use this to upload data
     event Upload(
@@ -56,7 +57,7 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
     uint256 private _rewardTotal = 0;
 
     // Other on-chain references
-    mapping(uint256 => uint160[]) private _references;
+    mapping(uint256 => EnumerableSet.UintSet) private _referencing;
     // How much staking is needed to include this fragment
     mapping(uint256 => uint256) private _includeCost;
     // the cid of the directory we use as cache, in order to download the fragment fast from ipfs
@@ -123,12 +124,12 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
             );
     }
 
-    function referencesOf(uint160 templateHash)
+    function isReferencedBy(uint160 templateHash, uint160 referencer)
         public
         view
-        returns (uint160[] memory packedRefs)
+        returns (bool)
     {
-        return _references[templateHash];
+        return _referencing[templateHash].contains(referencer);
     }
 
     function includeCostOf(uint160 templateHash)
@@ -276,15 +277,15 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
         }
 
         if (references.length > 0) {
-            _references[hash] = references;
             for (uint256 i = 0; i < references.length; i++) {
                 // We always can include our own creations
-                if (ownerOf(references[i]) == msg.sender) continue;
+                uint160 referenced = references[i];
+                if (ownerOf(referenced) == msg.sender) continue;
 
                 // Not ours, verify how much we staked on it
-                uint256 cost = _includeCost[references[i]];
+                uint256 cost = _includeCost[referenced];
                 uint256 stakeAmount = _stakedAddrToAmount[msg.sender][
-                    references[i]
+                    referenced
                 ]
                 .amount;
                 require(
@@ -293,9 +294,12 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
                 );
 
                 // lock the stake for a new period
-                _stakedAddrToAmount[msg.sender][references[i]].blockUnlock =
+                _stakedAddrToAmount[msg.sender][referenced].blockUnlock =
                     block.number +
                     _stakeLock;
+
+                // also add this newly minted fragment to the referencing list
+                _referencing[referenced].add(hash);
             }
         }
 
