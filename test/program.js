@@ -102,7 +102,6 @@ contract("FragmentTemplate", accounts => {
     const entityContract = await entityNft.deployed();
 
     await contract.setUtilityToken(dao20.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
-    await contract.setRewardAllocation(web3.utils.toWei("1", "ether"), { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
     await contract.setEntityLogic(entityContract.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
 
     const deployTx = deterministicDeployment(nft.bytecode, receipt.gasUsed);
@@ -212,15 +211,13 @@ contract("FragmentTemplate", accounts => {
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(template.immutableData, codeHex);
     assert.equal(template.mutableData, codeHex);
-    const dao20 = await dao.deployed();
-    assert.equal(await dao20.balanceOf.call(accounts[1]), web3.utils.toWei("10", "milli"));
   });
 
   it("should not update a template's environment", async () => {
     try {
       const contract = await nft.deployed();
       const emptyCode = new Uint8Array(30);
-      await contract.update(tokenOne, emptyCode, 0, { from: accounts[1] });
+      await contract.update(tokenOne, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", 0, { from: accounts[1] });
     } catch (e) {
       assert(e.reason == "FragmentTemplate: only the owner of the template can update it");
       return;
@@ -231,7 +228,7 @@ contract("FragmentTemplate", accounts => {
   it("should update a template's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
-    const tx = await contract.update(tokenOne, emptyCode, 10, { from: accounts[0] });
+    const tx = await contract.update(tokenOne, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", 10, { from: accounts[0] });
     const template = { mutableData: tx.logs[0].args.environment };
     const codeHex = web3.utils.bytesToHex(emptyCode);
     assert.equal(template.mutableData, codeHex);
@@ -242,8 +239,7 @@ contract("FragmentTemplate", accounts => {
   it("should upload a template with reference, paying referenced", async () => {
     const contract = await nft.deployed();
     const dao20 = await dao.deployed();
-    // disable rewards, testing that too
-    await contract.setMintReward(0, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
+    await dao20.transfer(accounts[1], web3.utils.toWei("1024", "ether"));
     const emptyCode = new Uint8Array(1024);
     const initialBalance = await dao20.balanceOf.call(accounts[1]);
     await dao20.approve(contract.address, 10, { from: accounts[1] });
@@ -260,14 +256,16 @@ contract("FragmentTemplate", accounts => {
     const finalBalance = await dao20.balanceOf.call(accounts[1]);
     assert(initialBalance.sub(new BN(10, 10)).eq(finalBalance));
     tokenTwo = tx.logs[0].args.tokenId.toString();
+    const isReferencedBy = await contract.isReferencedBy(tokenOne, tokenTwo);
+    assert(isReferencedBy);
+    const isNotReferencedBy = await contract.isReferencedBy(tokenTwo, tokenOne);
+    assert(!isNotReferencedBy);
   });
 
   it("should not upload a template with reference, paying referenced", async () => {
     try {
       const contract = await nft.deployed();
       await dao.deployed();
-      // disable rewards, testing that too
-      await contract.setMintReward(0, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
       const emptyCode = new Uint8Array(1024);
       emptyCode[0] = 2; // make a small change in order to succeed
       await contract.upload(emptyCode, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", [tokenOne], [], [], 0, { from: accounts[2] });
