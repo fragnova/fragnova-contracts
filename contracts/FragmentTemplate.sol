@@ -437,27 +437,26 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
     }
 
     function upload(
-        bytes calldata templateBytes,
-        bytes calldata environment,
-        bytes32 cacheDirectoryCid,
-        uint160[] calldata references,
-        bytes32[] calldata storageCids,
-        uint64[] calldata storageSizes,
-        uint256 includeCost
+        bytes calldata templateBytes, // immutable
+        bytes calldata environment, // mutable
+        bytes32 cacheDirectoryCid, // mutable
+        uint160[] calldata references, // immutable
+        bytes32[] calldata storageCids, // immutable
+        uint64[] calldata storageSizes, // immutable
+        uint256 includeCost // mutable
     ) public {
         assert(storageSizes.length == storageCids.length);
 
         // mint a new token and upload it
         // but make templates unique by hashing them
+        // THIS IS THE BIG DEAL
+        // Apps just by knowing the hash can verify
+        // That references are collected and were verified on upload
+        // storageCids loaded are also paid
         uint160 hash = uint160(
             uint256(
                 keccak256(
-                    abi.encodePacked(
-                        templateBytes,
-                        references,
-                        storageCids,
-                        storageSizes
-                    )
+                    abi.encodePacked(templateBytes, references, storageCids)
                 )
             )
         );
