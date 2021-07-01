@@ -131,10 +131,6 @@ contract("FragmentTemplate", accounts => {
     assert.equal(hexHashId, emptyCodeHash);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     tokenOne = emptyCodeHash;
-    const template = { immutableData: tx.logs[1].args.templateBytes, mutableData: tx.logs[1].args.environment };
-    const codeHex = web3.utils.bytesToHex(emptyCode);
-    // slice 0x01
-    assert.equal(template.immutableData, codeHex);
 
     try {
       const uri = await contract.tokenURI.call(tx.logs[0].args.tokenId);
@@ -207,10 +203,6 @@ contract("FragmentTemplate", accounts => {
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.upload(emptyCode, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", [], [], [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-    const template = { immutableData: tx.logs[1].args.templateBytes, mutableData: tx.logs[1].args.environment };
-    const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal(template.immutableData, codeHex);
-    assert.equal(template.mutableData, codeHex);
   });
 
   it("should not update a template's environment", async () => {
@@ -228,10 +220,7 @@ contract("FragmentTemplate", accounts => {
   it("should update a template's environment", async () => {
     const contract = await nft.deployed();
     const emptyCode = new Uint8Array(30);
-    const tx = await contract.update(tokenOne, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", 10, { from: accounts[0] });
-    const template = { mutableData: tx.logs[0].args.environment };
-    const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal(template.mutableData, codeHex);
+    await contract.update(tokenOne, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", 10, { from: accounts[0] });
     const includeCost = await contract.includeCostOf.call(tokenOne);
     assert.equal(10, includeCost.toNumber());
   });
@@ -249,10 +238,6 @@ contract("FragmentTemplate", accounts => {
     emptyCode[0] = 1; // make a small change in order to succeed
     const tx = await contract.upload(emptyCode, emptyCode, "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", [tokenOne], [], [], 0, { from: accounts[1] });
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-    const template = { immutableData: tx.logs[1].args.templateBytes, mutableData: tx.logs[1].args.environment };
-    const codeHex = web3.utils.bytesToHex(emptyCode);
-    assert.equal(template.immutableData, codeHex);
-    assert.equal(template.mutableData, codeHex);
     const finalBalance = await dao20.balanceOf.call(accounts[1]);
     assert(initialBalance.sub(new BN(10, 10)).eq(finalBalance));
     tokenTwo = tx.logs[0].args.tokenId.toString();

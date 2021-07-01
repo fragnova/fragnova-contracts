@@ -23,32 +23,15 @@ struct FragmentDataV0 {
 
 // this contract uses proxy
 contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
-    uint8 private constant calldataVersion = 0x1;
-    uint8 private constant extraStorageVersion = 0x1;
+    uint8 public constant CalldataVersion = 0x1;
+    uint8 public constant ExtraStorageVersion = 0x1;
 
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
 
-    // sidechains can use this to upload data
-    event Upload(
-        uint256 indexed tokenId,
-        uint8 version,
-        bytes templateBytes,
-        bytes environment
-    );
-
     // mutable part updated
-    event Update(uint256 indexed tokenId, uint8 version, bytes environment);
-
-    // sidechain will listen to those and allow storage allocations
-    event Store(
-        uint256 indexed tokenId,
-        address indexed owner,
-        uint8 storageVersion,
-        bytes32 cid,
-        uint64 size
-    );
+    event Update(uint256 indexed tokenId);
 
     // sidechain will listen to those, side chain deals with rewards allocations etc
     event Stake(uint256 indexed tokenId, address indexed owner, uint256 amount);
@@ -465,21 +448,12 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
 
         _mint(msg.sender, hash);
 
-        emit Upload(hash, calldataVersion, templateBytes, environment);
-
         if (storageSizes.length > 0) {
             // Pay for storage
             uint256 balance = _utilityToken.balanceOf(msg.sender);
             uint256 required = 0;
             uint256 byteCost = getByteCost();
             for (uint256 i = 0; i < storageSizes.length; i++) {
-                emit Store(
-                    hash,
-                    msg.sender,
-                    extraStorageVersion,
-                    storageCids[i],
-                    storageSizes[i]
-                );
                 required += storageSizes[i] * byteCost;
             }
 
@@ -580,7 +554,7 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
             keccak256(environment)
         );
 
-        emit Update(templateHash, calldataVersion, environment);
+        emit Update(templateHash);
     }
 
     function _beforeTokenTransfer(
