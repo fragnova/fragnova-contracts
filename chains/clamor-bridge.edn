@@ -1,0 +1,15 @@
+(defnode main)
+
+(defloop clamor-bridge
+  (Eth "ws://127.0.0.1:8545")
+  (Eth.Contract :Contract "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
+                :Abi (slurp "FragmentTemplate.json"))
+  (Eth.WaitEvent :Event "Transfer")
+  (Log "Log")
+  (Take "transaction_hash")
+  (ExpectBytes)
+  (Eth.Transaction)
+  (Log "Transaction"))
+
+(schedule main clamor-bridge)
+(run main 0.1)
