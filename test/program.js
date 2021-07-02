@@ -68,11 +68,16 @@ function toEthSignedMessageHash(messageHex) {
   return web3.utils.sha3(Buffer.concat([prefix, messageBuffer]));
 }
 
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+
 contract("FragmentTemplate", accounts => {
   var tokenOne = null;
   var tokenTwo = null;
 
   it("should upload a template", async () => {
+    console.log("About to await 5 seconds");
+    await delay(5000);
+
     const params = {
       from: accounts[0],
       to: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974",
