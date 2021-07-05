@@ -20,16 +20,17 @@
   (Time.EpochMs) (Math.Add (* 120 1000)) = .time
   (Const [[.tx-hash .owner .tokenId] .time]) >> .events)
 
-(defloop forwarder
+(defloop tx-scraper
   (Setup
    (Sequence
     .events
     :Types [[Type.Bytes] Type.Int]
     :Global true
-    ; avoid clearing/data racd with listener
+    ; avoid clearing/data race with listener
     :Clear false)
 
    (Eth "http://127.0.0.1:8545"))
+  
   (Time.Pop .events)
   (Log "Delayed")
   (| (Take 0) = .tx-hash)
@@ -41,6 +42,6 @@
           (Log "Tx"))))
 
 (schedule main events-listener)
-(schedule main forwarder)
+(schedule main tx-scraper)
 
 (run main 0.1)
