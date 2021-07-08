@@ -24,6 +24,7 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
     // mapping for templates storage
     mapping(uint256 => bytes32) private _metadataURIs;
     mapping(uint256 => uint160) private _entityRefs;
+    mapping(uint256 => uint256) private _envToId;
 
     IFragmentTemplate private _templatesLibrary;
     address private _delegate;
@@ -34,6 +35,7 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
     uint32 private _maxPublicAmount;
     uint32 private _publicCap;
     uint8 private _publicMinting; // 0 no, 1 normal, 2 dutch auction
+    bool private _uniqueEnv;
 
     uint8 private constant NO_PUB_MINTING = 0;
     uint8 private constant PUB_MINTING = 1;
@@ -144,6 +146,9 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         for (uint256 i = 0; i < amount; i++) {
             _tokenIds.increment();
             uint256 newItemId = _tokenIds.current();
+
+            require(!_uniqueEnv || _envToId[dataHash] == 0, "Unique token already minted.");
+            _envToId[dataHash] = newItemId;
 
             _mint(msg.sender, newItemId);
 
@@ -303,24 +308,28 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
     function setPublicSale(
         uint256 price,
         uint32 maxAmount,
-        uint32 cap
+        uint32 cap,
+        bool unique
     ) public onlyOwner {
         _publicMinting = PUB_MINTING;
         _publicMintingPrice = price;
         _maxPublicAmount = maxAmount;
         _publicCap = cap;
+        _uniqueEnv = unique;
     }
 
     function openDutchAuction(
         uint256 maxPrice,
         uint256 priceStep,
-        uint32 slots
+        uint32 slots,
+        bool unique
     ) public onlyOwner {
         _publicMinting = DUTCH_MINTING;
         _publicMintingPrice = maxPrice;
         _dutchStartBlock = block.number;
         _dutchStep = priceStep;
         _publicCap = slots;
+        _uniqueEnv = unique;
     }
 
     function stopMarket() public onlyOwner {

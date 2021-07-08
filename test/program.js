@@ -310,7 +310,7 @@ contract("FragmentTemplate", accounts => {
     const empty = new Uint8Array(1024);
 
     await entity.methods
-      .setPublicSale(web3.utils.toWei("0.1", "ether"), 1, 2)
+      .setPublicSale(web3.utils.toWei("0.1", "ether"), 1, 2, false)
       .send({ from: accounts[1], gas: 500000 });
 
     await entity.methods
