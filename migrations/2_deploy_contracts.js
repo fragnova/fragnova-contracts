@@ -4,7 +4,7 @@ var daoToken = artifacts.require("FragmentDAOToken");
 var nft = artifacts.require("FragmentTemplate");
 var nftProxy = artifacts.require("FragmentTemplateProxy");
 var nftEntity = artifacts.require("FragmentEntity");
-var nftEntityProxy = artifacts.require("FragmentEntityProxy");
+var nftEntityProxy = artifacts.require("FragmentRezProxy");
 var admin = artifacts.require("FragmentProxyAdmin");
 var vault = artifacts.require("FragmentVault");
 
