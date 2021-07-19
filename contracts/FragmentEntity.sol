@@ -4,9 +4,18 @@ import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./IFragmentTemplate.sol";
+import "./FragmentTemplate.sol";
+import "./FragmentVault.sol";
 import "./Utility.sol";
 import "./FragmentNFT.sol";
+
+struct FragmentInitData {
+    uint160 templateId;
+    address templatesLibrary;
+    address payable vault;
+    bool unique;
+    uint32 maxSupply;
+}
 
 contract FragmentEntity is FragmentNFT, Initializable {
     using SafeERC20 for IERC20;
@@ -16,7 +25,7 @@ contract FragmentEntity is FragmentNFT, Initializable {
 
     // royalties distribution table
     uint256 private constant _p1 = 8000; // percentage with 2 decimals added = 80% - Creator
-    uint256 private constant _p2 = 2000; // percentage with 2 decimals added = 20% - Foundation
+    uint256 private constant _p2 = 2000; // percentage with 2 decimals added = 20% - Vault
 
     Counters.Counter private _tokenIds;
 
@@ -25,12 +34,14 @@ contract FragmentEntity is FragmentNFT, Initializable {
     mapping(uint256 => uint160) private _entityRefs;
     mapping(uint256 => uint256) private _envToId;
 
-    IFragmentTemplate private _templatesLibrary;
+    FragmentTemplate private _templatesLibrary;
+    FragmentVault private _vault;
     address private _delegate;
     uint256 private _publicMintingPrice;
     uint256 private _dutchStartBlock;
     uint256 private _dutchStep;
     uint160 private _templateId;
+    uint32 private _maxSupply;
     uint32 private _maxPublicAmount;
     uint32 private _publicCap;
     uint8 private _publicMinting; // 0 no, 1 normal, 2 dutch auction
@@ -57,7 +68,7 @@ contract FragmentEntity is FragmentNFT, Initializable {
         _templateId = 0;
         // ERC721 - this we must make sure happens only and ever in the beginning
         // Of course being proxied it might be overwritten but if ownership is finally burned it's going to be fine!
-        _templatesLibrary = IFragmentTemplate(address(0));
+        _templatesLibrary = FragmentTemplate(address(0));
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -75,23 +86,29 @@ contract FragmentEntity is FragmentNFT, Initializable {
     function bootstrap(
         string calldata tokenName,
         string calldata tokenSymbol,
-        uint160 templateId,
-        address templatesLibrary
+        FragmentInitData calldata params
     ) public initializer {
-        _templatesLibrary = IFragmentTemplate(templatesLibrary);
+        _templatesLibrary = FragmentTemplate(params.templatesLibrary);
 
-        address towner = _templatesLibrary.ownerOf(templateId);
+        address towner = _templatesLibrary.ownerOf(params.templateId);
 
         // Ownable
         Ownable._bootstrap(towner);
 
         // Master template to entity
-        _templateId = templateId;
+        _templateId = params.templateId;
+
+        // Vault
+        _vault = FragmentVault(params.vault);
 
         // ERC721 - this we must make sure happens only and ever in the beginning
         // Of course being proxied it might be overwritten but if ownership is finally burned it's going to be fine!
         _name = tokenName;
         _symbol = tokenSymbol;
+
+        // Others
+        _uniqueEnv = params.unique;
+        _maxSupply = params.maxSupply;
     }
 
     function tokenURI(uint256 tokenId)
@@ -114,7 +131,8 @@ contract FragmentEntity is FragmentNFT, Initializable {
                             _metadataURIs[tokenId]
                         ),
                         46
-                    )
+                    ),
+                    "/metadata.json"
                 )
             );
     }
@@ -145,8 +163,15 @@ contract FragmentEntity is FragmentNFT, Initializable {
         for (uint256 i = 0; i < amount; i++) {
             _tokenIds.increment();
             uint256 newItemId = _tokenIds.current();
+            require(
+                _tokenIds.current() < _maxSupply,
+                "Max minting limit has been reached"
+            );
 
-            require(!_uniqueEnv || _envToId[dataHash] == 0, "Unique token already minted.");
+            require(
+                !_uniqueEnv || _envToId[dataHash] == 0,
+                "Unique token already minted."
+            );
             _envToId[dataHash] = newItemId;
 
             _mint(msg.sender, newItemId);
@@ -183,7 +208,7 @@ contract FragmentEntity is FragmentNFT, Initializable {
         require(_publicMinting == PUB_MINTING, "Public minting not allowed");
 
         require(
-            _tokenIds.current() < _publicCap,
+            _tokenIds.current() + (amount - 1) < _publicCap,
             "Public minting limit has been reached"
         );
 
@@ -222,9 +247,8 @@ contract FragmentEntity is FragmentNFT, Initializable {
             emit Earned(price, 0, royalties);
         }
 
-        // Foundation royalties
-        // We have no $FRAG token yet, send all to Foundation for now
-        _templatesLibrary.getVault().transfer(remaining);
+        // Send the rest to the vault for distribution
+        payable(address(_vault)).transfer(remaining);
 
         // mint it
         _upload(ipfsMetadata, environment, amount);
@@ -282,9 +306,8 @@ contract FragmentEntity is FragmentNFT, Initializable {
             emit Earned(price, 0, royalties);
         }
 
-        // Foundation royalties
-        // WIP send all to Foundation for now
-        _templatesLibrary.getVault().transfer(remaining);
+        // Send the rest to the vault for distribution
+        payable(address(_vault)).transfer(remaining);
 
         // mint it
         _upload(ipfsMetadata, environment, 1);
@@ -307,28 +330,26 @@ contract FragmentEntity is FragmentNFT, Initializable {
     function setPublicSale(
         uint256 price,
         uint32 maxAmount,
-        uint32 cap,
-        bool unique
+        uint32 cap
     ) public onlyOwner {
         _publicMinting = PUB_MINTING;
         _publicMintingPrice = price;
         _maxPublicAmount = maxAmount;
         _publicCap = cap;
-        _uniqueEnv = unique;
+        assert(_publicCap <= _maxSupply);
     }
 
     function openDutchAuction(
         uint256 maxPrice,
         uint256 priceStep,
-        uint32 slots,
-        bool unique
+        uint32 slots
     ) public onlyOwner {
         _publicMinting = DUTCH_MINTING;
         _publicMintingPrice = maxPrice;
         _dutchStartBlock = block.number;
         _dutchStep = priceStep;
         _publicCap = slots;
-        _uniqueEnv = unique;
+        assert(_publicCap <= _maxSupply);
     }
 
     function stopMarket() public onlyOwner {
@@ -359,7 +380,7 @@ contract FragmentEntity is FragmentNFT, Initializable {
     ) public view returns (address payable[] memory split) {
         split = new address payable[](2);
         split[0] = payable(owner());
-        split[1] = payable(_templatesLibrary.getVault());
+        split[1] = payable(address(_vault));
     }
 
     function getFeeBps(

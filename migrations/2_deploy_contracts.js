@@ -6,6 +6,7 @@ var nftProxy = artifacts.require("FragmentTemplateProxy");
 var nftEntity = artifacts.require("FragmentEntity");
 var nftEntityProxy = artifacts.require("FragmentEntityProxy");
 var admin = artifacts.require("FragmentProxyAdmin");
+var vault = artifacts.require("FragmentVault");
 
 module.exports = async function (deployer, network) {
   console.log("Network: " + network);
@@ -13,6 +14,7 @@ module.exports = async function (deployer, network) {
   await deployer.deploy(nft);
   await deployer.deploy(nftEntity);
   await deployer.deploy(daoToken);
+  await deployer.deploy(vault);
 
   fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/nftProxy-bytecode.txt", nftProxy.bytecode, (_r, _e) => { });

@@ -5,8 +5,9 @@ import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/utils/structs/EnumerableSet.sol";
 import "openzeppelin-solidity/contracts/utils/Create2.sol";
 import "./FragmentNFT.sol";
-import "./FragmentEntityProxy.sol";
+import "./FragmentRezProxy.sol";
 import "./FragmentEntity.sol";
+import "./FragmentVault.sol";
 import "./Utility.sol";
 
 struct StakeDataV0 {
@@ -22,7 +23,7 @@ struct FragmentDataV0 {
 }
 
 // this contract uses proxy
-contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
+contract FragmentTemplate is FragmentNFT, Initializable {
     uint8 public constant CalldataVersion = 0x1;
     uint8 public constant ExtraStorageVersion = 0x1;
 
@@ -38,7 +39,19 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
 
     // a new wild entity appeared on the grid
     // this is necessary to make the link with the sidechain
-    event Rez(uint256 indexed tokenId, address newContract);
+    event Rez(
+        uint256 indexed tokenId,
+        address entityContract,
+        address vaultContract
+    );
+
+    // royalties related events, we use those to log them
+    // this is work in progress until we define the full process
+    event Reward(
+        uint256 indexed tokenId,
+        address indexed owner,
+        uint256 amount
+    );
 
     // Unstructured storage slots
     bytes32 private constant SLOT_byteCost =
@@ -47,10 +60,10 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
         bytes32(uint256(keccak256("fragcolor.fragment.stakeLock")) - 1);
     bytes32 private constant SLOT_entityLogic =
         bytes32(uint256(keccak256("fragcolor.fragment.entityLogic")) - 1);
+    bytes32 private constant SLOT_vaultLogic =
+        bytes32(uint256(keccak256("fragcolor.fragment.vaultLogic")) - 1);
     bytes32 private constant SLOT_utilityToken =
         bytes32(uint256(keccak256("fragcolor.fragment.utilityToken")) - 1);
-    bytes32 private constant SLOT_vaultAddress =
-        bytes32(uint256(keccak256("fragcolor.fragment.vaultAddress")) - 1);
 
     // just prefixes as we need to map
     bytes32 private constant FRAGMENT_REFS =
@@ -83,7 +96,6 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
         _symbol = "FRAGs";
         // Others
         _setStakeLock(23500);
-        setVaultAddress(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
     }
 
     /*
@@ -164,15 +176,15 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
         }
     }
 
-    function getVaultAddress() public view returns (address addr) {
-        bytes32 slot = SLOT_vaultAddress;
+    function getVaultLogic() public view returns (address addr) {
+        bytes32 slot = SLOT_vaultLogic;
         assembly {
             addr := sload(slot)
         }
     }
 
-    function setVaultAddress(address addr) public onlyOwner {
-        bytes32 slot = SLOT_vaultAddress;
+    function setVaultLogic(address addr) public onlyOwner {
+        bytes32 slot = SLOT_vaultLogic;
         assembly {
             sstore(slot, addr)
         }
@@ -457,6 +469,24 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
         }
     }
 
+    function isEntityOf(address addr, uint160 templateHash)
+        public
+        view
+        returns (bool)
+    {
+        EnumerableSet.AddressSet[1] storage s;
+        bytes32 slot = bytes32(
+            uint256(
+                keccak256(abi.encodePacked(FRAGMENT_ENTITIES, templateHash))
+            )
+        );
+        assembly {
+            s.slot := slot
+        }
+
+        return s[0].contains(addr);
+    }
+
     function upload(
         bytes calldata templateBytes, // immutable
         bytes calldata environment, // mutable
@@ -613,48 +643,92 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
     function rez(
         uint160 templateHash,
         string calldata tokenName,
-        string calldata tokenSymbol
-    ) public returns (address) {
+        string calldata tokenSymbol,
+        bool unique,
+        uint32 maxSupply
+    ) public returns (address entity, address vault) {
         require(
             _exists(templateHash) && msg.sender == ownerOf(templateHash),
             "FragmentTemplate: only the owner of the template can rez it"
         );
+
         // create a unique entity contract based on this template
-        address newContract = Create2.deploy(
+        address entityContract = Create2.deploy(
             0,
-            keccak256(abi.encodePacked(templateHash, tokenName, tokenSymbol)),
-            type(FragmentEntityProxy).creationCode
-        );
-        // immediately initialize
-        FragmentEntityProxy(payable(newContract)).bootstrapProxy(
-            getEntityLogic()
-        );
-        FragmentEntity(newContract).bootstrap(
-            tokenName,
-            tokenSymbol,
-            templateHash,
-            address(this)
+            keccak256(
+                abi.encodePacked(
+                    templateHash,
+                    tokenName,
+                    tokenSymbol,
+                    uint8(0xE)
+                )
+            ),
+            type(FragmentRezProxy).creationCode
         );
 
-        // keep track of this new contract
-        EnumerableSet.AddressSet[1] storage s;
-        bytes32 slot = bytes32(
-            uint256(
-                keccak256(abi.encodePacked(FRAGMENT_ENTITIES, templateHash))
-            )
+        // create a unique vault contract based on this template
+        address vaultContract = Create2.deploy(
+            0,
+            keccak256(
+                abi.encodePacked(
+                    templateHash,
+                    tokenName,
+                    tokenSymbol,
+                    uint8(0xF)
+                )
+            ),
+            type(FragmentRezProxy).creationCode
         );
-        assembly {
-            s.slot := slot
+
+        // entity
+        {
+            // immediately initialize
+            FragmentRezProxy(payable(entityContract)).bootstrapProxy(
+                getEntityLogic()
+            );
+
+            FragmentInitData memory params = FragmentInitData(
+                templateHash,
+                address(this),
+                payable(vaultContract),
+                unique,
+                maxSupply
+            );
+
+            FragmentEntity(entityContract).bootstrap(
+                tokenName,
+                tokenSymbol,
+                params
+            );
+
+            // keep track of this new contract
+            EnumerableSet.AddressSet[1] storage s;
+            bytes32 slot = bytes32(
+                uint256(
+                    keccak256(abi.encodePacked(FRAGMENT_ENTITIES, templateHash))
+                )
+            );
+            assembly {
+                s.slot := slot
+            }
+            s[0].add(entityContract);
         }
-        s[0].add(newContract);
 
-        // emit event
-        emit Rez(templateHash, newContract);
+        // vault
+        {
+            // immediately initialize
+            FragmentRezProxy(payable(vaultContract)).bootstrapProxy(
+                getVaultLogic()
+            );
+            FragmentVault(payable(vaultContract)).bootstrap(
+                entityContract,
+                address(this)
+            );
+        }
 
-        return newContract;
-    }
+        // emit events
+        emit Rez(templateHash, entityContract, vaultContract);
 
-    function getVault() public view override returns (address payable) {
-        return payable(getVaultAddress());
+        return (entityContract, vaultContract);
     }
 }
