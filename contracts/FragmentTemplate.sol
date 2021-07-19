@@ -49,6 +49,8 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
         bytes32(uint256(keccak256("fragcolor.fragment.entityLogic")) - 1);
     bytes32 private constant SLOT_utilityToken =
         bytes32(uint256(keccak256("fragcolor.fragment.utilityToken")) - 1);
+    bytes32 private constant SLOT_vaultAddress =
+        bytes32(uint256(keccak256("fragcolor.fragment.vaultAddress")) - 1);
 
     // just prefixes as we need to map
     bytes32 private constant FRAGMENT_REFS =
@@ -79,7 +81,9 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
         // ERC721
         _name = "Fragments v0 NFT";
         _symbol = "FRAGs";
+        // Others
         _setStakeLock(23500);
+        setVaultAddress(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
     }
 
     /*
@@ -155,6 +159,20 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
 
     function setUtilityToken(address addr) public onlyOwner {
         bytes32 slot = SLOT_utilityToken;
+        assembly {
+            sstore(slot, addr)
+        }
+    }
+
+    function getVaultAddress() public view returns (address addr) {
+        bytes32 slot = SLOT_vaultAddress;
+        assembly {
+            addr := sload(slot)
+        }
+    }
+
+    function setVaultAddress(address addr) public onlyOwner {
+        bytes32 slot = SLOT_vaultAddress;
         assembly {
             sstore(slot, addr)
         }
@@ -637,6 +655,6 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
     }
 
     function getVault() public view override returns (address payable) {
-        return payable(owner());
+        return payable(getVaultAddress());
     }
 }
