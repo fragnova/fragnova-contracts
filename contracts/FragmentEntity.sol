@@ -1,15 +1,14 @@
 pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IFragmentTemplate.sol";
 import "./Utility.sol";
-import "./Ownable.sol";
+import "./FragmentNFT.sol";
 
-contract FragmentEntity is ERC721, Ownable, Initializable {
+contract FragmentEntity is FragmentNFT, Initializable {
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
 
@@ -284,7 +283,7 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         }
 
         // Foundation royalties
-        // We have no $FRAG token yet, send all to Foundation for now
+        // WIP send all to Foundation for now
         _templatesLibrary.getVault().transfer(remaining);
 
         // mint it
@@ -343,19 +342,6 @@ contract FragmentEntity is ERC721, Ownable, Initializable {
         require(_exists(tokenId), "Nonexistent token");
         require(ownerOf(tokenId) == msg.sender, "Not token owner");
         _metadataURIs[tokenId] = metadata;
-    }
-
-    // Adds support to recover extra external values sent to this contract
-
-    function recoverERC20(address tokenAddress, uint256 tokenAmount)
-        public
-        onlyOwner
-    {
-        IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
-    }
-
-    function recoverETH(uint256 amount) public onlyOwner {
-        payable(owner()).transfer(amount);
     }
 
     // This should add support for most popular secondary markets royalties on sales

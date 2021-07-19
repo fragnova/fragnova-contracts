@@ -47,6 +47,8 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
         bytes32(uint256(keccak256("fragcolor.fragment.stakeLock")) - 1);
     bytes32 private constant SLOT_entityLogic =
         bytes32(uint256(keccak256("fragcolor.fragment.entityLogic")) - 1);
+    bytes32 private constant SLOT_utilityToken =
+        bytes32(uint256(keccak256("fragcolor.fragment.utilityToken")) - 1);
 
     // just prefixes as we need to map
     bytes32 private constant FRAGMENT_REFS =
@@ -139,6 +141,20 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
     */
     function setEntityLogic(address addr) public onlyOwner {
         bytes32 slot = SLOT_entityLogic;
+        assembly {
+            sstore(slot, addr)
+        }
+    }
+
+    function getUtilityToken() public view returns (address addr) {
+        bytes32 slot = SLOT_utilityToken;
+        assembly {
+            addr := sload(slot)
+        }
+    }
+
+    function setUtilityToken(address addr) public onlyOwner {
+        bytes32 slot = SLOT_utilityToken;
         assembly {
             sstore(slot, addr)
         }
@@ -265,7 +281,10 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
     }
 
     function stake(uint160 templateHash, uint256 amount) public {
-        uint256 balance = _utilityToken.balanceOf(msg.sender);
+        IERC20 ut = IERC20(getUtilityToken());
+        assert(address(ut) != address(0));
+
+        uint256 balance = ut.balanceOf(msg.sender);
         require(
             balance >= amount,
             "FragmentTemplate: not enough tokens to stake"
@@ -306,11 +325,12 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
 
         emit Stake(templateHash, msg.sender, data[0].amount);
 
-        _utilityToken.safeTransferFrom(msg.sender, address(this), amount);
+        ut.safeTransferFrom(msg.sender, address(this), amount);
     }
 
     function unstake(uint160 templateHash) public {
-        assert(address(_utilityToken) != address(0));
+        IERC20 ut = IERC20(getUtilityToken());
+        assert(address(ut) != address(0));
 
         StakeDataV0[1] storage data;
         bytes32 slot = bytes32(
@@ -355,7 +375,7 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
 
         emit Stake(templateHash, msg.sender, 0);
 
-        _utilityToken.safeTransfer(msg.sender, amount);
+        ut.safeTransfer(msg.sender, amount);
     }
 
     function getStakers(uint160 templateHash)
@@ -449,8 +469,9 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
         _mint(msg.sender, hash);
 
         if (storageSizes.length > 0) {
+            IERC20 ut = IERC20(getUtilityToken());
             // Pay for storage
-            uint256 balance = _utilityToken.balanceOf(msg.sender);
+            uint256 balance = ut.balanceOf(msg.sender);
             uint256 required = 0;
             uint256 byteCost = getByteCost();
             for (uint256 i = 0; i < storageSizes.length; i++) {
@@ -462,7 +483,7 @@ contract FragmentTemplate is IFragmentTemplate, FragmentNFT, Initializable {
                     balance >= required,
                     "FragmentTemplate: not enough balance to store assets"
                 );
-                _utilityToken.safeTransferFrom(msg.sender, owner(), required);
+                ut.safeTransferFrom(msg.sender, owner(), required);
             }
         }
 
