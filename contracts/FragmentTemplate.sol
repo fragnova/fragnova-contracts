@@ -286,7 +286,7 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         return data[0].environmentHash;
     }
 
-    function stakeOf(address staker, uint160 templateHash)
+    function stakeOf(uint160 templateHash, address staker)
         public
         view
         returns (uint256 amount, uint256 blockStart)
@@ -308,6 +308,58 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         }
 
         return (data[0].amount, data[0].blockStart);
+    }
+
+    function getStakeAt(uint160 templateHash, uint256 index)
+        public
+        view
+        returns (address staker, uint256 amount)
+    {
+        EnumerableSet.AddressSet[1] storage s;
+        bytes32 sslot = bytes32(
+            uint256(
+                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A_V0, templateHash))
+            )
+        );
+        assembly {
+            s.slot := sslot
+        }
+
+        staker = s[0].at(index);
+        StakeDataV0[1] storage data;
+        bytes32 slot = bytes32(
+            uint256(
+                keccak256(
+                    abi.encodePacked(
+                        FRAGMENT_STAKE_A2T2D_V0,
+                        staker,
+                        templateHash
+                    )
+                )
+            )
+        );
+        assembly {
+            data.slot := slot
+        }
+        amount = data[0].amount;
+    }
+
+    function getStakeCount(uint160 templateHash)
+        public
+        view
+        returns (uint256)
+    {
+        EnumerableSet.AddressSet[1] storage s;
+        bytes32 sslot = bytes32(
+            uint256(
+                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A_V0, templateHash))
+            )
+        );
+        assembly {
+            s.slot := sslot
+        }
+
+        return s[0].length();
     }
 
     function stake(uint160 templateHash, uint256 amount) public {
@@ -406,45 +458,6 @@ contract FragmentTemplate is FragmentNFT, Initializable {
         emit Stake(templateHash, msg.sender, 0);
 
         ut.safeTransfer(msg.sender, amount);
-    }
-
-    function getStakers(uint160 templateHash)
-        public
-        view
-        returns (address[] memory stakers, uint256[] memory amounts)
-    {
-        EnumerableSet.AddressSet[1] storage s;
-        bytes32 sslot = bytes32(
-            uint256(
-                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A_V0, templateHash))
-            )
-        );
-        assembly {
-            s.slot := sslot
-        }
-
-        uint256 len = s[0].length();
-        stakers = new address[](len);
-        amounts = new uint256[](len);
-        for (uint256 i = 0; i < len; i++) {
-            stakers[i] = s[0].at(i);
-            StakeDataV0[1] storage data;
-            bytes32 slot = bytes32(
-                uint256(
-                    keccak256(
-                        abi.encodePacked(
-                            FRAGMENT_STAKE_A2T2D_V0,
-                            stakers[i],
-                            templateHash
-                        )
-                    )
-                )
-            );
-            assembly {
-                data.slot := slot
-            }
-            amounts[i] = data[0].amount;
-        }
     }
 
     function getEntities(uint160 templateHash)
