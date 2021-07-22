@@ -2,6 +2,7 @@ const { Address, bufferToHex } = require("ethereumjs-util");
 const { Transaction } = require("@ethereumjs/tx");
 const { keccak256, hexToBytes, bytesToHex } = require("web3-utils");
 const { BN } = require("bn.js");
+const crypto = require('crypto');
 
 var nft = artifacts.require("FragmentTemplate");
 var entityNft = artifacts.require("FragmentEntity");
@@ -29,6 +30,18 @@ function composeCall(bytecode, salt) {
       name: '_salt'
     }]
   }, [bytecode, salt]);
+}
+
+function randomHexString(size) {
+  if (size === 0) {
+    throw new Error('Zero-length randomHexString is useless.');
+  }
+
+  if (size % 2 !== 0) {
+    throw new Error('randomHexString size must be divisible by 2.');
+  }
+
+  return (0, crypto.randomBytes)(size / 2).toString('hex');
 }
 
 function deterministicDeployment(contractBytes, gasCost) {
