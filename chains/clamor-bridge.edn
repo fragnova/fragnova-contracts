@@ -1,0 +1,50 @@
+; SPDX-License-Identifier: BUSL-1.1
+; Copyright © 2021 Fragcolor Pte. Ltd.
+
+(defnode main)
+
+(defloop events-listener
+  (Setup
+   (Sequence
+    .events
+    :Types [[Type.Bytes] Type.Int]
+    :Global true)
+
+   (Eth "ws://127.0.0.1:8545")
+   (Eth.Contract :Contract "0xCfEB869F69431e42cdB54A4F4f105C19C080A601"
+                 :Abi (slurp "Fragment.json")))
+  
+  (Eth.WaitEvent :Event "Transfer")
+  (Log "Event")
+  (| (Take "transaction_hash") = .tx-hash)
+  (| (Take "topics")
+     (| (Take 2) = .owner)
+     (| (Take 3) = .tokenId))
+  (Time.EpochMs) (Math.Add (* 120 1000)) = .time
+  (Const [[.tx-hash .owner .tokenId] .time]) >> .events)
+
+(defloop tx-scraper
+  (Setup
+   (Sequence
+    .events
+    :Types [[Type.Bytes] Type.Int]
+    :Global true
+    ; avoid clearing/data race with listener
+    :Clear false)
+
+   (Eth "http://127.0.0.1:8545"))
+  
+  (Time.Pop .events)
+  (Log "Delayed")
+  (| (Take 0) = .tx-hash)
+  (| (Take 1) = .owner)
+  (| (Take 2) = .tokenId)
+  (Maybe (-> ; can be reordered!
+          .tx-hash
+          (Eth.Transaction)
+          (Log "Tx"))))
+
+(schedule main events-listener)
+(schedule main tx-scraper)
+
+(run main 0.1)

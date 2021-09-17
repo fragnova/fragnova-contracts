@@ -1,0 +1,10 @@
+(defnode main)
+(defchain checkId
+  [7 1 1] (IntsToBytes)
+  (Hash.Sha3) (Slice :From 12)
+  (| = .x (Count .x) (Assert.Is 20))
+  (ToHex) (Log)
+  "977254950727332713390919558565142167926186649569" (BigInt)
+  (ToHex) (Log))
+(schedule main checkId)
+(run main)

@@ -1,0 +1,91 @@
+; SPDX-License-Identifier: BUSL-1.1
+; Copyright © 2021 Fragcolor Pte. Ltd.
+
+(def create-abi "[{
+        \"constant\": false,
+        \"inputs\": [
+          {
+            \"internalType\": \"bytes\",
+            \"name\": \"_initCode\",
+            \"type\": \"bytes\"
+          },
+          {
+            \"internalType\": \"bytes32\",
+            \"name\": \"_salt\",
+            \"type\": \"bytes32\"
+          }
+        ],
+        \"name\": \"deploy\",
+        \"outputs\": [
+          {
+            \"internalType\": \"address payable\",
+            \"name\": \"createdContract\",
+            \"type\": \"address\"
+          }
+        ],
+        \"payable\": false,
+        \"stateMutability\": \"nonpayable\",
+        \"type\": \"function\"
+      }]")
+
+(def fragment-abi "[{
+      \"inputs\": [],
+      \"name\": \"bootstrap\",
+      \"outputs\": [],
+      \"stateMutability\": \"payable\",
+      \"type\": \"function\",
+      \"payable\": true
+    },{
+    \"inputs\": [
+      {
+        \"internalType\": \"address\",
+        \"name\": \"addr\",
+        \"type\": \"address\"
+      }
+    ],
+    \"name\": \"setUtilityLibrary\",
+    \"outputs\": [],
+    \"stateMutability\": \"nonpayable\",
+    \"type\": \"function\"
+  }]")
+
+(def fragment-bytecode (slurp "deployer-utils/nft-bytecode.txt"))
+(def fragment-salt "0xb42141bfe7f3f8fec9850423552ab1025d97d05396b66c599c99f0ca874c2147")
+(def utility-bytecode (slurp "deployer-utils/utility-bytecode.txt"))
+(def utility-salt "0xf9bec84cc32936b9ed4ac6e613fbcb93a3b2728813dab09c2bde1f7e2867cc96")
+(def fragment-proxy-bytecode (slurp "deployer-utils/nftProxy-bytecode.txt"))
+(def fragment-proxy-salt "0x6220630cb337aa1cc2a212388c8a0a11a888c4e0186a44d28975c4eb51b43828")
+(def entity-bytecode (slurp "deployer-utils/entity-bytecode.txt"))
+(def vault-bytecode (slurp "deployer-utils/vault-bytecode.txt"))
+
+(defn metamask-call [dest call]
+  (->
+   (str "await ethereum.request({method: 'eth_sendTransaction', params: [{from: ethereum.selectedAddress, to: \"" dest "\", data: \"") (PrependTo call)
+   "\"}]})" (AppendTo call) call))
+
+(defn deploy [bytecode salt name]
+  (Chain "deploy"
+         bytecode (HexToBytes) = .bytecode
+         salt (HexToBytes) = .salt
+         [.bytecode .salt]
+         (Eth.EncodeCall create-abi "deploy")
+         (ToHex) >= .call
+         (metamask-call "0xe14B5aE0D1E8A4e9039D40e5BF203fD21E2f6241" .call)
+         (Log name)))
+
+(defnode main)
+(schedule main (deploy utility-bytecode utility-salt "utility"))
+(schedule main (deploy fragment-bytecode fragment-salt "fragment"))
+(schedule main (deploy fragment-proxy-bytecode fragment-proxy-salt "fragment-proxy"))
+(schedule main (deploy entity-bytecode fragment-proxy-salt "entity"))
+(schedule main (deploy vault-bytecode fragment-proxy-salt "vault"))
+(schedule main (Chain "bootstrap"
+                      [] (Eth.EncodeCall fragment-abi "bootstrap")
+                      (ToHex) >= .call
+                      (metamask-call "0xC0DE7DD77E69d25A53fE05F8d3fe772654c29162" .call)
+                      (Log "bootstrap")
+                      ["0xC0DEea790D3E5590Fef42e25078aEa03Ff36Da23"] (Eth.EncodeCall fragment-abi "setUtilityLibrary")
+                      (ToHex) >= .call
+                      (metamask-call "0xC0DE7DD77E69d25A53fE05F8d3fe772654c29162" .call)
+                      (Log "setUtilityLibrary")))
+(run main)

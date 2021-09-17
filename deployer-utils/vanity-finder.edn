@@ -1,0 +1,75 @@
+; SPDX-License-Identifier: BUSL-1.1
+; Copyright © 2021 Fragcolor Pte. Ltd.
+
+;; (def bytecode (slurp "admin-bytecode.txt"))
+(def bytecode (slurp "nftProxy-bytecode.txt"))
+(def bytecode1 (slurp "nft-bytecode.txt"))
+(def bytecode2 (slurp "utility-bytecode.txt"))
+
+(defnode Root)
+
+(defchain find-address
+  "0xFF" (HexToBytes) >= .bytes
+  (Input) (Take 0) (HexToBytes) (AppendTo .bytes) ; address
+  (Input) (Take 1) (HexToBytes) (AppendTo .bytes) ; salt
+  (Input) (Take 2) (HexToBytes) (Hash.Keccak-256) (AppendTo .bytes) ; bytecode
+  .bytes (Hash.Keccak-256) (ToHex) (Slice :From 26) >= .res
+  "0x" (PrependTo .res) .res)
+
+(defchain checksum
+  (Slice :From 2) = .low-addr
+  (Hash.Keccak-256) (ToHex) (Slice :From 2) = .str-hash
+  0 >= .idx
+  "0x" >= .res
+  (Repeat
+   (->
+    .idx (Math.Add 1) = .idx+1
+    .low-addr (Slice :From .idx :To .idx+1) = .a
+    .str-hash (Slice :From .idx :To .idx+1) = .b
+    .b (ParseInt :Base 16)
+    (If (IsMoreEqual 8)
+        (-> .a (String.ToUpper) (AppendTo .res))
+        (-> .a (AppendTo .res)))
+    (Math.Inc .idx))
+   :Forever true
+   :Until (-> .idx (Is 40)))
+  .res)
+
+(defn random-try [bytecode]
+  (Chain "random-try" :SStack
+         "0xe14B5aE0D1E8A4e9039D40e5BF203fD21E2f6241" >> .args
+         (RandomBytes 32) (ToHex) >> .args = .salt
+         bytecode >> .args
+         .args (Do find-address) (Do checksum) = .address
+         .address (Set .res "address")
+         .salt (Set .res "salt")
+         .res))
+
+(defn try-many [n bytecode pattern from to]
+  (Chain "try-many" :Looped
+         nil (Expand 4096 (random-try bytecode) :Threads 128)
+         (ForEach
+          (-> = .record
+              (Take "address") (Slice :From from :To to)
+              (When
+               (Any pattern)
+               (->
+                .record (ToString) = .result
+                "results.txt"
+                (FS.Write n :Append true)
+                (FS.Write .result :Append true)
+                (FS.Write "\n" :Append true)))))))
+
+(schedule Root (Chain "test"
+                      "0xc0de00d507e4eb2257e5ed7fde17cbfa10c47e57"
+                      (Do checksum)
+                      (Log)
+                      (Assert.Is "0xC0De00D507E4EB2257E5Ed7FdE17cBfa10c47E57" true)))
+;; (schedule Root (try-many "1: " bytecode1 ["C0DE00"] 2 8))
+;; (schedule Root (try-many "1: " bytecode1 ["C0ffee" "C0FFEE" "CAFFEE" "Caffee"] 2 8))
+;; (schedule Root (try-many "2: " bytecode1 ["C2EA7E" "c2ea7e"] 2 8))
+;; (schedule Root (try-many "1: " bytecode1 ["C0DE"] 2 6))
+;; (schedule Root (try-many "2: " bytecode2 ["C0DE"] 2 6))
+(schedule Root (try-many "3: " bytecode ["C0DE"] 2 6))
+;; (schedule Root (try-many "2: " bytecode2 ["1DEA00" "c2ea00"] 2 8))
+(run Root)

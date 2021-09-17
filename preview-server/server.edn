@@ -1,0 +1,48 @@
+; script self-host web version
+
+; need those for multi-threading wasm
+(def headers {"Cross-Origin-Opener-Policy" "same-origin"
+              "Cross-Origin-Embedder-Policy" "require-corp"})
+
+(defnode Root)
+
+(defloop handler ; must be loop!
+  (Http.Read) = .request
+
+  (Take "target")
+  (Log "target")
+
+  ;; ; default logo
+  ;; (When (Is "/fragments-logo.png")
+  ;;       (->
+  ;;        "/fragments-logo.png" (Http.SendFile)
+  ;;        (Restart)))
+
+  ;; ; fragment preview image
+  ;; (| (Regex.Match #"\/\?ch=(\d+)&t=(\w+)") >= .match
+  ;;    (Count .match)
+  ;;    (When (Is 3)
+  ;;          (->
+  ;;           (Msg "fragment")
+  ;;           "/fragments-logo.png" (Http.SendFile)
+  ;;           (Restart))))
+
+  ;; ; entity preview image
+  ;; (| (Regex.Match #"\/\?ch=(\d+)&e=(\w+)&id=(\d+)") >= .match
+  ;;    (Count .match)
+  ;;    (When (Is 4)
+  ;;          (->
+  ;;           (Msg "entity")
+  ;;           "/fragments-logo.png" (Http.SendFile)
+  ;;           (Restart))))
+
+  ;; (Log "Invalid query")
+  
+  "/fragments-logo.png" (Http.SendFile))
+
+
+(defloop main
+  (Http.Server handler))
+
+(schedule Root main)
+(run Root 0.1)
