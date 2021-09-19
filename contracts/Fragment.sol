@@ -857,4 +857,18 @@ contract Fragment is
         setupRoyalties(payable(newOwner), FRAGMENT_ROYALTIES_BPS);
         super.transferOwnership(newOwner);
     }
+
+    /*
+        TODO Decentralization.
+        For now we keep control of this but in the future we want to have it controlled by decentralized votes
+        Useful to remove spam and abuse of the system.
+        Notice that referencing works will still work! We on purpose don't clean up data for now.
+        Even staking and all still works.
+        This literally just removes the ability to trade it and removes it from showing on portals like OpenSea.
+    */
+    function banish(uint160[] memory fragmentHash) public onlyOwner {
+        for (uint256 i = 0; i < fragmentHash.length; i++) {
+            _burn(fragmentHash[i]);
+        }
+    }
 }
