@@ -83,7 +83,7 @@
 (defn deploy [bytecode name salt]
   (Chain "deploy"
          bytecode (HexToBytes) = .bytecode
-         salt (Hash.Keccak-256) = .salt
+         salt = .salt
          [.bytecode .salt]
          (Eth.EncodeCall create-abi "deploy")
          (ToHex) >= .call
@@ -96,14 +96,14 @@
          .args (Do find-address) (Do checksum) (Log "Address")))
 
 (defnode main)
-(schedule main (deploy utility-bytecode "utility" salt-string))
-(schedule main (deploy entity-bytecode "entity" salt-string))
-(schedule main (deploy vault-bytecode "vault" salt-string))
+(schedule main (deploy utility-bytecode "utility" (-> salt-string (Hash.Keccak-256))))
+(schedule main (deploy entity-bytecode "entity" (-> salt-string (Hash.Keccak-256))))
+(schedule main (deploy vault-bytecode "vault" (-> salt-string (Hash.Keccak-256))))
 ; fragment will need editing to set correct above final deploy addresses!
-(schedule main (deploy fragment-bytecode "fragment" salt-string))
-(schedule main (deploy admin-bytecode "admin" salt-string))
+(schedule main (deploy fragment-bytecode "fragment" (-> salt-string (Hash.Keccak-256))))
+(schedule main (deploy admin-bytecode "admin" (-> salt-string (Hash.Keccak-256))))
 ; this will need further editing with fragment logic and admin address!
-(schedule main (deploy fragment-proxy-bytecode "fragment-proxy" salt-string))
+(schedule main (deploy fragment-proxy-bytecode "fragment-proxy" (-> salt-string (Hash.Keccak-256))))
 (schedule main (Chain "bootstrap"
                       [] (Eth.EncodeCall fragment-abi "bootstrap")
                       (ToHex) >= .call
