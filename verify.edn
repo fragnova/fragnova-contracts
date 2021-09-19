@@ -107,5 +107,28 @@
 
 (schedule root verify-vault)
 
+(defchain verify-admin
+  "contracts/FragmentProxyAdmin.sol" (FS.Read) = .FragmentProxyAdmin.sol
+  "contracts/Ownable.sol" (FS.Read) = .Ownable.sol
+  "node_modules/openzeppelin-solidity/contracts/proxy/Proxy.sol" (FS.Read) = .Proxy.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/Address.sol" (FS.Read) = .Address.sol
+  "node_modules/openzeppelin-solidity/contracts/proxy/ERC1967/ERC1967Proxy.sol" (FS.Read) = .ERC1967Proxy.sol
+  "node_modules/openzeppelin-solidity/contracts/proxy/transparent/TransparentUpgradeableProxy.sol" (FS.Read) = .TransparentUpgradeableProxy.sol
+  {"language" "Solidity"
+   "settings" {"optimizer" {"enabled" true
+                            "runs" 1}}
+   "sources" {"contracts/FragmentProxyAdmin.sol" {"content" .FragmentProxyAdmin.sol}
+              "contracts/Ownable.sol" {"content" .Ownable.sol}
+              "openzeppelin-solidity/contracts/proxy/Proxy.sol" {"content" .Proxy.sol}
+              "openzeppelin-solidity/contracts/utils/Address.sol" {"content" .Address.sol}
+              "openzeppelin-solidity/contracts/proxy/ERC1967/ERC1967Proxy.sol" {"content" .ERC1967Proxy.sol}
+              "openzeppelin-solidity/contracts/proxy/transparent/TransparentUpgradeableProxy.sol" {"content" .TransparentUpgradeableProxy.sol}
+              ;
+              }}
+  (ToJson) = .jstr
+  "verify-admin.json" (FS.Write .jstr :Overwrite true))
+
+(schedule root verify-admin)
+
 (run root)
 
