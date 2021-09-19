@@ -80,10 +80,10 @@
    :Until (-> .idx (Is 40)))
   .res)
 
-(defn deploy [bytecode name]
+(defn deploy [bytecode name salt]
   (Chain "deploy"
          bytecode (HexToBytes) = .bytecode
-         salt-string (Hash.Keccak-256) = .salt
+         salt (Hash.Keccak-256) = .salt
          [.bytecode .salt]
          (Eth.EncodeCall create-abi "deploy")
          (ToHex) >= .call
@@ -96,14 +96,14 @@
          .args (Do find-address) (Do checksum) (Log "Address")))
 
 (defnode main)
-(schedule main (deploy utility-bytecode "utility"))
-(schedule main (deploy entity-bytecode "entity"))
-(schedule main (deploy vault-bytecode "vault"))
+(schedule main (deploy utility-bytecode "utility" salt-string))
+(schedule main (deploy entity-bytecode "entity" salt-string))
+(schedule main (deploy vault-bytecode "vault" salt-string))
 ; fragment will need editing to set correct above final deploy addresses!
-(schedule main (deploy fragment-bytecode "fragment"))
-(schedule main (deploy admin-bytecode "admin"))
+(schedule main (deploy fragment-bytecode "fragment" salt-string))
+(schedule main (deploy admin-bytecode "admin" salt-string))
 ; this will need further editing with fragment logic and admin address!
-(schedule main (deploy fragment-proxy-bytecode "fragment-proxy"))
+(schedule main (deploy fragment-proxy-bytecode "fragment-proxy" salt-string))
 (schedule main (Chain "bootstrap"
                       [] (Eth.EncodeCall fragment-abi "bootstrap")
                       (ToHex) >= .call
