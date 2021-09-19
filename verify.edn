@@ -179,6 +179,7 @@
   "contracts/IUtility.sol" (FS.Read) = .IUtility.sol
   "contracts/RoyaltiesReceiver.sol" (FS.Read) = .RoyaltiesReceiver.sol
   "contracts/IEntity.sol" (FS.Read) = .IEntity.sol
+  "contracts/IRezProxy.sol" (FS.Read) = .IRezProxy.sol
   {"language" "Solidity"
    "settings" {"optimizer" {"enabled" true
                             "runs" 1}}
@@ -206,6 +207,7 @@
               "contracts/IUtility.sol" {"content" .IUtility.sol}
               "contracts/RoyaltiesReceiver.sol" {"content" .RoyaltiesReceiver.sol}
               "contracts/IEntity.sol" {"content" .IEntity.sol}
+              "contracts/IRezProxy.sol" {"content" .IRezProxy.sol}
               ;
               }}
   (ToJson) = .jstr
