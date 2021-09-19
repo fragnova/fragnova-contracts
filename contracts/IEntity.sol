@@ -3,6 +3,21 @@
 
 pragma solidity ^0.8.7;
 
+struct FragmentInitData {
+    uint160 fragmentId;
+    uint96 maxSupply;
+    address fragmentsLibrary;
+    address payable vault;
+    bool unique;
+    bool updateable;
+}
+
 interface IEntity {
     function fragmentOwner() external view returns (address);
+
+    function bootstrap(
+        string calldata tokenName,
+        string calldata tokenSymbol,
+        FragmentInitData calldata params
+    ) external;
 }

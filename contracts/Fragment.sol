@@ -9,9 +9,10 @@ import "openzeppelin-solidity/contracts/utils/structs/EnumerableSet.sol";
 import "openzeppelin-solidity/contracts/utils/Create2.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./Ownable.sol";
-import "./Entity.sol";
-import "./Vault.sol";
-import "./Utility.sol";
+import "./IEntity.sol";
+import "./IVault.sol";
+import "./IUtility.sol";
+import "./IRezProxy.sol";
 import "./RoyaltiesReceiver.sol";
 
 struct StakeDataV0 {
@@ -298,7 +299,7 @@ contract Fragment is
     {
         require(_exists(tokenId), "Fragment: URI query for nonexistent token");
 
-        Utility ut = Utility(getUtilityLibrary());
+        IUtility ut = IUtility(getUtilityLibrary());
 
         uint160 fragmentHash = uint160(tokenId);
         (uint64 ib, uint64 mb) = dataOf(fragmentHash);
@@ -314,7 +315,7 @@ contract Fragment is
     }
 
     function contractURI() public view returns (string memory) {
-        Utility ut = Utility(getUtilityLibrary());
+        IUtility ut = IUtility(getUtilityLibrary());
         return ut.buildFragmentRootMetadata(owner(), FRAGMENT_ROYALTIES_BPS);
     }
 
@@ -782,7 +783,7 @@ contract Fragment is
         returns (address entity, address vault)
     {
         {
-            Utility ut = Utility(getUtilityLibrary());
+            IUtility ut = IUtility(getUtilityLibrary());
 
             // create a unique entity contract based on this fragment
             entity = Create2.deploy(
@@ -816,7 +817,7 @@ contract Fragment is
         // entity
         {
             // immediately initialize
-            RezProxy(payable(entity)).bootstrapProxy(getEntityLogic());
+            IRezProxy(payable(entity)).bootstrapProxy(getEntityLogic());
 
             FragmentInitData memory params = FragmentInitData(
                 fragmentHash,
@@ -827,7 +828,7 @@ contract Fragment is
                 updateable
             );
 
-            Entity(entity).bootstrap(tokenName, tokenSymbol, params);
+            IEntity(entity).bootstrap(tokenName, tokenSymbol, params);
 
             // keep track of this new contract
             EnumerableSet.AddressSet[1] storage s;
@@ -845,8 +846,8 @@ contract Fragment is
         // vault
         {
             // immediately initialize
-            RezProxy(payable(vault)).bootstrapProxy(getVaultLogic());
-            Vault(payable(vault)).bootstrap(entity, address(this));
+            IRezProxy(payable(vault)).bootstrapProxy(getVaultLogic());
+            IVault(payable(vault)).bootstrap(entity, address(this));
         }
 
         // emit events
