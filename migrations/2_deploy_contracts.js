@@ -22,7 +22,6 @@ module.exports = async function (deployer, network) {
   fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/nftProxy-bytecode.txt", nftProxy.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/entity-bytecode.txt", nftEntity.bytecode, (_r, _e) => { });
-  // fs.writeFile("deployer-utils/entityProxy-bytecode.txt", nftEntityProxy.bytecode, (_r, _e) => { });
-  // fs.writeFile("deployer-utils/admin-bytecode.txt", admin.bytecode, (_r, _e) => { });
+  fs.writeFile("deployer-utils/admin-bytecode.txt", admin.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/vault-bytecode.txt", vault.bytecode, (_r, _e) => { });
 };

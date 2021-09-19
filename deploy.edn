@@ -1,6 +1,8 @@
 ; SPDX-License-Identifier: BUSL-1.1
 ; Copyright © 2021 Fragcolor Pte. Ltd.
 
+(def salt-string "Hasten Smart Contracts v1, property of Fragcolor Pte. Ltd. and minted on the 19th day of September 2021")
+
 (def create-abi "[{
         \"constant\": false,
         \"inputs\": [
@@ -35,57 +37,76 @@
       \"stateMutability\": \"payable\",
       \"type\": \"function\",
       \"payable\": true
-    },{
-    \"inputs\": [
-      {
-        \"internalType\": \"address\",
-        \"name\": \"addr\",
-        \"type\": \"address\"
-      }
-    ],
-    \"name\": \"setUtilityLibrary\",
-    \"outputs\": [],
-    \"stateMutability\": \"nonpayable\",
-    \"type\": \"function\"
-  }]")
+    }]")
 
-(def fragment-bytecode (slurp "deployer-utils/nft-bytecode.txt"))
-(def fragment-salt "0xb42141bfe7f3f8fec9850423552ab1025d97d05396b66c599c99f0ca874c2147")
 (def utility-bytecode (slurp "deployer-utils/utility-bytecode.txt"))
-(def utility-salt "0xf9bec84cc32936b9ed4ac6e613fbcb93a3b2728813dab09c2bde1f7e2867cc96")
-(def fragment-proxy-bytecode (slurp "deployer-utils/nftProxy-bytecode.txt"))
-(def fragment-proxy-salt "0x6220630cb337aa1cc2a212388c8a0a11a888c4e0186a44d28975c4eb51b43828")
 (def entity-bytecode (slurp "deployer-utils/entity-bytecode.txt"))
 (def vault-bytecode (slurp "deployer-utils/vault-bytecode.txt"))
+(def admin-bytecode (slurp "deployer-utils/admin-bytecode.txt"))
+
+(def fragment-bytecode (slurp "deployer-utils/nft-bytecode.txt"))
+
+(def fragment-proxy-bytecode (slurp "deployer-utils/nftProxy-bytecode.txt"))
 
 (defn metamask-call [dest call]
   (->
    (str "await ethereum.request({method: 'eth_sendTransaction', params: [{from: ethereum.selectedAddress, to: \"" dest "\", data: \"") (PrependTo call)
    "\"}]})" (AppendTo call) call))
 
-(defn deploy [bytecode salt name]
+(defchain find-address
+  "0xFF" (HexToBytes) >= .bytes
+  (Input) (Take 0) (AppendTo .bytes) ; address
+  (Input) (Take 1) (AppendTo .bytes) ; salt
+  (Input) (Take 2) (Hash.Keccak-256) (AppendTo .bytes) ; bytecode
+  .bytes (Hash.Keccak-256) (ToHex) (Slice :From 26) >= .res
+  "0x" (PrependTo .res) .res)
+
+(defchain checksum
+  (Slice :From 2) = .low-addr
+  (Hash.Keccak-256) (ToHex) (Slice :From 2) = .str-hash
+  0 >= .idx
+  "0x" >= .res
+  (Repeat
+   (->
+    .idx (Math.Add 1) = .idx+1
+    .low-addr (Slice :From .idx :To .idx+1) = .a
+    .str-hash (Slice :From .idx :To .idx+1) = .b
+    .b (ParseInt :Base 16)
+    (If (IsMoreEqual 8)
+        (-> .a (String.ToUpper) (AppendTo .res))
+        (-> .a (AppendTo .res)))
+    (Math.Inc .idx))
+   :Forever true
+   :Until (-> .idx (Is 40)))
+  .res)
+
+(defn deploy [bytecode name]
   (Chain "deploy"
          bytecode (HexToBytes) = .bytecode
-         salt (HexToBytes) = .salt
+         salt-string (Hash.Keccak-256) = .salt
          [.bytecode .salt]
          (Eth.EncodeCall create-abi "deploy")
          (ToHex) >= .call
          (metamask-call "0xe14B5aE0D1E8A4e9039D40e5BF203fD21E2f6241" .call)
-         (Log name)))
+         (Log name)
+
+         "0xe14B5aE0D1E8A4e9039D40e5BF203fD21E2f6241" (HexToBytes) >> .args
+         .salt >> .args
+         .bytecode >> .args
+         .args (Do find-address) (Do checksum) (Log "Address")))
 
 (defnode main)
-(schedule main (deploy utility-bytecode utility-salt "utility"))
-(schedule main (deploy fragment-bytecode fragment-salt "fragment"))
-(schedule main (deploy fragment-proxy-bytecode fragment-proxy-salt "fragment-proxy"))
-(schedule main (deploy entity-bytecode fragment-proxy-salt "entity"))
-(schedule main (deploy vault-bytecode fragment-proxy-salt "vault"))
+(schedule main (deploy utility-bytecode "utility"))
+(schedule main (deploy entity-bytecode "entity"))
+(schedule main (deploy vault-bytecode "vault"))
+; fragment will need editing to set correct above final deploy addresses!
+(schedule main (deploy fragment-bytecode "fragment"))
+(schedule main (deploy admin-bytecode "admin"))
+; this will need further editing with fragment logic and admin address!
+(schedule main (deploy fragment-proxy-bytecode "fragment-proxy"))
 (schedule main (Chain "bootstrap"
                       [] (Eth.EncodeCall fragment-abi "bootstrap")
                       (ToHex) >= .call
-                      (metamask-call "0xC0DE7DD77E69d25A53fE05F8d3fe772654c29162" .call)
-                      (Log "bootstrap")
-                      ["0xC0DEea790D3E5590Fef42e25078aEa03Ff36Da23"] (Eth.EncodeCall fragment-abi "setUtilityLibrary")
-                      (ToHex) >= .call
-                      (metamask-call "0xC0DE7DD77E69d25A53fE05F8d3fe772654c29162" .call)
-                      (Log "setUtilityLibrary")))
+                      (metamask-call "0xBaaACC4fBe79Aa54E42F1ebB585C44168Db67dD6" .call)
+                      (Log "bootstrap")))
 (run main)

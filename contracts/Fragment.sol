@@ -127,6 +127,9 @@ contract Fragment is
         // Others
         _setStakeLock(23500);
         _setController(owner());
+        _setUtilityLibrary(address(0x87A26d575DA6d8e2993EAD77f8f6CD12CAd361bC));
+        _setEntityLogic(address(0x13cdfE384D63D4D4634250dF643629E01D3E6540));
+        _setVaultLogic(address(0xA439872b04aD580d9D573E41fD28a693B4B97515));
         setupRoyalties(payable(owner()), FRAGMENT_ROYALTIES_BPS);
     }
 
@@ -160,9 +163,6 @@ contract Fragment is
         }
     }
 
-    /*
-        SET time in blocks of stake lock
-    */
     function _setStakeLock(uint256 time) private {
         bytes32 slot = SLOT_stakeLock;
         assembly {
@@ -170,6 +170,9 @@ contract Fragment is
         }
     }
 
+    /*
+        SET time in blocks of stake lock
+    */
     function setStakeLock(uint256 time) public onlyOwner {
         _setStakeLock(time);
     }
@@ -184,14 +187,18 @@ contract Fragment is
         }
     }
 
-    /*
-        SET Entity logic contract
-    */
-    function setEntityLogic(address addr) public onlyOwner {
+    function _setEntityLogic(address addr) public onlyOwner {
         bytes32 slot = SLOT_entityLogic;
         assembly {
             sstore(slot, addr)
         }
+    }
+
+    /*
+        SET Entity logic contract
+    */
+    function setEntityLogic(address addr) public onlyOwner {
+        _setEntityLogic(addr);
     }
 
     function getUtilityToken() public view returns (address addr) {
@@ -201,11 +208,15 @@ contract Fragment is
         }
     }
 
-    function setUtilityToken(address addr) public onlyOwner {
+    function _setUtilityToken(address addr) public onlyOwner {
         bytes32 slot = SLOT_utilityToken;
         assembly {
             sstore(slot, addr)
         }
+    }
+
+    function setUtilityToken(address addr) public onlyOwner {
+        _setUtilityToken(addr);
     }
 
     function getUtilityLibrary() public view returns (address addr) {
@@ -215,11 +226,15 @@ contract Fragment is
         }
     }
 
-    function setUtilityLibrary(address addr) public onlyOwner {
+    function _setUtilityLibrary(address addr) public onlyOwner {
         bytes32 slot = SLOT_utilityLibrary;
         assembly {
             sstore(slot, addr)
         }
+    }
+
+    function setUtilityLibrary(address addr) public onlyOwner {
+        _setUtilityLibrary(addr);
     }
 
     function getVaultLogic() public view returns (address addr) {
@@ -229,11 +244,15 @@ contract Fragment is
         }
     }
 
-    function setVaultLogic(address addr) public onlyOwner {
+    function _setVaultLogic(address addr) public onlyOwner {
         bytes32 slot = SLOT_vaultLogic;
         assembly {
             sstore(slot, addr)
         }
+    }
+
+    function setVaultLogic(address addr) public onlyOwner {
+        _setVaultLogic(addr);
     }
 
     function getController() public view returns (address addr) {
@@ -277,10 +296,7 @@ contract Fragment is
         override
         returns (string memory)
     {
-        require(
-            _exists(tokenId),
-            "Fragment: URI query for nonexistent token"
-        );
+        require(_exists(tokenId), "Fragment: URI query for nonexistent token");
 
         Utility ut = Utility(getUtilityLibrary());
 
@@ -480,10 +496,7 @@ contract Fragment is
         assert(address(ut) != address(0));
 
         uint256 balance = ut.balanceOf(msg.sender);
-        require(
-            balance >= amount,
-            "Fragment: not enough tokens to stake"
-        );
+        require(balance >= amount, "Fragment: not enough tokens to stake");
 
         StakeDataV0[1] storage data;
         bytes32 slot = bytes32(

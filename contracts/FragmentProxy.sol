@@ -8,8 +8,8 @@ import "openzeppelin-solidity/contracts/proxy/transparent/TransparentUpgradeable
 contract FragmentProxy is TransparentUpgradeableProxy {
     constructor()
         TransparentUpgradeableProxy(
-            address(0xC0DE0BA1f4b227339AFe5b34C9657FA01bb93f4b), // logic
-            address(0xC0FFEEaAd4F914eD5eC6c87DfCE1e453fC16646A), // admin
+            address(0xeA5914012124BafFE6C44Af723C21B6023189e77), // logic
+            address(0x4F3A5C59E65219138c1cF66308EbD81dF08d45Aa), // admin
             new bytes(0)
         )
     {}
