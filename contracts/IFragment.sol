@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.7;
 
-import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
 
 interface IFragment is IERC721 {
     function getUtilityLibrary() external view returns (address addr);

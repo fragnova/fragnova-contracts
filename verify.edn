@@ -78,5 +78,34 @@
 
 (schedule root verify-entity)
 
+(defchain verify-vault
+  "contracts/Vault.sol"  (FS.Read) = .Vault.sol
+  "node_modules/openzeppelin-solidity/contracts/proxy/utils/Initializable.sol" (FS.Read) = .Initializable.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/Address.sol" (FS.Read) = .Address.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC20/IERC20.sol" (FS.Read) = .IERC20.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol" (FS.Read) = .SafeERC20.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/introspection/IERC165.sol" (FS.Read) = .IERC165.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC721/IERC721.sol" (FS.Read) = .IERC721.sol
+  "contracts/IFragment.sol" (FS.Read) = .IFragment.sol
+  "contracts/IEntity.sol" (FS.Read) = .IEntity.sol
+  {"language" "Solidity"
+   "settings" {"optimizer" {"enabled" true
+                            "runs" 1}}
+   "sources" {"contracts/Vault.sol" {"content" .Vault.sol}
+              "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol" {"content" .Initializable.sol}
+              "openzeppelin-solidity/contracts/utils/Address.sol" {"content" .Address.sol}
+              "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol" {"content" .IERC20.sol}
+              "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol" {"content" .SafeERC20.sol}
+              "openzeppelin-solidity/contracts/utils/introspection/IERC165.sol" {"content" .IERC165.sol}
+              "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol" {"content" .IERC721.sol}
+              "contracts/IFragment.sol" {"content" .IFragment.sol}
+              "contracts/IEntity.sol" {"content" .IEntity.sol}
+              ;
+              }}
+  (ToJson) = .jstr
+  "verify-vault.json" (FS.Write .jstr :Overwrite true))
+
+(schedule root verify-vault)
+
 (run root)
 
