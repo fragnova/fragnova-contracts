@@ -6,7 +6,7 @@ Solidity and Flow contracts to support **hasten.app** NFTs and FTs.
 
 The following raw transactions can be used by anyone to deploy Hasten contracts to any chain.
 
-The resulting contracts will have always the same address no matter on which chain they are.
+The resulting contracts will have always the same address no matter on which chain they are. Making the ecosystem reliably global!
 
 More details here https://eips.ethereum.org/EIPS/eip-2470
 
