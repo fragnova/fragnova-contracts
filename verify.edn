@@ -1,3 +1,6 @@
+; SPDX-License-Identifier: BUSL-1.1
+; Copyright © 2021 Fragcolor Pte. Ltd.
+
 (defnode root)
 
 (defchain verify-utility
@@ -150,6 +153,65 @@
   "verify-proxy.json" (FS.Write .jstr :Overwrite true))
 
 (schedule root verify-proxy)
+
+(defchain verify-fragment
+  "contracts/Fragment.sol" (FS.Read) = .Fragment.sol
+  "contracts/Ownable.sol" (FS.Read) = .Ownable.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/Create2.sol" (FS.Read) = .Create2.sol
+  "node_modules/openzeppelin-solidity/contracts/proxy/utils/Initializable.sol" (FS.Read) = .Initializable.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/Address.sol" (FS.Read) = .Address.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/Counters.sol" (FS.Read) = .Counters.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/Strings.sol" (FS.Read) = .Strings.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol" (FS.Read) = .ECDSA.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC20/IERC20.sol" (FS.Read) = .IERC20.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol" (FS.Read) = .SafeERC20.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/structs/EnumerableSet.sol" (FS.Read) = .EnumerableSet.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/introspection/IERC165.sol" (FS.Read) = .IERC165.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC721/IERC721.sol" (FS.Read) = .IERC721.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC721/ERC721.sol" (FS.Read) = .ERC721.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol" (FS.Read) = .IERC721Receiver.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC721/extensions/IERC721Metadata.sol" (FS.Read) = .IERC721Metadata.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC721/extensions/IERC721Enumerable.sol" (FS.Read) = .IERC721Enumerable.sol
+  "node_modules/openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721Enumerable.sol" (FS.Read) = .ERC721Enumerable.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/Context.sol" (FS.Read) = .Context.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/introspection/ERC165.sol" (FS.Read) = .ERC165.sol
+  "contracts/IVault.sol" (FS.Read) = .IVault.sol
+  "contracts/IUtility.sol" (FS.Read) = .IUtility.sol
+  "contracts/RoyaltiesReceiver.sol" (FS.Read) = .RoyaltiesReceiver.sol
+  "contracts/IEntity.sol" (FS.Read) = .IEntity.sol
+  {"language" "Solidity"
+   "settings" {"optimizer" {"enabled" true
+                            "runs" 1}}
+   "sources" {"contracts/Fragment.sol" {"content" .Fragment.sol}
+              "contracts/Ownable.sol" {"content" .Ownable.sol}
+              "openzeppelin-solidity/contracts/utils/Create2.sol" {"content" .Create2.sol}
+              "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol" {"content" .Initializable.sol}
+              "openzeppelin-solidity/contracts/utils/Address.sol" {"content" .Address.sol}
+              "openzeppelin-solidity/contracts/utils/Counters.sol" {"content" .Counters.sol}
+              "openzeppelin-solidity/contracts/utils/Strings.sol" {"content" .Strings.sol}
+              "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol" {"content" .ECDSA.sol}
+              "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol" {"content" .IERC20.sol}
+              "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol" {"content" .SafeERC20.sol}
+              "openzeppelin-solidity/contracts/utils/structs/EnumerableSet.sol" {"content" .EnumerableSet.sol}
+              "openzeppelin-solidity/contracts/utils/introspection/IERC165.sol" {"content" .IERC165.sol}
+              "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol" {"content" .IERC721.sol}
+              "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol" {"content" .ERC721.sol}
+              "openzeppelin-solidity/contracts/token/ERC721/IERC721Receiver.sol" {"content" .IERC721Receiver.sol}
+              "openzeppelin-solidity/contracts/token/ERC721/extensions/IERC721Metadata.sol" {"content" .IERC721Metadata.sol}
+              "openzeppelin-solidity/contracts/token/ERC721/extensions/IERC721Enumerable.sol" {"content" .IERC721Enumerable.sol}
+              "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721Enumerable.sol" {"content" .ERC721Enumerable.sol}
+              "openzeppelin-solidity/contracts/utils/Context.sol" {"content" .Context.sol}
+              "openzeppelin-solidity/contracts/utils/introspection/ERC165.sol" {"content" .ERC165.sol}
+              "contracts/IVault.sol" {"content" .IVault.sol}
+              "contracts/IUtility.sol" {"content" .IUtility.sol}
+              "contracts/RoyaltiesReceiver.sol" {"content" .RoyaltiesReceiver.sol}
+              "contracts/IEntity.sol" {"content" .IEntity.sol}
+              ;
+              }}
+  (ToJson) = .jstr
+  "verify-fragment.json" (FS.Write .jstr :Overwrite true))
+
+(schedule root verify-fragment)
 
 (run root)
 
