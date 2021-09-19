@@ -3,3 +3,4 @@ build/
 chainblocks*.log
 chains/CBlocks/web3.dll
 deployer-utils/results.txt
+verify*.json

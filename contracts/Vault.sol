@@ -5,9 +5,8 @@ pragma solidity ^0.8.7;
 
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./Fragment.sol";
-import "./Entity.sol";
-import "./Ownable.sol";
+import "./IFragment.sol";
+import "./IEntity.sol";
 
 contract Vault is Initializable {
     using SafeERC20 for IERC20;
@@ -23,7 +22,7 @@ contract Vault is Initializable {
         assembly {
             entityContract := sload(slot)
         }
-        Entity e = Entity(entityContract);
+        IEntity e = IEntity(entityContract);
         return e.fragmentOwner();
     }
 
@@ -33,7 +32,7 @@ contract Vault is Initializable {
         assembly {
             fragmentsLibrary := sload(slot)
         }
-        Fragment t = Fragment(fragmentsLibrary);
+        IFragment t = IFragment(fragmentsLibrary);
         return t.owner();
     }
 

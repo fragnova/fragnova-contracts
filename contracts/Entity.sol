@@ -9,9 +9,9 @@ import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/utils/structs/EnumerableSet.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "./Fragment.sol";
-import "./Vault.sol";
-import "./Utility.sol";
+import "./IFragment.sol";
+import "./IVault.sol";
+import "./IUtility.sol";
 import "./RoyaltiesReceiver.sol";
 
 struct FragmentInitData {
@@ -41,8 +41,8 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     mapping(uint256 => bytes32) private _entityRefs;
     mapping(uint256 => EnumerableSet.UintSet) private _envToId;
 
-    Fragment private _fragmentsLibrary;
-    Vault private _vault;
+    IFragment private _fragmentsLibrary;
+    IVault private _vault;
     address private _delegate;
     uint256 private _publicMintingPrice;
     uint256 private _dutchStartBlock;
@@ -76,7 +76,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _fragmentId = 0;
         // ERC721 - this we must make sure happens only and ever in the beginning
         // Of course being proxied it might be overwritten but if ownership is finally burned it's going to be fine!
-        _fragmentsLibrary = Fragment(address(0));
+        _fragmentsLibrary = IFragment(address(0));
 
         setupRoyalties(payable(0), FRAGMENT_ROYALTIES_BPS);
     }
@@ -97,7 +97,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     // this is useful only wrt OpenSea so far and other centralized exchanges
     // tl;dr until OpenSea becomes open to adopt EIP2981 we need to use owner() this way.
     function owner() public view returns (address) {
-        Utility ut = Utility(_fragmentsLibrary.getUtilityLibrary());
+        IUtility ut = IUtility(_fragmentsLibrary.getUtilityLibrary());
         if (ut.overrideOwner()) {
             return _fragmentsLibrary.getController();
         } else {
@@ -119,13 +119,13 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         string calldata tokenSymbol,
         FragmentInitData calldata params
     ) public initializer {
-        _fragmentsLibrary = Fragment(params.fragmentsLibrary);
+        _fragmentsLibrary = IFragment(params.fragmentsLibrary);
 
         // Master fragment to entity
         _fragmentId = params.fragmentId;
 
         // Vault
-        _vault = Vault(params.vault);
+        _vault = IVault(params.vault);
 
         // ERC721 - this we must make sure happens only and ever in the beginning
         // Of course being proxied it might be overwritten but if ownership is finally burned it's going to be fine!
@@ -149,7 +149,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     {
         require(_exists(tokenId), "URI query for nonexistent token");
 
-        Utility ut = Utility(_fragmentsLibrary.getUtilityLibrary());
+        IUtility ut = IUtility(_fragmentsLibrary.getUtilityLibrary());
 
         return
             ut.buildEntityMetadata(
@@ -161,7 +161,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     }
 
     function contractURI() public view returns (string memory) {
-        Utility ut = Utility(_fragmentsLibrary.getUtilityLibrary());
+        IUtility ut = IUtility(_fragmentsLibrary.getUtilityLibrary());
         return
             ut.buildEntityRootMetadata(
                 _metaname,
