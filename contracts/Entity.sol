@@ -95,8 +95,14 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
 
     // Use owner() as interface, but in this case it's just the controller NOT THE OWNER
     // this is useful only wrt OpenSea so far and other centralized exchanges
+    // tl;dr until OpenSea becomes open to adopt EIP2981 we need to use owner() this way.
     function owner() public view returns (address) {
-        return _fragmentsLibrary.getController();
+        Utility ut = Utility(_fragmentsLibrary.getUtilityLibrary());
+        if (ut.overrideOwner()) {
+            return _fragmentsLibrary.getController();
+        } else {
+            return fragmentOwner();
+        }
     }
 
     function fragmentOwner() public view returns (address) {

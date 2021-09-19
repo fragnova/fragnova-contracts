@@ -16,6 +16,14 @@ contract Utility {
 
     bytes private constant REZ_CONTRACT = type(RezProxy).creationCode;
 
+    // This flag is used in rezzed contracts to determine the owner() call result
+    // for now NFT marketplaces are a wildwest and we need to override it with our addresses in order to be able to ensure royalties distribution
+    bool private constant _overrideOwner = true;
+
+    function overrideOwner() external pure returns (bool) {
+        return _overrideOwner;
+    }
+
     function toAsciiString(address x) internal pure returns (string memory) {
         bytes memory s = new bytes(40);
         for (uint256 i = 0; i < 20; i++) {
