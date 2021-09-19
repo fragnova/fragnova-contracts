@@ -187,7 +187,7 @@ contract Fragment is
         }
     }
 
-    function _setEntityLogic(address addr) public onlyOwner {
+    function _setEntityLogic(address addr) private {
         bytes32 slot = SLOT_entityLogic;
         assembly {
             sstore(slot, addr)
@@ -208,7 +208,7 @@ contract Fragment is
         }
     }
 
-    function _setUtilityToken(address addr) public onlyOwner {
+    function _setUtilityToken(address addr) private {
         bytes32 slot = SLOT_utilityToken;
         assembly {
             sstore(slot, addr)
@@ -226,7 +226,7 @@ contract Fragment is
         }
     }
 
-    function _setUtilityLibrary(address addr) public onlyOwner {
+    function _setUtilityLibrary(address addr) private {
         bytes32 slot = SLOT_utilityLibrary;
         assembly {
             sstore(slot, addr)
@@ -244,7 +244,7 @@ contract Fragment is
         }
     }
 
-    function _setVaultLogic(address addr) public onlyOwner {
+    function _setVaultLogic(address addr) private {
         bytes32 slot = SLOT_vaultLogic;
         assembly {
             sstore(slot, addr)
