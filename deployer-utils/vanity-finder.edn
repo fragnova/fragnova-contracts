@@ -3,8 +3,8 @@
 
 ;; (def bytecode (slurp "admin-bytecode.txt"))
 (def bytecode (slurp "nftProxy-bytecode.txt"))
-(def bytecode1 (slurp "nft-bytecode.txt"))
-(def bytecode2 (slurp "utility-bytecode.txt"))
+;; (def bytecode1 (slurp "nft-bytecode.txt"))
+;; (def bytecode2 (slurp "utility-bytecode.txt"))
 
 (defnode Root)
 
@@ -70,6 +70,6 @@
 ;; (schedule Root (try-many "2: " bytecode1 ["C2EA7E" "c2ea7e"] 2 8))
 ;; (schedule Root (try-many "1: " bytecode1 ["C0DE"] 2 6))
 ;; (schedule Root (try-many "2: " bytecode2 ["C0DE"] 2 6))
-(schedule Root (try-many "3: " bytecode ["C0DE"] 2 6))
+(schedule Root (try-many "" bytecode ["A55E70"] 2 8))
 ;; (schedule Root (try-many "2: " bytecode2 ["1DEA00" "c2ea00"] 2 8))
 (run Root)

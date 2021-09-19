@@ -12,6 +12,9 @@ More details here https://eips.ethereum.org/EIPS/eip-2470
 
 use the `deploy.edn` script to find transactions and addresses
 
+To have more control over which chain to deploy and be active the FragmentProxy will have to point to the right contracts with proper transactions.
+Currently it points to a stub contract.
+
 * Utility
   * Gas Used by Transaction: 1,145,728 (57.29%)
 * Entity
