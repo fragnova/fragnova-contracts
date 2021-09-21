@@ -118,7 +118,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         string calldata tokenName,
         string calldata tokenSymbol,
         FragmentInitData calldata params
-    ) public initializer {
+    ) external initializer {
         _fragmentsLibrary = IFragment(params.fragmentsLibrary);
 
         // Master fragment to entity
@@ -182,16 +182,16 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _url = url;
     }
 
-    function getFragment() public view returns (uint160) {
+    function getFragment() external view returns (uint160) {
         return _fragmentId;
     }
 
-    function getLibrary() public view returns (address) {
+    function getLibrary() external view returns (address) {
         return address(_fragmentsLibrary);
     }
 
     function getData(uint256 tokenId)
-        public
+        external
         view
         returns (bytes32 environmentHash, uint256 blockNumber)
     {
@@ -199,7 +199,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     }
 
     function containsId(uint160 dataHash, uint256 id)
-        public
+        external
         view
         returns (bool)
     {
@@ -214,7 +214,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         bytes calldata signature,
         uint256 id,
         bytes calldata environment
-    ) public {
+    ) external {
         require(_canUpdate, "Update not allowed");
         require(ownerOf(id) == msg.sender, "Only owner can update");
 
@@ -281,7 +281,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     }
 
     function upload(bytes calldata environment, uint96 amount)
-        public
+        external
         onlyOwner
     {
         _upload(environment, amount);
@@ -304,7 +304,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         bytes calldata signature,
         bytes calldata environment,
         uint96 amount
-    ) public payable {
+    ) external payable {
         // Sanity checks
         require(_publicMinting == PUB_MINTING, "Public minting not allowed");
 
@@ -350,7 +350,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         If we want to skip that crafted address and random signatures can be used
     */
     function bid(bytes calldata signature, bytes calldata environment)
-        public
+        external
         payable
     {
         // Sanity checks
@@ -391,7 +391,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _upload(environment, 1);
     }
 
-    function currentBidPrice() public view returns (uint256) {
+    function currentBidPrice() external view returns (uint256) {
         assert(_publicMinting == DUTCH_MINTING);
         // reduce price over time via blocks
         uint256 blocksDiff = block.number - _dutchStartBlock;
@@ -399,7 +399,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         return price;
     }
 
-    function isMarketOpen() public view returns (bool) {
+    function isMarketOpen() external view returns (bool) {
         return
             _publicMinting != NO_PUB_MINTING &&
             _tokenIds.current() < _publicCap;
@@ -409,7 +409,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         uint256 price,
         uint96 maxAmount,
         uint96 cap
-    ) public onlyOwner {
+    ) external onlyOwner {
         _publicMinting = PUB_MINTING;
         _publicMintingPrice = price;
         _maxPublicAmount = maxAmount;
@@ -421,7 +421,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         uint256 maxPrice,
         uint256 priceStep,
         uint96 slots
-    ) public onlyOwner {
+    ) external onlyOwner {
         _publicMinting = DUTCH_MINTING;
         _publicMintingPrice = maxPrice;
         _dutchStartBlock = block.number;
@@ -430,7 +430,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         assert(_publicCap <= _maxSupply);
     }
 
-    function stopMarket() public onlyOwner {
+    function stopMarket() external onlyOwner {
         _publicMinting = NO_PUB_MINTING;
     }
 }
