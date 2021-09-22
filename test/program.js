@@ -274,6 +274,8 @@ contract("Fragment", accounts => {
     assert.equal(snapshot, "0x000000000000000000000000000000000000000000000000000000000000000af548e71c32522ed78c2588df2cfdc3acd5c04cf930953ecabcc86ee3532f317c00000000000000120000000000000018");
     snapshot = await contract.getSnapshot(tokenTwo, tokenOne);
     assert.equal(snapshot, "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
+    const descendants = await contract.descendants(tokenOne);
+    assert.equal(descendants.length, 1);
   });
 
   it("should not upload a fragment with reference, paying referenced", async () => {

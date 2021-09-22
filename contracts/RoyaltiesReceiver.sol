@@ -104,12 +104,4 @@ contract RoyaltiesReceiver {
     {
         return (getRoyaltiesRecipient(), (value * getRoyaltiesBps()) / 10000);
     }
-
-    function recoverERC20(address tokenAddress, uint256 tokenAmount) external {
-        IERC20(tokenAddress).safeTransfer(getRoyaltiesRecipient(), tokenAmount);
-    }
-
-    function recoverETH(uint256 amount) external {
-        payable(getRoyaltiesRecipient()).transfer(amount);
-    }
 }

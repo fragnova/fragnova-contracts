@@ -433,4 +433,17 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     function stopMarket() external onlyOwner {
         _publicMinting = NO_PUB_MINTING;
     }
+
+    function recoverERC20(address tokenAddress, uint256 tokenAmount)
+        external
+        onlyOwner
+    {
+        // notice: fragmentOwner, not owner due to owner used for opensea workaround...
+        IERC20(tokenAddress).safeTransfer(fragmentOwner(), tokenAmount);
+    }
+
+    function recoverETH(uint256 amount) external onlyOwner {
+        // notice: fragmentOwner, not owner due to owner used for opensea workaround...
+        payable(fragmentOwner()).transfer(amount);
+    }
 }

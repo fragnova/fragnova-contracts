@@ -82,12 +82,16 @@ contract Fragment is
     bytes32 private constant SLOT_runtimeCid =
         keccak256("fragcolor.fragment.runtimeCid");
 
+    // list of referencing fragments to resolve dependency trees
+    bytes32 private constant FRAGMENT_REFS =
+        keccak256("fragcolor.fragment.referencing");
     // layering whitelisting
     bytes32 private constant FRAGMENT_WHITELIST =
         keccak256("fragcolor.fragment.referencing");
     // keep track of rezzed entitites
     bytes32 private constant FRAGMENT_ENTITIES =
         keccak256("fragcolor.fragment.entities");
+    // fragments data storage
     bytes32 private constant FRAGMENT_DATA_V0 =
         keccak256("fragcolor.fragment.v0");
     // address to token to data map(map)
@@ -254,6 +258,29 @@ contract Fragment is
                 rdata[0].iDataBlockNumber,
                 rdata[0].mDataBlockNumber
             );
+    }
+
+    function descendants(uint160 referenced)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        // also add this newly minted fragment to the referencing list
+        EnumerableSet.UintSet[1] storage referencing;
+        bytes32 slot = bytes32(
+            uint256(keccak256(abi.encodePacked(FRAGMENT_REFS, referenced)))
+        );
+        assembly {
+            referencing.slot := slot
+        }
+
+        uint256 len = referencing[0].length();
+        uint256[] memory result = new uint256[](len);
+        for (uint256 i = 0; i < len; i++) {
+            result[i] = referencing[0].at(i);
+        }
+
+        return result;
     }
 
     // keep in mind that an empty whitelist means anyone can reference!
@@ -643,6 +670,19 @@ contract Fragment is
                 }
 
                 rdata[0] = fdata[0];
+
+                // also add this newly minted fragment to the referencing list
+                EnumerableSet.UintSet[1] storage referencing;
+                slot = bytes32(
+                    uint256(
+                        keccak256(abi.encodePacked(FRAGMENT_REFS, referenced))
+                    )
+                );
+                assembly {
+                    referencing.slot := slot
+                }
+
+                referencing[0].add(hash);
             }
         }
 
@@ -805,5 +845,17 @@ contract Fragment is
         fragmentOwnerOnly(fragmentHash)
     {
         _burn(fragmentHash);
+    }
+
+    function recoverERC20(address tokenAddress, uint256 tokenAmount)
+        external
+        onlyOwner
+    {
+        assert(tokenAddress != getAddress(SLOT_utilityToken)); // prevent removal of our utility token!
+        IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
+    }
+
+    function recoverETH(uint256 amount) external onlyOwner {
+        payable(owner()).transfer(amount);
     }
 }
