@@ -215,5 +215,24 @@
 
 (schedule root verify-fragment)
 
+(defchain verify-rezproxy
+  "contracts/RezProxy.sol" (FS.Read) = .RezProxy.sol
+  "node_modules/openzeppelin-solidity/contracts/proxy/Proxy.sol" (FS.Read) = .Proxy.sol
+  "node_modules/openzeppelin-solidity/contracts/proxy/utils/Initializable.sol" (FS.Read) = .Initializable.sol
+  "node_modules/openzeppelin-solidity/contracts/utils/Address.sol" (FS.Read) = .Address.sol
+  {"language" "Solidity"
+   "settings" {"optimizer" {"enabled" true
+                            "runs" 1}}
+   "sources" {"contracts/RezProxy.sol" {"content" .RezProxy.sol}
+              "openzeppelin-solidity/contracts/proxy/Proxy.sol" {"content" .Proxy.sol}
+              "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol" {"content" .Initializable.sol}
+              "openzeppelin-solidity/contracts/utils/Address.sol" {"content" .Address.sol}
+              ;
+              }}
+  (ToJson) = .jstr
+  "verify-rezproxy.json" (FS.Write .jstr :Overwrite true))
+
+(schedule root verify-rezproxy)
+
 (run root)
 
