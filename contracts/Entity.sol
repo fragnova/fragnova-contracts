@@ -190,6 +190,10 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         return address(_fragmentsLibrary);
     }
 
+    function getVault() external view returns (address) {
+        return address(_vault);
+    }
+
     function getData(uint256 tokenId)
         external
         view
