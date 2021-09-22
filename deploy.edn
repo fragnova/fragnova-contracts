@@ -109,4 +109,11 @@
                       (ToHex) >= .call
                       (metamask-call "0x878576534EA9C7ec24FcBf512C6f56d4ED1B9a56" .call)
                       (Log "bootstrap")))
+(defchain slots
+  "fragcolor.fragment.utilityLibrary" (Hash.Keccak-256) (ToHex) (Log "utilityLibrary")
+  "fragcolor.fragment.entityLogic" (Hash.Keccak-256) (ToHex) (Log "entityLogic")
+  "fragcolor.fragment.vaultLogic" (Hash.Keccak-256) (ToHex) (Log "vaultLogic")
+  "fragcolor.fragment.controller" (Hash.Keccak-256) (ToHex) (Log "controller"))
+
+(schedule main slots)
 (run main)
