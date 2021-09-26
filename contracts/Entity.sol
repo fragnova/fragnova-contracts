@@ -63,12 +63,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     string private _desc;
     string private _url;
 
-    // upload event with data
-    event Upload(uint256 indexed first, uint256 last);
-
     event Updated(uint256 indexed id);
-
-    event Earned(uint256 total);
 
     constructor() ERC721("Entity", "FRAGe") {
         // this is just for testing - deployment has no constructor args (literally comment out)
@@ -256,8 +251,6 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
             abi.encodePacked(_fragmentId, environment)
         );
 
-        uint256 first = _tokenIds.current() + 1;
-
         for (uint256 i = 0; i < amount; i++) {
             _tokenIds.increment();
             uint256 newItemId = _tokenIds.current();
@@ -278,10 +271,6 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
             _entityRefs[newItemId] = dataHash;
             _idToBlock[newItemId] = EntityData(uint64(block.number));
         }
-
-        uint256 last = _tokenIds.current();
-
-        emit Upload(first, last);
     }
 
     function upload(bytes calldata environment, uint96 amount)
@@ -342,7 +331,6 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
 
         // pay royalties
         _vault.deposit{value: msg.value}();
-        emit Earned(msg.value);
 
         // mint it
         _upload(environment, amount);
@@ -389,7 +377,6 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
 
         // pay royalties
         _vault.deposit{value: msg.value}();
-        emit Earned(msg.value);
 
         // mint it
         _upload(environment, 1);
