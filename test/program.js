@@ -347,7 +347,6 @@ contract("Fragment", accounts => {
     const tx = await entity.methods
       .upload(empty, 1)
       .send({ from: accounts[1], gas: 500000 });
-    assert.equal(tx.events.Upload.raw.data, "0x0000000000000000000000000000000000000000000000000000000000000001");
   });
 
   it("should mint one from entity as buyer", async () => {
@@ -366,7 +365,6 @@ contract("Fragment", accounts => {
     const tx = await entity.methods
       .mint(signature, empty, 1)
       .send({ from: accounts[4], gas: 800000, value: web3.utils.toWei("0.1", "ether") });
-    assert.equal(tx.events.Upload.raw.data, "0x0000000000000000000000000000000000000000000000000000000000000002");
     const res = await entity.methods.tokenURI(2).call();
     console.log(res);
     assert.equal(res, 'https://metadata.fragments.foundation/?ch=0x01&id=0x02&e=' + fragmentOneEntity.toLowerCase() + '&m=0xfa321bd82f92ef059c267763b69b7c27d6c70bd1ea86b94194ff74884fdd1ae0&d=0x23');
