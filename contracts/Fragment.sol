@@ -44,11 +44,11 @@ contract Fragment is
     RoyaltiesReceiver
 {
     function name() public view virtual override returns (string memory) {
-        return "Fragments Asset Store";
+        return "Asset Store";
     }
 
     function symbol() public view virtual override returns (string memory) {
-        return "FRAGs";
+        return "AS";
     }
 
     using SafeERC20 for IERC20;
