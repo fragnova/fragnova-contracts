@@ -16,20 +16,24 @@ import "./IRezProxy.sol";
 import "./RoyaltiesReceiver.sol";
 
 struct StakeData {
+    // Pack to 32 bytes
+    // ALWAYS ADD TO THE END
     uint256 amount;
     uint256 blockStart;
     uint256 blockUnlock;
 }
 
 struct FragmentData {
+    // Pack to 32 bytes
+    // ALWAYS ADD TO THE END
     uint256 includeCost;
     bytes32 mutableDataHash;
-    address creator;
     // Knowing the block we can restore the transaction even from a simple full node
     // web3.eth.getBlock(blockNumber, true) - will uncompress transactions!
-    // Pack to 32 bytes, also 48 bits should be plenty for centuries...
+    // 48 bits should be plenty for centuries...
     uint48 iDataBlockNumber; // immutable data
     uint48 mDataBlockNumber; // mutable data
+    address creator;
 }
 
 // this contract uses proxy
@@ -94,8 +98,7 @@ contract Fragment is
     bytes32 private constant FRAGMENT_ENTITIES =
         keccak256("fragcolor.fragment.entities");
     // fragments data storage
-    bytes32 private constant FRAGMENT_DATA =
-        keccak256("fragcolor.fragment.");
+    bytes32 private constant FRAGMENT_DATA = keccak256("fragcolor.fragment.");
     // address to token to data map(map)
     bytes32 private constant FRAGMENT_STAKE_A2T2D =
         keccak256("fragcolor.fragment.a2t2d.");
@@ -370,11 +373,7 @@ contract Fragment is
         bytes32 slot = bytes32(
             uint256(
                 keccak256(
-                    abi.encodePacked(
-                        FRAGMENT_STAKE_A2T2D,
-                        staker,
-                        fragmentHash
-                    )
+                    abi.encodePacked(FRAGMENT_STAKE_A2T2D, staker, fragmentHash)
                 )
             )
         );
@@ -405,11 +404,7 @@ contract Fragment is
         bytes32 slot = bytes32(
             uint256(
                 keccak256(
-                    abi.encodePacked(
-                        FRAGMENT_STAKE_A2T2D,
-                        staker,
-                        fragmentHash
-                    )
+                    abi.encodePacked(FRAGMENT_STAKE_A2T2D, staker, fragmentHash)
                 )
             )
         );
@@ -606,10 +601,7 @@ contract Fragment is
                 slot = bytes32(
                     uint256(
                         keccak256(
-                            abi.encodePacked(
-                                FRAGMENT_DATA,
-                                uint160(referenced)
-                            )
+                            abi.encodePacked(FRAGMENT_DATA, uint160(referenced))
                         )
                     )
                 );
@@ -711,9 +703,9 @@ contract Fragment is
         data[0] = FragmentData(
             includeCost,
             keccak256(mutableData),
-            msg.sender,
             uint48(block.number),
-            0 // first upload, no mutation
+            0, // first upload, no mutation
+            msg.sender
         );
     }
 
@@ -733,9 +725,9 @@ contract Fragment is
         data[0] = FragmentData(
             includeCost,
             keccak256(mutableData),
-            data[0].creator, // don't overwrite this
             data[0].iDataBlockNumber, // don't overwrite this
-            uint48(block.number) // this also marks it as mutated - if not would be 0
+            uint48(block.number), // this also marks it as mutated - if not would be 0
+            data[0].creator // don't overwrite this
         );
 
         emit Update(fragmentHash);
