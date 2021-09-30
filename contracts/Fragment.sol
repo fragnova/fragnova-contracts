@@ -138,7 +138,7 @@ contract Fragment is
         );
         _setAddress(
             SLOT_entityLogic,
-            address(0x13cdfE384D63D4D4634250dF643629E01D3E6540)
+            address(0x5d90907E6081F0b1F20d49F1dE7C7066Ea044769)
         );
         _setAddress(
             SLOT_vaultLogic,
