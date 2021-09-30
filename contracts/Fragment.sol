@@ -43,8 +43,13 @@ contract Fragment is
     Initializable,
     RoyaltiesReceiver
 {
-    string private constant _NAME = "Fragments Asset Store";
-    string private constant _SYMBOL = "FRAGs";
+    function name() public view virtual override returns (string memory) {
+        return "Fragments Asset Store";
+    }
+
+    function symbol() public view virtual override returns (string memory) {
+        return "FRAGs";
+    }
 
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -110,7 +115,7 @@ contract Fragment is
         keccak256("fragcolor.fragment.include-snapshot.v0");
 
     constructor()
-        ERC721(_NAME, _SYMBOL)
+        ERC721("", "")
         Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
     {
         // NOT INVOKED IF PROXIED
@@ -129,9 +134,6 @@ contract Fragment is
     function bootstrap() public payable initializer {
         // Ownable
         Ownable._bootstrap(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
-        // ERC721
-        _name = _NAME;
-        _symbol = _SYMBOL;
         // Others
         _setUint(SLOT_stakeLock, 23500);
         _setAddress(SLOT_controller, owner());
