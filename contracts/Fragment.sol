@@ -15,19 +15,21 @@ import "./IUtility.sol";
 import "./IRezProxy.sol";
 import "./RoyaltiesReceiver.sol";
 
-struct StakeDataV0 {
+struct StakeData {
     uint256 amount;
     uint256 blockStart;
     uint256 blockUnlock;
 }
 
-struct FragmentDataV0 {
+struct FragmentData {
     uint256 includeCost;
     bytes32 mutableDataHash;
+    address creator;
     // Knowing the block we can restore the transaction even from a simple full node
     // web3.eth.getBlock(blockNumber, true) - will uncompress transactions!
-    uint64 iDataBlockNumber; // immutable data
-    uint64 mDataBlockNumber; // mutable data
+    // Pack to 32 bytes, also 48 bits should be plenty for centuries...
+    uint48 iDataBlockNumber; // immutable data
+    uint48 mDataBlockNumber; // mutable data
 }
 
 // this contract uses proxy
@@ -37,7 +39,7 @@ contract Fragment is
     Initializable,
     RoyaltiesReceiver
 {
-    string private constant _NAME = "Fragments of The Metaverse";
+    string private constant _NAME = "Fragments Asset Store";
     string private constant _SYMBOL = "FRAGs";
 
     using SafeERC20 for IERC20;
@@ -92,17 +94,17 @@ contract Fragment is
     bytes32 private constant FRAGMENT_ENTITIES =
         keccak256("fragcolor.fragment.entities");
     // fragments data storage
-    bytes32 private constant FRAGMENT_DATA_V0 =
-        keccak256("fragcolor.fragment.v0");
+    bytes32 private constant FRAGMENT_DATA =
+        keccak256("fragcolor.fragment.");
     // address to token to data map(map)
-    bytes32 private constant FRAGMENT_STAKE_A2T2D_V0 =
-        keccak256("fragcolor.fragment.a2t2d.v0");
+    bytes32 private constant FRAGMENT_STAKE_A2T2D =
+        keccak256("fragcolor.fragment.a2t2d.");
     // map token -> stakers set
-    bytes32 private constant FRAGMENT_STAKE_T2A_V0 =
-        keccak256("fragcolor.fragment.t2a.v0");
+    bytes32 private constant FRAGMENT_STAKE_T2A =
+        keccak256("fragcolor.fragment.t2a.");
     // map referenced + referencer bond
     bytes32 private constant FRAGMENT_INCLUDE_SNAPSHOT =
-        keccak256("fragcolor.fragment.include-snapshot.v0");
+        keccak256("fragcolor.fragment.include-snapshot.");
 
     constructor()
         ERC721(_NAME, _SYMBOL)
@@ -235,7 +237,7 @@ contract Fragment is
         returns (bytes memory)
     {
         // grab the snapshot
-        FragmentDataV0[1] storage rdata;
+        FragmentData[1] storage rdata;
         bytes32 slot = bytes32(
             uint256(
                 keccak256(
@@ -312,9 +314,9 @@ contract Fragment is
         view
         returns (uint256 cost)
     {
-        FragmentDataV0[1] storage data;
+        FragmentData[1] storage data;
         bytes32 dslot = bytes32(
-            uint256(keccak256(abi.encodePacked(FRAGMENT_DATA_V0, fragmentHash)))
+            uint256(keccak256(abi.encodePacked(FRAGMENT_DATA, fragmentHash)))
         );
         assembly {
             data.slot := dslot
@@ -332,9 +334,9 @@ contract Fragment is
             bytes32 mutableDataHash
         )
     {
-        FragmentDataV0[1] storage data;
+        FragmentData[1] storage data;
         bytes32 dslot = bytes32(
-            uint256(keccak256(abi.encodePacked(FRAGMENT_DATA_V0, fragmentHash)))
+            uint256(keccak256(abi.encodePacked(FRAGMENT_DATA, fragmentHash)))
         );
         assembly {
             data.slot := dslot
@@ -347,17 +349,29 @@ contract Fragment is
         );
     }
 
+    function creatorOf(uint160 fragmentHash) external view returns (address) {
+        FragmentData[1] storage data;
+        bytes32 dslot = bytes32(
+            uint256(keccak256(abi.encodePacked(FRAGMENT_DATA, fragmentHash)))
+        );
+        assembly {
+            data.slot := dslot
+        }
+
+        return data[0].creator;
+    }
+
     function stakeOf(uint160 fragmentHash, address staker)
         external
         view
         returns (uint256 amount, uint256 blockStart)
     {
-        StakeDataV0[1] storage data;
+        StakeData[1] storage data;
         bytes32 slot = bytes32(
             uint256(
                 keccak256(
                     abi.encodePacked(
-                        FRAGMENT_STAKE_A2T2D_V0,
+                        FRAGMENT_STAKE_A2T2D,
                         staker,
                         fragmentHash
                     )
@@ -379,7 +393,7 @@ contract Fragment is
         EnumerableSet.AddressSet[1] storage s;
         bytes32 sslot = bytes32(
             uint256(
-                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A_V0, fragmentHash))
+                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A, fragmentHash))
             )
         );
         assembly {
@@ -387,12 +401,12 @@ contract Fragment is
         }
 
         staker = s[0].at(index);
-        StakeDataV0[1] storage data;
+        StakeData[1] storage data;
         bytes32 slot = bytes32(
             uint256(
                 keccak256(
                     abi.encodePacked(
-                        FRAGMENT_STAKE_A2T2D_V0,
+                        FRAGMENT_STAKE_A2T2D,
                         staker,
                         fragmentHash
                     )
@@ -413,7 +427,7 @@ contract Fragment is
         EnumerableSet.AddressSet[1] storage s;
         bytes32 sslot = bytes32(
             uint256(
-                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A_V0, fragmentHash))
+                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A, fragmentHash))
             )
         );
         assembly {
@@ -430,12 +444,12 @@ contract Fragment is
         uint256 balance = ut.balanceOf(msg.sender);
         require(balance >= amount, "Fragment: not enough tokens to stake");
 
-        StakeDataV0[1] storage data;
+        StakeData[1] storage data;
         bytes32 slot = bytes32(
             uint256(
                 keccak256(
                     abi.encodePacked(
-                        FRAGMENT_STAKE_A2T2D_V0,
+                        FRAGMENT_STAKE_A2T2D,
                         msg.sender,
                         fragmentHash
                     )
@@ -454,7 +468,7 @@ contract Fragment is
         EnumerableSet.AddressSet[1] storage adata;
         bytes32 aslot = bytes32(
             uint256(
-                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A_V0, fragmentHash))
+                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A, fragmentHash))
             )
         );
         assembly {
@@ -472,12 +486,12 @@ contract Fragment is
         IERC20 ut = IERC20(getAddress(SLOT_utilityToken));
         assert(address(ut) != address(0));
 
-        StakeDataV0[1] storage data;
+        StakeData[1] storage data;
         bytes32 slot = bytes32(
             uint256(
                 keccak256(
                     abi.encodePacked(
-                        FRAGMENT_STAKE_A2T2D_V0,
+                        FRAGMENT_STAKE_A2T2D,
                         msg.sender,
                         fragmentHash
                     )
@@ -504,7 +518,7 @@ contract Fragment is
         EnumerableSet.AddressSet[1] storage adata;
         bytes32 aslot = bytes32(
             uint256(
-                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A_V0, fragmentHash))
+                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A, fragmentHash))
             )
         );
         assembly {
@@ -588,12 +602,12 @@ contract Fragment is
                 uint160 referenced = references[i];
                 if (ownerOf(referenced) == msg.sender) continue;
 
-                FragmentDataV0[1] storage fdata;
+                FragmentData[1] storage fdata;
                 slot = bytes32(
                     uint256(
                         keccak256(
                             abi.encodePacked(
-                                FRAGMENT_DATA_V0,
+                                FRAGMENT_DATA,
                                 uint160(referenced)
                             )
                         )
@@ -605,12 +619,12 @@ contract Fragment is
 
                 // require stake
                 {
-                    StakeDataV0[1] storage sdata;
+                    StakeData[1] storage sdata;
                     slot = bytes32(
                         uint256(
                             keccak256(
                                 abi.encodePacked(
-                                    FRAGMENT_STAKE_A2T2D_V0,
+                                    FRAGMENT_STAKE_A2T2D,
                                     msg.sender,
                                     referenced
                                 )
@@ -653,7 +667,7 @@ contract Fragment is
 
                 // and snapshot the state of the referenced fragment
                 // to be able to restore it later and flag this reference on as well
-                FragmentDataV0[1] storage rdata;
+                FragmentData[1] storage rdata;
                 slot = bytes32(
                     uint256(
                         keccak256(
@@ -686,18 +700,19 @@ contract Fragment is
             }
         }
 
-        FragmentDataV0[1] storage data;
+        FragmentData[1] storage data;
         slot = bytes32(
-            uint256(keccak256(abi.encodePacked(FRAGMENT_DATA_V0, hash)))
+            uint256(keccak256(abi.encodePacked(FRAGMENT_DATA, hash)))
         );
         assembly {
             data.slot := slot
         }
 
-        data[0] = FragmentDataV0(
+        data[0] = FragmentData(
             includeCost,
             keccak256(mutableData),
-            uint64(block.number),
+            msg.sender,
+            uint48(block.number),
             0 // first upload, no mutation
         );
     }
@@ -707,21 +722,20 @@ contract Fragment is
         bytes calldata mutableData,
         uint256 includeCost
     ) external fragmentOwnerOnly(fragmentHash) {
-        (uint64 blockNumber, , ) = dataOf(fragmentHash);
-
-        FragmentDataV0[1] storage data;
+        FragmentData[1] storage data;
         bytes32 dslot = bytes32(
-            uint256(keccak256(abi.encodePacked(FRAGMENT_DATA_V0, fragmentHash)))
+            uint256(keccak256(abi.encodePacked(FRAGMENT_DATA, fragmentHash)))
         );
         assembly {
             data.slot := dslot
         }
 
-        data[0] = FragmentDataV0(
+        data[0] = FragmentData(
             includeCost,
             keccak256(mutableData),
-            blockNumber, // don't overwrite this
-            uint64(block.number) // this also marks it as mutated - if not would be 0
+            data[0].creator, // don't overwrite this
+            data[0].iDataBlockNumber, // don't overwrite this
+            uint48(block.number) // this also marks it as mutated - if not would be 0
         );
 
         emit Update(fragmentHash);

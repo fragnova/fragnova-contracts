@@ -11,4 +11,6 @@ interface IFragment is IERC721 {
     function getController() external view returns (address addr);
 
     function owner() external view returns (address);
+
+    function creatorOf(uint160 fragmentHash) external view returns (address);
 }
