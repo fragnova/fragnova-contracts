@@ -98,16 +98,16 @@ contract Fragment is
     bytes32 private constant FRAGMENT_ENTITIES =
         keccak256("fragcolor.fragment.entities");
     // fragments data storage
-    bytes32 private constant FRAGMENT_DATA = keccak256("fragcolor.fragment.");
+    bytes32 private constant FRAGMENT_DATA = keccak256("fragcolor.fragment.v0");
     // address to token to data map(map)
     bytes32 private constant FRAGMENT_STAKE_A2T2D =
-        keccak256("fragcolor.fragment.a2t2d.");
+        keccak256("fragcolor.fragment.a2t2d.v0");
     // map token -> stakers set
     bytes32 private constant FRAGMENT_STAKE_T2A =
-        keccak256("fragcolor.fragment.t2a.");
+        keccak256("fragcolor.fragment.t2a.v0");
     // map referenced + referencer bond
     bytes32 private constant FRAGMENT_INCLUDE_SNAPSHOT =
-        keccak256("fragcolor.fragment.include-snapshot.");
+        keccak256("fragcolor.fragment.include-snapshot.v0");
 
     constructor()
         ERC721(_NAME, _SYMBOL)
