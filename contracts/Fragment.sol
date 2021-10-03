@@ -595,9 +595,7 @@ contract Fragment is
         if (references.length > 0) {
             uint256 stakeLock = getUint(SLOT_stakeLock);
             for (uint256 i = 0; i < references.length; i++) {
-                // We always can include our own creations
                 uint160 referenced = references[i];
-                if (ownerOf(referenced) == msg.sender) continue;
 
                 FragmentData[1] storage fdata;
                 slot = bytes32(
@@ -611,52 +609,58 @@ contract Fragment is
                     fdata.slot := slot
                 }
 
-                // require stake
-                {
-                    StakeData[1] storage sdata;
-                    slot = bytes32(
-                        uint256(
-                            keccak256(
-                                abi.encodePacked(
-                                    FRAGMENT_STAKE_A2T2D,
-                                    msg.sender,
-                                    referenced
+                if (msg.sender != ownerOf(referenced)) {
+                    // require stake
+                    if (fdata[0].includeCost > 0) {
+                        StakeData[1] storage sdata;
+                        slot = bytes32(
+                            uint256(
+                                keccak256(
+                                    abi.encodePacked(
+                                        FRAGMENT_STAKE_A2T2D,
+                                        msg.sender,
+                                        referenced
+                                    )
                                 )
                             )
-                        )
-                    );
-                    assembly {
-                        sdata.slot := slot
+                        );
+                        assembly {
+                            sdata.slot := slot
+                        }
+
+                        require(
+                            sdata[0].amount >= fdata[0].includeCost,
+                            "Fragment: not enough staked amount to reference"
+                        );
+
+                        // lock the stake for a new period
+                        sdata[0].blockUnlock = block.number + stakeLock;
+                        includeCost = fdata[0].includeCost;
                     }
 
-                    require(
-                        sdata[0].amount >= fdata[0].includeCost,
-                        "Fragment: not enough staked amount to reference fragment"
-                    );
-
-                    // lock the stake for a new period
-                    sdata[0].blockUnlock = block.number + stakeLock;
-                    includeCost = fdata[0].includeCost;
-                }
-
-                // check whitelist
-                {
-                    EnumerableSet.AddressSet[1] storage rwhitelist;
-                    slot = bytes32(
-                        uint256(
-                            keccak256(
-                                abi.encodePacked(FRAGMENT_WHITELIST, referenced)
+                    // check whitelist
+                    {
+                        EnumerableSet.AddressSet[1] storage rwhitelist;
+                        slot = bytes32(
+                            uint256(
+                                keccak256(
+                                    abi.encodePacked(
+                                        FRAGMENT_WHITELIST,
+                                        referenced
+                                    )
+                                )
                             )
-                        )
-                    );
-                    assembly {
-                        rwhitelist.slot := slot
+                        );
+                        assembly {
+                            rwhitelist.slot := slot
+                        }
+
+                        require(
+                            rwhitelist[0].length() == 0 ||
+                                rwhitelist[0].contains(msg.sender),
+                            "Fragment: creator not whitelisted"
+                        );
                     }
-                    require(
-                        rwhitelist[0].length() == 0 ||
-                            rwhitelist[0].contains(msg.sender),
-                        "Fragment: creator not whitelisted"
-                    );
                 }
 
                 // and snapshot the state of the referenced fragment

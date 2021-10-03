@@ -286,7 +286,7 @@ contract("Fragment", accounts => {
       emptyCode[0] = 2; // make a small change in order to succeed
       await contract.upload(emptyCode, emptyCode, [tokenOne], 0, { from: accounts[2] });
     } catch (e) {
-      assert(e.reason == "Fragment: not enough staked amount to reference fragment");
+      assert(e.reason == "Fragment: not enough staked amount to reference");
       return;
     }
     assert(false, "expected exception not thrown");
