@@ -246,11 +246,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         emit Updated(id);
     }
 
-    function _upload(bytes calldata environment, uint96 amount) internal {
-        bytes32 dataHash = keccak256(
-            abi.encodePacked(_fragmentId, environment)
-        );
-
+    function _upload(bytes32 dataHash, uint96 amount) internal {
         for (uint256 i = 0; i < amount; i++) {
             _tokenIds.increment();
             uint256 newItemId = _tokenIds.current();
@@ -277,7 +273,11 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         external
         onlyOwner
     {
-        _upload(environment, amount);
+        bytes32 dataHash = keccak256(
+            abi.encodePacked(_fragmentId, environment)
+        );
+
+        _upload(dataHash, amount);
     }
 
     function _getChainId() private view returns (uint256) {
@@ -311,16 +311,14 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         uint256 price = amount * _publicMintingPrice;
         require(msg.value >= price, "Not enough value");
 
+        bytes32 dataHash = keccak256(
+            abi.encodePacked(_fragmentId, environment)
+        );
+
         // All good authenticate now
         bytes32 hash = ECDSA.toEthSignedMessageHash(
             keccak256(
-                abi.encodePacked(
-                    msg.sender,
-                    _getChainId(),
-                    _fragmentId,
-                    environment,
-                    amount
-                )
+                abi.encodePacked(msg.sender, _getChainId(), dataHash, amount)
             )
         );
         require(
@@ -333,7 +331,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _vault.deposit{value: msg.value}();
 
         // mint it
-        _upload(environment, amount);
+        _upload(dataHash, amount);
     }
 
     /*
@@ -358,16 +356,13 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         uint256 price = _publicMintingPrice - (_dutchStep * blocksDiff);
         require(msg.value >= price, "Not enough value");
 
+        bytes32 dataHash = keccak256(
+            abi.encodePacked(_fragmentId, environment)
+        );
+
         // Authenticate
         bytes32 hash = ECDSA.toEthSignedMessageHash(
-            keccak256(
-                abi.encodePacked(
-                    msg.sender,
-                    _getChainId(),
-                    _fragmentId,
-                    environment
-                )
-            )
+            keccak256(abi.encodePacked(msg.sender, _getChainId(), dataHash))
         );
         require(
             _delegate != address(0x0) &&
@@ -379,7 +374,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _vault.deposit{value: msg.value}();
 
         // mint it
-        _upload(environment, 1);
+        _upload(dataHash, 1);
     }
 
     function currentBidPrice() external view returns (uint256) {

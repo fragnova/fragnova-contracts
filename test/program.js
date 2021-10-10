@@ -353,11 +353,15 @@ contract("Fragment", accounts => {
     const contract = await nft.deployed();
     const entity = new web3.eth.Contract(entityNft.abi, fragmentOneEntity);
     const empty = new Uint8Array(1024);
+    const partsDataHash = [
+      { t: "uint160", v: tokenTwo },
+      { t: "bytes", v: web3.utils.bytesToHex(empty) }
+    ];
+    const dataHash = web3.utils.soliditySha3(...partsDataHash);
     const parts = [
       { t: "address", v: accounts[4] },
       { t: "uint256", v: "0x1" },
-      { t: "uint160", v: tokenTwo },
-      { t: "bytes", v: web3.utils.bytesToHex(empty) },
+      { t: "bytes32", v: dataHash },
       { t: "uint96", v: "1" },
     ];
     const messageHex = web3.utils.soliditySha3(...parts);
