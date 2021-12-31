@@ -1,6 +1,5 @@
-const { Address, bufferToHex } = require("ethereumjs-util");
+const { Address, bufferToHex, keccak256 } = require("ethereumjs-util");
 const { Transaction } = require("@ethereumjs/tx");
-const { keccak256, hexToBytes, bytesToHex } = require("web3-utils");
 const { BN } = require("bn.js");
 const crypto = require('crypto');
 
@@ -9,15 +8,6 @@ var entityNft = artifacts.require("Entity");
 var vault = artifacts.require("Vault");
 var dao = artifacts.require("FragmentDAOToken");
 var utility = artifacts.require("Utility");
-
-function getExpectedAddress(address, bytecode, salt) {
-  const arg = hexToBytes('0xff')
-    .concat(hexToBytes(address))
-    .concat(hexToBytes(salt))
-    .concat(hexToBytes(keccak256(bytecode)))
-  console.log(bytesToHex(arg));
-  return '0x' + keccak256(arg).slice(26)
-}
 
 function composeCall(bytecode, salt) {
   return web3.eth.abi.encodeFunctionCall({
@@ -142,16 +132,13 @@ contract("Fragment", accounts => {
     // const dtx = await web3.eth.sendSignedTransaction(bufferToHex(deployTx.serialize()));
     // console.log(dtx);
 
-    const expectedAddr = getExpectedAddress("0xce0042B868300000d44A59004Da54A005ffdcf9f", nft.bytecode, "0xce1e2eeb9663dbc0d7622c024ae0a1a0db6a38867230eaaa67e76174dab8a19b");
-    console.log(expectedAddr);
-
     fragmentContract = contract;
 
-    const emptyCode = new Uint8Array(1024);
+    const emptyCode = new Buffer.alloc(1024);
     const tx = await contract.upload(emptyCode, emptyCode, [], 0, { from: accounts[0] });
     console.log("Mint tx", tx);
     const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
-    const emptyCodeHash = "0x" + keccak256(emptyCode).slice(27);
+    const emptyCodeHash = "0x" + bufferToHex(keccak256(emptyCode)).slice(27);
     assert.equal(hexHashId, emptyCodeHash);
     assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[0]);
     tokenOne = emptyCodeHash;
@@ -202,14 +189,6 @@ contract("Fragment", accounts => {
       gas: receipt.gasUsed + 500000
     });
     console.log(deployedTx);
-
-    const uniqueContract = new web3.eth.Contract(nft.abi, expectedAddr);
-    const uniquedTx = await uniqueContract.methods.upload(emptyCode, emptyCode, [], 0).send({
-      from: accounts[0],
-      // gasPrice: "10000000000000",
-      gas: 300000
-    });
-    console.log(uniquedTx);
   });
 
   it("should not upload a fragment", async () => {
@@ -271,7 +250,7 @@ contract("Fragment", accounts => {
     assert(initialBalance.sub(new BN(10, 10)).eq(finalBalance));
     tokenTwo = tx.logs[0].args.tokenId.toString();
     var snapshot = await contract.getSnapshot(tokenOne, tokenTwo);
-    assert.equal(snapshot, "0x000000000000000000000000000000000000000000000000000000000000000af548e71c32522ed78c2588df2cfdc3acd5c04cf930953ecabcc86ee3532f317c000000000012000000000018");
+    assert.equal(snapshot, "0x000000000000000000000000000000000000000000000000000000000000000af548e71c32522ed78c2588df2cfdc3acd5c04cf930953ecabcc86ee3532f317c000000000012000000000017");
     snapshot = await contract.getSnapshot(tokenTwo, tokenOne);
     assert.equal(snapshot, "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
     const descendants = await contract.descendants(tokenOne);
@@ -372,6 +351,6 @@ contract("Fragment", accounts => {
     console.log(tx);
     const res = await entity.methods.tokenURI(2).call();
     console.log(res);
-    assert.equal(res, 'https://metadata.fragments.foundation/?ch=0x01&id=0x02&e=' + fragmentOneEntity.toLowerCase() + '&m=0xfa321bd82f92ef059c267763b69b7c27d6c70bd1ea86b94194ff74884fdd1ae0&d=0x23');
+    assert.equal(res, 'https://metadata.fragments.foundation/?ch=0x01&id=0x02&e=' + fragmentOneEntity.toLowerCase() + '&m=0xfa321bd82f92ef059c267763b69b7c27d6c70bd1ea86b94194ff74884fdd1ae0&d=0x22');
   });
 });
