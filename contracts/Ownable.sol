@@ -4,6 +4,9 @@
 pragma solidity ^0.8.7;
 
 abstract contract Ownable {
+    address public constant DEFAULT_PROTOCOL_OWNER =
+        0x0123456789012345678901234567890123456789;
+
     address private _owner;
 
     event OwnershipTransferred(
@@ -11,8 +14,13 @@ abstract contract Ownable {
         address indexed newOwner
     );
 
-    constructor(address initialOwner) {
-        _bootstrap(initialOwner);
+    constructor() {
+        _bootstrap(DEFAULT_PROTOCOL_OWNER);
+    }
+
+    function _bootstrap() public {
+        _owner = DEFAULT_PROTOCOL_OWNER;
+        emit OwnershipTransferred(address(0), DEFAULT_PROTOCOL_OWNER);
     }
 
     function _bootstrap(address initialOwner) internal {

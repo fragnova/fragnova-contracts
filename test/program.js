@@ -85,7 +85,7 @@ contract("Fragment", accounts => {
 
     const params = {
       from: accounts[0],
-      to: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974",
+      to: "0x0123456789012345678901234567890123456789",
       value: web3.utils.toWei("1", "ether"),
     };
     await web3.eth.sendTransaction(params);
@@ -112,11 +112,11 @@ contract("Fragment", accounts => {
     const entityContract = await entityNft.deployed();
     const vaultContract = await vault.deployed();
 
-    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.utilityToken"), dao20.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
-    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.entityLogic"), entityContract.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
-    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.vaultLogic"), vaultContract.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
-    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.utilityLibrary"), utility.address, { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
-    await contract.setUint(web3.utils.sha3("fragcolor.fragment.runtimeCid"), "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", { from: "0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974" });
+    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.utilityToken"), dao20.address, { from: "0x0123456789012345678901234567890123456789" });
+    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.entityLogic"), entityContract.address, { from: "0x0123456789012345678901234567890123456789" });
+    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.vaultLogic"), vaultContract.address, { from: "0x0123456789012345678901234567890123456789" });
+    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.utilityLibrary"), utility.address, { from: "0x0123456789012345678901234567890123456789" });
+    await contract.setUint(web3.utils.sha3("fragcolor.fragment.runtimeCid"), "0x9f668b20cfd24cdbf9e1980fa4867d08c67d2caf8499e6df81b9bf0b1c97287d", { from: "0x0123456789012345678901234567890123456789" });
 
     const deployTx = deterministicDeployment(nft.bytecode, receipt.gasUsed);
     const sender = Address.fromPublicKey(deployTx.getSenderPublicKey());

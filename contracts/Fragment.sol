@@ -116,7 +116,7 @@ contract Fragment is
 
     constructor()
         ERC721("", "")
-        Ownable(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974))
+        Ownable()
     {
         // NOT INVOKED IF PROXIED
         _setUint(SLOT_stakeLock, 23500);
@@ -133,7 +133,7 @@ contract Fragment is
 
     function bootstrap() public payable initializer {
         // Ownable
-        Ownable._bootstrap(address(0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974));
+        Ownable._bootstrap();
         // Others
         _setUint(SLOT_stakeLock, 23500);
         _setAddress(SLOT_controller, owner());
