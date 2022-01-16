@@ -15,8 +15,8 @@ import "./IUtility.sol";
 import "./RoyaltiesReceiver.sol";
 
 struct FragmentInitData {
-    uint160 fragmentId;
-    uint96 maxSupply;
+    uint256 fragmentId;
+    uint256 maxSupply;
     address fragmentsLibrary;
     address payable vault;
     bool unique;
@@ -47,10 +47,10 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     uint256 private _publicMintingPrice;
     uint256 private _dutchStartBlock;
     uint256 private _dutchStep;
-    uint160 private _fragmentId;
-    uint96 private _maxSupply;
-    uint96 private _maxPublicAmount;
-    uint96 private _publicCap;
+    uint256 private _fragmentId;
+    uint256 private _maxSupply;
+    uint256 private _maxPublicAmount;
+    uint256 private _publicCap;
     uint8 private _publicMinting; // 0 no, 1 normal, 2 dutch auction
     bool private _uniqueEnv;
     bool private _canUpdate;
@@ -177,7 +177,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _url = url;
     }
 
-    function getFragment() external view returns (uint160) {
+    function getFragment() external view returns (uint256) {
         return _fragmentId;
     }
 

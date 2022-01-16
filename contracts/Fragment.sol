@@ -6,6 +6,7 @@ pragma solidity ^0.8.7;
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "openzeppelin-solidity/contracts/utils/structs/EnumerableSet.sol";
+import "openzeppelin-solidity/contracts/utils/Counters.sol";
 import "openzeppelin-solidity/contracts/utils/Create2.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
@@ -42,6 +43,7 @@ contract Fragment is
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
+    using Counters for Counters.Counter;
 
     // mutable part updated
     event Update(uint256 indexed tokenId);
@@ -84,6 +86,12 @@ contract Fragment is
         keccak256("fragcolor.fragment.attach.nonce");
     bytes32 private constant FRAGMENT_ATTACH_AUTHS =
         keccak256("fragcolor.fragment.attach.nonce");
+    // Use a human readable counter for IDs
+    bytes32 private constant FRAGMENT_COUNTER =
+        keccak256("fragcolor.fragment.counter");
+    // ID -> Fragment Hash
+    bytes32 private constant FRAGMENT_FRAGMENTS =
+        keccak256("fragcolor.fragment.fragments");
     // keep track of rezzed entitites
     bytes32 private constant FRAGMENT_ENTITIES =
         keccak256("fragcolor.fragment.entities");
@@ -100,9 +108,9 @@ contract Fragment is
         setupRoyalties(payable(0), FRAGMENT_ROYALTIES_BPS);
     }
 
-    modifier fragmentOwnerOnly(uint160 fragmentHash) {
+    modifier fragmentOwnerOnly(uint256 fragmentId) {
         require(
-            _exists(fragmentHash) && (msg.sender == ownerOf(fragmentHash)),
+            _exists(fragmentId) && (msg.sender == ownerOf(fragmentId)),
             "Fragment: only the owner of the fragment can execute this operation"
         );
         _;
@@ -426,8 +434,11 @@ contract Fragment is
     }
 
     function attach(bytes32 fragmentHash, bytes calldata signature) external {
+        require(!_exists(uint256(fragmentHash)), "Fragment already attached");
+
         uint64[1] storage nonce;
         EnumerableSet.AddressSet[1] storage auths;
+        Counters.Counter[1] storage tokenIds;
         // read from unstructured storage
         {
             bytes32 slot = bytes32(
@@ -449,41 +460,65 @@ contract Fragment is
                 auths.slot := slot
             }
         }
+        {
+            bytes32 slot = bytes32(
+                uint256(keccak256(abi.encodePacked(FRAGMENT_COUNTER)))
+            );
+            assembly {
+                tokenIds.slot := slot
+            }
+        }
 
         // increment nonce
         nonce[0]++;
 
         // Authenticate this operation
-        bytes32 hash = ECDSA.toEthSignedMessageHash(
-            keccak256(
-                abi.encodePacked(
-                    fragmentHash,
-                    _getChainId(),
-                    msg.sender,
-                    nonce[0]
+        {
+            bytes32 hash = ECDSA.toEthSignedMessageHash(
+                keccak256(
+                    abi.encodePacked(
+                        fragmentHash,
+                        _getChainId(),
+                        msg.sender,
+                        nonce[0]
+                    )
                 )
-            )
-        );
+            );
 
-        address auth = ECDSA.recover(hash, signature);
+            address auth = ECDSA.recover(hash, signature);
 
-        require(auths[0].contains(auth), "Invalid signature");
+            require(auths[0].contains(auth), "Invalid signature");
+        }
 
-        // TODO actually make it a counter behind the scenes to show more beautiful numbers
-        // Do the same substrate side too?
-        _mint(msg.sender, uint256(fragmentHash));
+        tokenIds[0].increment();
+        uint256 tokenId = tokenIds[0].current();
+
+        bytes32[1] storage fragmentHashStorage;
+        {
+            bytes32 slot = bytes32(
+                uint256(
+                    keccak256(abi.encodePacked(FRAGMENT_FRAGMENTS, tokenId))
+                )
+            );
+            assembly {
+                fragmentHashStorage.slot := slot
+            }
+        }
+        fragmentHashStorage[0] = fragmentHash;
+
+        _mint(msg.sender, tokenId);
     }
 
     function rez(
-        uint160 fragmentHash,
+        uint256 fragmentId,
         string calldata tokenName,
         string calldata tokenSymbol,
         bool unique,
         bool updateable,
-        uint96 maxSupply
+        uint256 maxSupply
     )
         external
-        fragmentOwnerOnly(fragmentHash)
+        fragmentOwnerOnly(fragmentId)
         returns (address entity, address vault)
     {
         {
@@ -494,7 +529,7 @@ contract Fragment is
                 0,
                 keccak256(
                     abi.encodePacked(
-                        fragmentHash,
+                        fragmentId,
                         tokenName,
                         tokenSymbol,
                         uint8(0xE)
@@ -508,7 +543,7 @@ contract Fragment is
                 0,
                 keccak256(
                     abi.encodePacked(
-                        fragmentHash,
+                        fragmentId,
                         tokenName,
                         tokenSymbol,
                         uint8(0xF)
@@ -526,7 +561,7 @@ contract Fragment is
             );
 
             FragmentInitData memory params = FragmentInitData(
-                fragmentHash,
+                fragmentId,
                 maxSupply,
                 address(this),
                 payable(vault),
@@ -540,7 +575,7 @@ contract Fragment is
             EnumerableSet.AddressSet[1] storage s;
             bytes32 slot = bytes32(
                 uint256(
-                    keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentHash))
+                    keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentId))
                 )
             );
             assembly {
@@ -559,7 +594,7 @@ contract Fragment is
         }
 
         // emit events
-        emit Rez(fragmentHash, entity, vault);
+        emit Rez(fragmentId, entity, vault);
     }
 
     function transferOwnership(address newOwner) public override onlyOwner {

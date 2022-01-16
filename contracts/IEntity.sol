@@ -4,8 +4,8 @@
 pragma solidity ^0.8.7;
 
 struct FragmentInitData {
-    uint160 fragmentId;
-    uint96 maxSupply;
+    uint256 fragmentId;
+    uint256 maxSupply;
     address fragmentsLibrary;
     address payable vault;
     bool unique;
