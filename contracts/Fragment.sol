@@ -45,11 +45,8 @@ contract Fragment is
     using EnumerableSet for EnumerableSet.UintSet;
     using Counters for Counters.Counter;
 
-    // mutable part updated
-    event Update(uint256 indexed tokenId);
-
     // sidechain will listen to those, side chain deals with rewards allocations etc
-    event Stake(uint256 indexed tokenId, address indexed owner, uint256 amount);
+    event Stake(bytes32 indexed fragmentHash, address indexed owner, uint256 amount);
 
     // a new wild entity appeared on the grid
     // this is necessary to make the link with the sidechain
@@ -57,14 +54,6 @@ contract Fragment is
         uint256 indexed tokenId,
         address entityContract,
         address vaultContract
-    );
-
-    // royalties related events, we use those to log them
-    // this is work in progress until we define the full process
-    event Reward(
-        uint256 indexed tokenId,
-        address indexed owner,
-        uint256 amount
     );
 
     // Unstructured storage slots
@@ -200,7 +189,7 @@ contract Fragment is
         return ut.buildFragmentRootMetadata(owner(), FRAGMENT_ROYALTIES_BPS);
     }
 
-    function stakeOf(uint160 fragmentHash, address staker)
+    function stakeOf(bytes32 fragmentHash, address staker)
         external
         view
         returns (uint256 amount, uint256 blockStart)
@@ -220,7 +209,7 @@ contract Fragment is
         return (data[0].amount, data[0].blockStart);
     }
 
-    function getStakeAt(uint160 fragmentHash, uint256 index)
+    function getStakeAt(bytes32 fragmentHash, uint256 index)
         external
         view
         returns (address staker, uint256 amount)
@@ -250,7 +239,7 @@ contract Fragment is
         amount = data[0].amount;
     }
 
-    function getStakeCount(uint160 fragmentHash)
+    function getStakeCount(bytes32 fragmentHash)
         external
         view
         returns (uint256)
@@ -268,7 +257,7 @@ contract Fragment is
         return s[0].length();
     }
 
-    function stake(uint160 fragmentHash, uint256 amount) external {
+    function stake(bytes32 fragmentHash, uint256 amount) external {
         IERC20 ut = IERC20(getAddress(SLOT_utilityToken));
         assert(address(ut) != address(0));
 
@@ -313,7 +302,7 @@ contract Fragment is
         ut.safeTransferFrom(msg.sender, address(this), amount);
     }
 
-    function unstake(uint160 fragmentHash) external {
+    function unstake(bytes32 fragmentHash) external {
         IERC20 ut = IERC20(getAddress(SLOT_utilityToken));
         assert(address(ut) != address(0));
 
@@ -363,7 +352,7 @@ contract Fragment is
         ut.safeTransfer(msg.sender, amount);
     }
 
-    function getEntities(uint160 fragmentHash)
+    function getEntities(uint256 fragmentId)
         external
         view
         returns (address[] memory entities)
@@ -371,7 +360,7 @@ contract Fragment is
         EnumerableSet.AddressSet[1] storage s;
         bytes32 slot = bytes32(
             uint256(
-                keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentHash))
+                keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentId))
             )
         );
         assembly {
@@ -385,7 +374,7 @@ contract Fragment is
         }
     }
 
-    function isEntityOf(address addr, uint160 fragmentHash)
+    function isEntityOf(address addr, uint256 fragmentId)
         external
         view
         returns (bool)
@@ -393,7 +382,7 @@ contract Fragment is
         EnumerableSet.AddressSet[1] storage s;
         bytes32 slot = bytes32(
             uint256(
-                keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentHash))
+                keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentId))
             )
         );
         assembly {
@@ -610,9 +599,9 @@ contract Fragment is
         Even staking and all still works.
         This literally just removes the ability to trade it and removes it from showing on portals like OpenSea.
     */
-    function banish(uint160[] memory fragmentHash) external onlyOwner {
-        for (uint256 i = 0; i < fragmentHash.length; i++) {
-            _burn(fragmentHash[i]);
+    function banish(uint256[] memory fragmentIds) external onlyOwner {
+        for (uint256 i = 0; i < fragmentIds.length; i++) {
+            _burn(fragmentIds[i]);
         }
     }
 
@@ -622,11 +611,11 @@ contract Fragment is
         Even staking and all still works.
         This literally just removes the ability to trade it and removes it from showing on portals like OpenSea.
     */
-    function burn(uint160 fragmentHash)
+    function burn(uint256 fragmentId)
         external
-        fragmentOwnerOnly(fragmentHash)
+        fragmentOwnerOnly(fragmentId)
     {
-        _burn(fragmentHash);
+        _burn(fragmentId);
     }
 
     function recoverERC20(address tokenAddress, uint256 tokenAmount)
