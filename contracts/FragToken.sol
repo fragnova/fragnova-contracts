@@ -11,8 +11,8 @@ contract FragmentDAOToken is ERC20, ERC20Permit, ERC20Votes {
     uint256 constant INITIAL_SUPPLY = 1000000000 * (10**18);
 
     constructor()
-        ERC20("Fragments Foundation Token", "FRAG")
-        ERC20Permit("Fragments Foundation Token")
+        ERC20("Fragnova Token", "FRAG")
+        ERC20Permit("Fragnova Token")
     {
         _mint(msg.sender, INITIAL_SUPPLY);
     }
