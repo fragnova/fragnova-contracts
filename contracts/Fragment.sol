@@ -14,8 +14,8 @@ import "./Ownable.sol";
 import "./IEntity.sol";
 import "./IVault.sol";
 import "./IUtility.sol";
-import "./IRezProxy.sol";
 import "./RoyaltiesReceiver.sol";
+import "./ClonesWithCallData.sol";
 
 struct StakeData {
     // Pack to 32 bytes
@@ -54,8 +54,8 @@ contract Fragment is
 
     // a new wild entity appeared on the grid
     // this is necessary to make the link with the sidechain
-    event Rez(
-        uint256 indexed tokenId,
+    event Spawn(
+        bytes32 indexed fragmentHash,
         address entityContract,
         address vaultContract
     );
@@ -375,6 +375,22 @@ contract Fragment is
         return s[0];
     }
 
+    function hashOf(uint256 fragmentId) public view returns (bytes32) {
+        bytes32[1] storage s;
+        bytes32 sslot = bytes32(
+            uint256(
+                keccak256(
+                    abi.encodePacked(FRAGMENT_FRAGMENTS_ID2HASH, fragmentId)
+                )
+            )
+        );
+        assembly {
+            s.slot := sslot
+        }
+
+        return s[0];
+    }
+
     function getEntities(uint256 fragmentId)
         external
         view
@@ -540,10 +556,10 @@ contract Fragment is
         _mint(msg.sender, tokenId);
     }
 
-    function rez(
+    function spawn(
         uint256 fragmentId,
-        string calldata tokenName,
-        string calldata tokenSymbol,
+        string memory tokenName,
+        string memory tokenSymbol,
         bool unique,
         bool updateable,
         uint256 maxSupply
@@ -552,45 +568,24 @@ contract Fragment is
         fragmentOwnerOnly(fragmentId)
         returns (address entity, address vault)
     {
+        bytes32 fragmentHash = hashOf(fragmentId);
         {
-            IUtility ut = IUtility(getUtilityLibrary());
-
-            // create a unique entity contract based on this fragment
-            entity = Create2.deploy(
-                0,
-                keccak256(
-                    abi.encodePacked(
-                        fragmentId,
-                        tokenName,
-                        tokenSymbol,
-                        uint8(0xE)
-                    )
-                ),
-                ut.getRezProxyBytecode()
+            bytes memory ptr = new bytes(32);
+            assembly {
+                mstore(add(ptr, 0x20), fragmentHash)
+            }
+            entity = ClonesWithCallData.cloneWithCallDataProvision(
+                getAddress(SLOT_entityLogic),
+                ptr
             );
-
-            // create a unique vault contract based on this fragment
-            vault = Create2.deploy(
-                0,
-                keccak256(
-                    abi.encodePacked(
-                        fragmentId,
-                        tokenName,
-                        tokenSymbol,
-                        uint8(0xF)
-                    )
-                ),
-                ut.getRezProxyBytecode()
+            vault = ClonesWithCallData.cloneWithCallDataProvision(
+                getAddress(SLOT_vaultLogic),
+                ptr
             );
         }
 
         // entity
         {
-            // immediately initialize
-            IRezProxy(payable(entity)).bootstrapProxy(
-                getAddress(SLOT_entityLogic)
-            );
-
             FragmentInitData memory params = FragmentInitData(
                 fragmentId,
                 maxSupply,
@@ -617,15 +612,11 @@ contract Fragment is
 
         // vault
         {
-            // immediately initialize
-            IRezProxy(payable(vault)).bootstrapProxy(
-                getAddress(SLOT_vaultLogic)
-            );
             IVault(payable(vault)).bootstrap(entity, address(this));
         }
 
         // emit events
-        emit Rez(fragmentId, entity, vault);
+        emit Spawn(fragmentHash, entity, vault);
     }
 
     function transferOwnership(address newOwner) public override onlyOwner {
