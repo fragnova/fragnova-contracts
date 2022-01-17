@@ -46,7 +46,11 @@ contract Fragment is
     using Counters for Counters.Counter;
 
     // sidechain will listen to those, side chain deals with rewards allocations etc
-    event Stake(bytes32 indexed fragmentHash, address indexed owner, uint256 amount);
+    event Stake(
+        bytes32 indexed fragmentHash,
+        address indexed owner,
+        uint256 amount
+    );
 
     // a new wild entity appeared on the grid
     // this is necessary to make the link with the sidechain
@@ -79,7 +83,10 @@ contract Fragment is
     bytes32 private constant FRAGMENT_COUNTER =
         keccak256("fragcolor.fragment.counter");
     // ID -> Fragment Hash
-    bytes32 private constant FRAGMENT_FRAGMENTS =
+    bytes32 private constant FRAGMENT_FRAGMENTS_ID2HASH =
+        keccak256("fragcolor.fragment.fragments");
+    // ID -> Fragment Hash
+    bytes32 private constant FRAGMENT_FRAGMENTS_HASH2ID =
         keccak256("fragcolor.fragment.fragments");
     // keep track of rezzed entitites
     bytes32 private constant FRAGMENT_ENTITIES =
@@ -352,6 +359,22 @@ contract Fragment is
         ut.safeTransfer(msg.sender, amount);
     }
 
+    function idOf(bytes32 fragmentHash) external view returns (uint256) {
+        uint256[1] storage s;
+        bytes32 sslot = bytes32(
+            uint256(
+                keccak256(
+                    abi.encodePacked(FRAGMENT_FRAGMENTS_HASH2ID, fragmentHash)
+                )
+            )
+        );
+        assembly {
+            s.slot := sslot
+        }
+
+        return s[0];
+    }
+
     function getEntities(uint256 fragmentId)
         external
         view
@@ -359,9 +382,7 @@ contract Fragment is
     {
         EnumerableSet.AddressSet[1] storage s;
         bytes32 slot = bytes32(
-            uint256(
-                keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentId))
-            )
+            uint256(keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentId)))
         );
         assembly {
             s.slot := slot
@@ -381,9 +402,7 @@ contract Fragment is
     {
         EnumerableSet.AddressSet[1] storage s;
         bytes32 slot = bytes32(
-            uint256(
-                keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentId))
-            )
+            uint256(keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentId)))
         );
         assembly {
             s.slot := slot
@@ -482,18 +501,41 @@ contract Fragment is
         tokenIds[0].increment();
         uint256 tokenId = tokenIds[0].current();
 
-        bytes32[1] storage fragmentHashStorage;
+        // Store to ID 2 Hash table
         {
+            bytes32[1] storage fragmentHashStorage;
             bytes32 slot = bytes32(
                 uint256(
-                    keccak256(abi.encodePacked(FRAGMENT_FRAGMENTS, tokenId))
+                    keccak256(
+                        abi.encodePacked(FRAGMENT_FRAGMENTS_ID2HASH, tokenId)
+                    )
                 )
             );
             assembly {
                 fragmentHashStorage.slot := slot
             }
+            fragmentHashStorage[0] = fragmentHash;
         }
-        fragmentHashStorage[0] = fragmentHash;
+
+        // Store to Hash 2 ID table
+        {
+            uint256[1] storage fragmentIDStorage;
+            bytes32 slot = bytes32(
+                uint256(
+                    keccak256(
+                        abi.encodePacked(
+                            FRAGMENT_FRAGMENTS_HASH2ID,
+                            fragmentHash
+                        )
+                    )
+                )
+            );
+            assembly {
+                fragmentIDStorage.slot := slot
+            }
+            require(fragmentIDStorage[0] == 0, "Fragment already attached");
+            fragmentIDStorage[0] = tokenId;
+        }
 
         _mint(msg.sender, tokenId);
     }
@@ -611,10 +653,7 @@ contract Fragment is
         Even staking and all still works.
         This literally just removes the ability to trade it and removes it from showing on portals like OpenSea.
     */
-    function burn(uint256 fragmentId)
-        external
-        fragmentOwnerOnly(fragmentId)
-    {
+    function burn(uint256 fragmentId) external fragmentOwnerOnly(fragmentId) {
         _burn(fragmentId);
     }
 

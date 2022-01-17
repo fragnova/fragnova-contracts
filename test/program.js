@@ -142,6 +142,8 @@ contract("Fragment", accounts => {
 
     tx = await contract.attach(fragmentHash, detachSignature, { from: accounts[0] });
     console.log("Mint tx", tx);
+    const id = await contract.idOf(fragmentHash);
+    assert.equal(id.toNumber(), 1);
     // const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
     // const emptyCodeHash = "0x" + bufferToHex(keccak256(emptyCode)).slice(27);
     // assert.equal(hexHashId, emptyCodeHash);
