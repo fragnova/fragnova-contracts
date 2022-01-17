@@ -145,7 +145,7 @@ contract("Fragment", accounts => {
     const id = await contract.idOf(fragmentHash);
     assert.equal(id.toNumber(), 1);
 
-    tx = await contract.rez(1, "TEST Entity", "TEST", true, false, 100, { from: accounts[0], gas: 1000000 });
+    tx = await contract.spawn(1, "TEST Entity", "TEST", true, false, 100, { from: accounts[0], gas: 1000000 });
     console.log("Mint tx", tx);
     // const hexHashId = web3.utils.numberToHex(tx.logs[0].args.tokenId);
     // const emptyCodeHash = "0x" + bufferToHex(keccak256(emptyCode)).slice(27);
