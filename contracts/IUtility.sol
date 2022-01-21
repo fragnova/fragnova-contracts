@@ -6,13 +6,10 @@ pragma solidity ^0.8.7;
 interface IUtility {
     function overrideOwner() external pure returns (bool);
 
-    function buildFragmentMetadata(
-        uint160 hashId,
-        bytes32 mutableHash,
-        uint256 includeCost,
-        uint256 immutableBlock,
-        uint256 mutableBlock
-    ) external view returns (string memory metadata);
+    function buildFragmentMetadata(bytes32 fragmentHash)
+        external
+        view
+        returns (string memory metadata);
 
     function buildFragmentRootMetadata(
         address vaultAddress,

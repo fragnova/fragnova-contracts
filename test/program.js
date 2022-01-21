@@ -8,6 +8,9 @@ var entityNft = artifacts.require("Entity");
 var vault = artifacts.require("Vault");
 var dao = artifacts.require("FragmentDAOToken");
 var utility = artifacts.require("Utility");
+var pre721 = artifacts.require("PreERC721");
+var pre721Factory = artifacts.require("PreERC721Factory");
+var pre721Test = artifacts.require("PreERC721SampleState");
 
 function composeCall(bytecode, salt) {
   return web3.eth.abi.encodeFunctionCall({
@@ -210,11 +213,52 @@ contract("Fragment", accounts => {
 
     try {
       const tx = await contract.attach(fragmentHash, detachSignature, { from: accounts[0] });
-    } catch(e) {
+    } catch (e) {
       assert(e.reason == "Invalid signature", e);
       return;
     }
     assert(false, "expected exception not thrown");
+  });
+
+  it("test airdrop NFT contract", async () => {
+    const cpre721Factory = await pre721Factory.deployed();
+    const cpre721 = await pre721.deployed();
+    const cpre721Test = await pre721Test.deployed();
+
+    const tx = await cpre721Factory.create(cpre721.address, cpre721Test.address, { from: accounts[0] });
+    console.log(tx.logs[0].args.newContract);
+    const newContractAddr = tx.logs[0].args.newContract;
+    const newContract = new web3.eth.Contract(cpre721.abi, newContractAddr);
+
+    const txG = await newContract.methods.generate().send({ from: accounts[0], gas: 500000 });
+
+    assert.equal(await newContract.methods.ownerOf(1).call(), accounts[0]);
+    assert.equal(await newContract.methods.ownerOf(2).call(), accounts[1]);
+    assert.equal(await newContract.methods.ownerOf(3).call(), accounts[2]);
+    assert.equal(await newContract.methods.ownerOf(4).call(), accounts[3]);
+    assert.equal(await newContract.methods.ownerOf(5).call(), accounts[4]);
+    assert.equal(await newContract.methods.ownerOf(6).call(), accounts[5]);
+    assert.equal(await newContract.methods.ownerOf(7).call(), accounts[6]);
+    assert.equal(await newContract.methods.ownerOf(8).call(), accounts[7]);
+    assert.equal(await newContract.methods.ownerOf(9).call(), accounts[8]);
+    assert.equal(await newContract.methods.ownerOf(10).call(), accounts[9]);
+
+    assert.equal(await newContract.methods.name().call(), "PreERC721Sample");
+    assert.equal(await newContract.methods.symbol().call(), "PES");
+
+    const tx2 = await newContract.methods.safeTransferFrom(accounts[0], accounts[2], 1).send({ from: accounts[0], gas: 500000 });
+    assert.equal(await newContract.methods.ownerOf(1).call(), accounts[2]);
+    assert.equal(await newContract.methods.balanceOf(accounts[2]).call(), 2);
+    assert.equal(await newContract.methods.balanceOf(accounts[0]).call(), 0);
+
+    // const owner1 = await newContract.methods.ownerOf(1).call();
+    // console.log(owner1);
+    // const name = await newContract.methods.name().call();
+    // console.log(name);
+
+    // assert.equal(await newContract.methods.name().call(), "Test Drop");
+    // assert.equal(await newContract.methods.symbol().call(), "TEST");
+    // assert.equal(await newContract.methods.tokenURI(1).call(), "https://metadata.fragments.foundation/?ch=0x01&t=0x02310db98fdaa68efed0b2068a9bef78bd3bfd74&m=0xb5d4d1df10388bbc208778ff02310db98fdaa68efed0b2068a9bef78bd3bfd74&i=0x00&ib=0x12&mb=0x00");
   });
 
   // it("should not upload a fragment", async () => {

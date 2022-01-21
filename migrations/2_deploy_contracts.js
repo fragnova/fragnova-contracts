@@ -8,6 +8,8 @@ var nftEntityProxy = artifacts.require("RezProxy");
 var admin = artifacts.require("FragmentProxyAdmin");
 var vault = artifacts.require("Vault");
 var utility = artifacts.require("Utility");
+var pre721 = artifacts.require("PreERC721");
+var pre721Factory = artifacts.require("PreERC721Factory");
 
 module.exports = async function (deployer, network) {
   console.log("Network: " + network);
@@ -17,6 +19,8 @@ module.exports = async function (deployer, network) {
   await deployer.deploy(daoToken);
   await deployer.deploy(vault);
   await deployer.deploy(utility);
+  await deployer.deploy(pre721);
+  await deployer.deploy(pre721Factory);
 
   fs.writeFile("deployer-utils/utility-bytecode.txt", utility.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => { });

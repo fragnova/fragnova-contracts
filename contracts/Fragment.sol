@@ -187,8 +187,8 @@ contract Fragment is
         returns (string memory)
     {
         require(_exists(tokenId), "Fragment: URI query for nonexistent token");
-
-        return "";
+        IUtility ut = IUtility(getUtilityLibrary());
+        return ut.buildFragmentMetadata(hashOf(tokenId));
     }
 
     function contractURI() public view returns (string memory) {
