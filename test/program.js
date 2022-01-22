@@ -222,24 +222,46 @@ contract("Fragment", accounts => {
   it("test airdrop NFT contract", async () => {
     const cpre721Factory = await pre721Factory.deployed();
     const cpre721 = await pre721.deployed();
+    const fragmentHash = "0x953f867f5e7af34b031d2689ea1486420571dfac0cd4043b173b0035e621c0dd";
 
-    const tx = await cpre721Factory.create(web3.utils.asciiToHex("PreERC721Sample"), web3.utils.asciiToHex("PES"), cpre721.address, { from: accounts[0] });
+    const tx = await cpre721Factory.create(web3.utils.asciiToHex("PreERC721Sample"), web3.utils.asciiToHex("PES"), fragmentHash, "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1", cpre721.address, { from: accounts[0] });
     console.log(tx.logs[0].args.newContract);
     const newContractAddr = tx.logs[0].args.newContract;
     const newContract = new web3.eth.Contract(cpre721.abi, newContractAddr);
 
-    // const txG = await newContract.methods.generate().send({ from: accounts[0], gas: 500000 });
+    const txG = await newContract.methods.generate([
+      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
+      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
+      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
+      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
+      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
+      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
+      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
+      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
+      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
+      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
+      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
+      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
+      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
+      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
+      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
+      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
+      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
+      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
+      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
+      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e"
+    ]).send({ from: accounts[0], gas: 1000000 });
 
-    // assert.equal(await newContract.methods.ownerOf(1).call(), accounts[0]);
-    // assert.equal(await newContract.methods.ownerOf(2).call(), accounts[1]);
-    // assert.equal(await newContract.methods.ownerOf(3).call(), accounts[2]);
-    // assert.equal(await newContract.methods.ownerOf(4).call(), accounts[3]);
-    // assert.equal(await newContract.methods.ownerOf(5).call(), accounts[4]);
-    // assert.equal(await newContract.methods.ownerOf(6).call(), accounts[5]);
-    // assert.equal(await newContract.methods.ownerOf(7).call(), accounts[6]);
-    // assert.equal(await newContract.methods.ownerOf(8).call(), accounts[7]);
-    // assert.equal(await newContract.methods.ownerOf(9).call(), accounts[8]);
-    // assert.equal(await newContract.methods.ownerOf(10).call(), accounts[9]);
+    assert.equal(await newContract.methods.ownerOf(1).call(), accounts[0]);
+    assert.equal(await newContract.methods.ownerOf(2).call(), accounts[1]);
+    assert.equal(await newContract.methods.ownerOf(3).call(), accounts[2]);
+    assert.equal(await newContract.methods.ownerOf(4).call(), accounts[3]);
+    assert.equal(await newContract.methods.ownerOf(5).call(), accounts[4]);
+    assert.equal(await newContract.methods.ownerOf(6).call(), accounts[5]);
+    assert.equal(await newContract.methods.ownerOf(7).call(), accounts[6]);
+    assert.equal(await newContract.methods.ownerOf(8).call(), accounts[7]);
+    assert.equal(await newContract.methods.ownerOf(9).call(), accounts[8]);
+    assert.equal(await newContract.methods.ownerOf(10).call(), accounts[9]);
 
     assert.equal(await newContract.methods.name().call(), "PreERC721Sample\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000");
     assert.equal(await newContract.methods.symbol().call(), "PES\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000");

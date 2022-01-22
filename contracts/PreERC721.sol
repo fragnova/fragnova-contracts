@@ -2,8 +2,9 @@ pragma solidity ^0.8.7;
 
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
+import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
-contract PreERC721 is ERC721, Initializable {
+contract PreERC721 is ERC721, Initializable, Ownable {
     constructor() ERC721("", "") {}
 
     /// Immutable calls
@@ -50,7 +51,21 @@ contract PreERC721 is ERC721, Initializable {
         return fragmentHash;
     }
 
-    function tokenURI(uint256 tokenId) public pure override returns (string memory) {
+    function owner() public pure override returns (address) {
+        uint256 offset = _getImmutableVariablesOffset();
+        bytes32 ownerBytes;
+        assembly {
+            ownerBytes := calldataload(add(offset, 0x60))
+        }
+        return address(bytes20(ownerBytes));
+    }
+
+    function tokenURI(uint256 tokenId)
+        public
+        pure
+        override
+        returns (string memory)
+    {
         // TODO: Implement tokenURI
         // We fetch data from our Clamor nodes IPFS server mode
         // The best efficient way to do this is to use the IPFS CID in base32 format like:
@@ -64,7 +79,7 @@ contract PreERC721 is ERC721, Initializable {
         // Add a few tests to make sure the base32 encoder is solid
     }
 
-    function generate(uint256[] memory tokens) external initializer {
+    function generate(uint256[] memory tokens) external initializer onlyOwner {
         for (uint256 i = 0; i < tokens.length; i++) {
             address to = address(uint160(tokens[i]));
             uint256 tokenId = i + 1;
