@@ -41,6 +41,7 @@ https://cchain.explorer.avax-test.network/address/0x96d372104770465a36F7f05E8175
 new one:
 Creator: `0x53aab8351206a3eee51096c2be27d6e5ca9c5ecd`
 Deployer: `0xe14B5aE0D1E8A4e9039D40e5BF203fD21E2f6241`
+Abi: `[{"inputs":[{"internalType":"bytes","name":"_initCode","type":"bytes"},{"internalType":"bytes32","name":"_salt","type":"bytes32"}],"name":"deploy","outputs":[{"internalType":"address payable","name":"createdContract","type":"address"}],"stateMutability":"nonpayable","type":"function"}]`
 Well, this one is already on ETH :)
 https://etherscan.io/address/0x53aab8351206a3eee51096c2be27d6e5ca9c5ecd
 ```

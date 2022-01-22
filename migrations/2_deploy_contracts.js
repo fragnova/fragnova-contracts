@@ -28,4 +28,6 @@ module.exports = async function (deployer, network) {
   fs.writeFile("deployer-utils/entity-bytecode.txt", nftEntity.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/admin-bytecode.txt", admin.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/vault-bytecode.txt", vault.bytecode, (_r, _e) => { });
+  fs.writeFile("deployer-utils/pre721-bytecode.txt", pre721.bytecode, (_r, _e) => { });
+  fs.writeFile("deployer-utils/pre721Factory-bytecode.txt", pre721Factory.bytecode, (_r, _e) => { });
 };

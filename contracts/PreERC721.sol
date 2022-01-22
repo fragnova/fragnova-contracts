@@ -3,8 +3,14 @@ pragma solidity ^0.8.7;
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
+import "openzeppelin-solidity/contracts/utils/Strings.sol";
+import "./RoyaltiesReceiver.sol";
 
-contract PreERC721 is ERC721, Initializable, Ownable {
+contract PreERC721 is ERC721, Initializable, Ownable, RoyaltiesReceiver {
+    using Strings for uint256;
+
+    bytes constant GATEWAY_URL = "https://gateway.server.com/";
+
     constructor() ERC721("", "") {}
 
     /// Immutable calls
@@ -42,7 +48,7 @@ contract PreERC721 is ERC721, Initializable, Ownable {
         return string(abi.encodePacked(symbolBytes));
     }
 
-    function fragment() external pure returns (bytes32) {
+    function fragment() public pure returns (bytes32) {
         uint256 offset = _getImmutableVariablesOffset();
         bytes32 fragmentHash;
         assembly {
@@ -60,28 +66,69 @@ contract PreERC721 is ERC721, Initializable, Ownable {
         return address(bytes20(ownerBytes));
     }
 
+    function toAsciiString(address x) internal pure returns (string memory) {
+        bytes memory s = new bytes(40);
+        for (uint256 i = 0; i < 20; i++) {
+            bytes1 b = bytes1(uint8(uint256(uint160(x)) / (2**(8 * (19 - i)))));
+            bytes1 hi = bytes1(uint8(b) / 16);
+            bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+            s[2 * i] = char(hi);
+            s[2 * i + 1] = char(lo);
+        }
+        return string(s);
+    }
+
+    function char(bytes1 b) internal pure returns (bytes1 c) {
+        if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+        else return bytes1(uint8(b) + 0x57);
+    }
+
+    function contractURI() public pure returns (string memory) {
+        bytes memory url = abi.encodePacked(
+            GATEWAY_URL,
+            uint256(fragment()).toHexString(),
+            "/"
+        );
+        bytes memory data = abi.encodePacked(
+            'data:application/json,{"name":"',
+            name(),
+            '",',
+            '"description":"",',
+            '"seller_fee_basis_points":',
+            FRAGMENT_ROYALTIES_BPS.toString(),
+            ",",
+            '"fee_recipient":"0x',
+            toAsciiString(owner()),
+            '",',
+            '"image":"',
+            abi.encodePacked(url, "logo"),
+            '",',
+            '"external_link":"',
+            abi.encodePacked(url, "page"),
+            '"}'
+        );
+
+        return string(data);
+    }
+
     function tokenURI(uint256 tokenId)
         public
         pure
         override
         returns (string memory)
     {
-        // TODO: #2 Implement tokenURI
-        // We fetch data from our Clamor nodes IPFS server mode
-        // The best efficient way to do this is to use the IPFS CID in base32 format like:
-        // base32 - cidv1 - raw - (blake2b-256 : 256 : 953F867F5E7AF34B031D2689EA1486420571DFAC0CD4043B173B0035E621C0DD)
-        // Actual cid: bafk2bzaceckt7bt7lz5pgsyddutit2quqzbak4o7vqgnibb3c45qanpgehan2
-        // TODO exactly:
-        // Ignore/Don't use super.tokenURI(tokenId)
-        // Append to this hardcoded prefix `0x0155a0e40220` the 32 bytes of `fragment()` call and convert to base32
-        // Prepend to this string `b` to flag base32 encoding
-        // Futhermore prepend to this string `https://ipfs.io/api/v0/block/get/`
-        // Add a few tests to make sure the base32 encoder is solid
+        bytes memory url = abi.encodePacked(
+            GATEWAY_URL,
+            uint256(fragment()).toHexString(),
+            "/metadata/",
+            tokenId.toHexString()
+        );
+        return string(url);
     }
 
-    function generate(uint256[] memory tokens) external initializer onlyOwner {
-        for (uint256 i = 0; i < tokens.length; i++) {
-            address to = address(uint160(tokens[i]));
+    function generate(address[] memory receivers) external initializer onlyOwner {
+        for (uint256 i = 0; i < receivers.length; i++) {
+            address to = receivers[i];
             uint256 tokenId = i + 1;
             _balances[to] += 1;
             _owners[tokenId] = to;
