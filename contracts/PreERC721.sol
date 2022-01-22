@@ -66,7 +66,7 @@ contract PreERC721 is ERC721, Initializable, Ownable {
         override
         returns (string memory)
     {
-        // TODO: Implement tokenURI
+        // TODO: #2 Implement tokenURI
         // We fetch data from our Clamor nodes IPFS server mode
         // The best efficient way to do this is to use the IPFS CID in base32 format like:
         // base32 - cidv1 - raw - (blake2b-256 : 256 : 953F867F5E7AF34B031D2689EA1486420571DFAC0CD4043B173B0035E621C0DD)
