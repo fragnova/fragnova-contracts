@@ -15,7 +15,7 @@ import "./IEntity.sol";
 import "./IVault.sol";
 import "./IUtility.sol";
 import "./RoyaltiesReceiver.sol";
-import "./ClonesWithCallData.sol";
+import "./ClonesWithCalldata.sol";
 
 struct StakeData {
     // Pack to 32 bytes
