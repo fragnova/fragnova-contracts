@@ -10,6 +10,7 @@ var vault = artifacts.require("Vault");
 var utility = artifacts.require("Utility");
 var pre721 = artifacts.require("PreERC721");
 var pre721Factory = artifacts.require("PreERC721Factory");
+var pre721Genesis = artifacts.require("PreERC721Genesis");
 
 module.exports = async function (deployer, network) {
   console.log("Network: " + network);
@@ -21,6 +22,7 @@ module.exports = async function (deployer, network) {
   await deployer.deploy(utility);
   await deployer.deploy(pre721);
   await deployer.deploy(pre721Factory);
+  await deployer.deploy(pre721Genesis);
 
   fs.writeFile("deployer-utils/utility-bytecode.txt", utility.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/nft-bytecode.txt", nft.bytecode, (_r, _e) => { });
@@ -30,4 +32,5 @@ module.exports = async function (deployer, network) {
   fs.writeFile("deployer-utils/vault-bytecode.txt", vault.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/pre721-bytecode.txt", pre721.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/pre721Factory-bytecode.txt", pre721Factory.bytecode, (_r, _e) => { });
+  fs.writeFile("deployer-utils/pre721Genesis-bytecode.txt", pre721Genesis.bytecode, (_r, _e) => { });
 };

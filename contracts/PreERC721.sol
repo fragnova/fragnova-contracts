@@ -6,10 +6,28 @@ import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "openzeppelin-solidity/contracts/utils/Strings.sol";
 import "./RoyaltiesReceiver.sol";
 
+interface IGenesisState {
+    function getGenesisOwner(uint256 tokenId) external view returns (address);
+
+    function isGenesisToken(uint256 tokenId) external view returns (bool);
+
+    function getGenesisBalance(address owner) external view returns (uint256);
+
+    function exclude(uint256 tokenId, address owner) external;
+
+    function generateEvents() external;
+
+    function getCid(uint256 tokenId) external view returns (bytes32);
+}
+
 contract PreERC721 is ERC721, Initializable, Ownable, RoyaltiesReceiver {
     using Strings for uint256;
 
     bytes constant GATEWAY_URL = "https://gateway.server.com/";
+
+    mapping(uint256 => bytes32) private _cids;
+
+    IGenesisState private _genesisState;
 
     constructor() ERC721("", "") {}
 
@@ -126,13 +144,67 @@ contract PreERC721 is ERC721, Initializable, Ownable, RoyaltiesReceiver {
         return string(url);
     }
 
-    function generate(address[] memory receivers) external initializer onlyOwner {
-        for (uint256 i = 0; i < receivers.length; i++) {
-            address to = receivers[i];
-            uint256 tokenId = i + 1;
-            _balances[to] += 1;
-            _owners[tokenId] = to;
-            emit Transfer(address(0), to, tokenId);
+    function genesis(address genesisState) external onlyOwner initializer {
+        _genesisState = IGenesisState(genesisState);
+        _genesisState.generateEvents();
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal override {
+        // make sure to fix lazy genesis tokens transfering out of genesis owners
+        address genesisOwner = _genesisState.getGenesisOwner(tokenId);
+        if (genesisOwner != address(0) && from == genesisOwner) {
+            // Ok we did not process this token yet
+            _balances[genesisOwner] += 1;
+            _owners[tokenId] = genesisOwner;
+            _cids[tokenId] = _genesisState.getCid(tokenId);
+            _genesisState.exclude(tokenId, genesisOwner);
         }
+        super._beforeTokenTransfer(from, to, tokenId);
+    }
+
+    function balanceOf(address tokenOwner)
+        public
+        view
+        virtual
+        override
+        returns (uint256)
+    {
+        require(
+            tokenOwner != address(0),
+            "ERC721: balance query for the zero address"
+        );
+        uint256 balance = _balances[tokenOwner];
+        balance += _genesisState.getGenesisBalance(tokenOwner);
+        return balance;
+    }
+
+    function ownerOf(uint256 tokenId)
+        public
+        view
+        virtual
+        override
+        returns (address)
+    {
+        address towner = _owners[tokenId];
+        if (towner == address(0)) {
+            towner = _genesisState.getGenesisOwner(tokenId);
+        }
+        require(
+            towner != address(0),
+            "ERC721: owner query for nonexistent token"
+        );
+        return towner;
+    }
+
+    function _exists(uint256 tokenId) internal view override returns (bool) {
+        bool exists = _owners[tokenId] != address(0);
+        if (!exists) {
+            exists = _genesisState.getGenesisOwner(tokenId) != address(0);
+        }
+        return exists;
     }
 }

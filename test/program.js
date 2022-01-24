@@ -10,6 +10,7 @@ var dao = artifacts.require("FragmentDAOToken");
 var utility = artifacts.require("Utility");
 var pre721 = artifacts.require("PreERC721");
 var pre721Factory = artifacts.require("PreERC721Factory");
+var pre721Genesis = artifacts.require("PreERC721Genesis");
 
 function composeCall(bytecode, salt) {
   return web3.eth.abi.encodeFunctionCall({
@@ -221,6 +222,8 @@ contract("Fragment", accounts => {
 
   it("test airdrop NFT contract", async () => {
     const cpre721Factory = await pre721Factory.deployed();
+    const cpre721Genesis = await pre721Genesis.deployed();
+    console.log("Genesis contract ", cpre721Genesis.address);
     const cpre721 = await pre721.deployed();
     const fragmentHash = "0x953f867f5e7af34b031d2689ea1486420571dfac0cd4043b173b0035e621c0dd";
 
@@ -229,108 +232,9 @@ contract("Fragment", accounts => {
     const newContractAddr = tx.logs[0].args.newContract;
     const newContract = new web3.eth.Contract(cpre721.abi, newContractAddr);
 
-    const txG = await newContract.methods.generate([
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e",
-      "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-      "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-      "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-      "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d",
-      "0xd03ea8624C8C5987235048901fB614fDcA89b117",
-      "0x95cED938F7991cd0dFcb48F0a06a40FA1aF46EBC",
-      "0x3E5e9111Ae8eB78Fe1CC3bb8915d5D461F3Ef9A9",
-      "0x28a8746e75304c0780E011BEd21C72cD78cd535E",
-      "0xACa94ef8bD5ffEE41947b4585a84BdA5a3d3DA6E",
-      "0x1dF62f291b2E969fB0849d99D9Ce41e2F137006e"
-    ]).send({ from: accounts[0], gas: 3000000 });
+    const init = await cpre721Genesis.init(newContractAddr, { from: accounts[0] });
+
+    const txG = await newContract.methods.genesis(cpre721Genesis.address).send({ from: accounts[0], gas: 1000000 });
 
     assert.equal(await newContract.methods.ownerOf(1).call(), accounts[0]);
     assert.equal(await newContract.methods.ownerOf(2).call(), accounts[1]);
@@ -349,10 +253,11 @@ contract("Fragment", accounts => {
     assert.equal(await newContract.methods.tokenURI(2).call(), "https://gateway.server.com/0x953f867f5e7af34b031d2689ea1486420571dfac0cd4043b173b0035e621c0dd/metadata/0x02");
     assert.equal(await newContract.methods.contractURI().call(), 'data:application/json,{"name":"PreERC721Sample\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000","description":"","seller_fee_basis_points":1000,"fee_recipient":"0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1","image":"https://gateway.server.com/0x953f867f5e7af34b031d2689ea1486420571dfac0cd4043b173b0035e621c0dd/logo","external_link":"https://gateway.server.com/0x953f867f5e7af34b031d2689ea1486420571dfac0cd4043b173b0035e621c0dd/page"}');
 
-    // const tx2 = await newContract.methods.safeTransferFrom(accounts[0], accounts[2], 1).send({ from: accounts[0], gas: 500000 });
-    // assert.equal(await newContract.methods.ownerOf(1).call(), accounts[2]);
-    // assert.equal(await newContract.methods.balanceOf(accounts[2]).call(), 2);
-    // assert.equal(await newContract.methods.balanceOf(accounts[0]).call(), 0);
+    assert.equal(await newContract.methods.balanceOf(accounts[0]).call(), 10);
+    const tx2 = await newContract.methods.safeTransferFrom(accounts[0], accounts[2], 1).send({ from: accounts[0], gas: 500000 });
+    assert.equal(await newContract.methods.ownerOf(1).call(), accounts[2]);
+    assert.equal(await newContract.methods.balanceOf(accounts[2]).call(), 11);
+    assert.equal(await newContract.methods.balanceOf(accounts[0]).call(), 9);
 
     // const owner1 = await newContract.methods.ownerOf(1).call();
     // console.log(owner1);
