@@ -8,7 +8,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 contract RoyaltiesReceiver {
     using SafeERC20 for IERC20;
 
-    uint256 public constant FRAGMENT_ROYALTIES_BPS = 1000;
+    uint256 public constant FRAGMENT_ROYALTIES_BPS = 700;
 
     bytes4 private constant _INTERFACE_ID_ROYALTIES_CREATORCORE = 0xbb3bafd6;
     bytes4 private constant _INTERFACE_ID_ROYALTIES_EIP2981 = 0x2a55205a;

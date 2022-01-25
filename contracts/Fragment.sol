@@ -112,6 +112,18 @@ contract Fragment is
         _;
     }
 
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        return
+            _supportsInterface(interfaceId) ||
+            super.supportsInterface(interfaceId);
+    }
+
     function bootstrap() public payable initializer {
         // Ownable
         Ownable._bootstrap();

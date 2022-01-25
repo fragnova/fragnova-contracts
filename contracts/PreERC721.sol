@@ -31,6 +31,18 @@ contract PreERC721 is ERC721, Initializable, Ownable, RoyaltiesReceiver {
 
     constructor() ERC721("", "") {}
 
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        return
+            _supportsInterface(interfaceId) ||
+            super.supportsInterface(interfaceId);
+    }
+
     /// Immutable calls
     ///
     function _getImmutableVariablesOffset()
@@ -147,6 +159,7 @@ contract PreERC721 is ERC721, Initializable, Ownable, RoyaltiesReceiver {
     function genesis(address genesisState) external onlyOwner initializer {
         _genesisState = IGenesisState(genesisState);
         _genesisState.generateEvents();
+        setupRoyalties(payable(owner()), FRAGMENT_ROYALTIES_BPS);
     }
 
     function _beforeTokenTransfer(
