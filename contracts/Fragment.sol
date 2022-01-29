@@ -16,6 +16,7 @@ import "./IVault.sol";
 import "./IUtility.sol";
 import "./RoyaltiesReceiver.sol";
 import "./ClonesWithCalldata.sol";
+import "./UnstructuredStorage.sol";
 
 struct StakeData {
     // Pack to 32 bytes
@@ -30,7 +31,8 @@ contract Fragment is
     ERC721Enumerable,
     Ownable,
     Initializable,
-    RoyaltiesReceiver
+    RoyaltiesReceiver,
+    UnstructuredStorage
 {
     function name() public view virtual override returns (string memory) {
         return "Asset Store";
@@ -61,14 +63,10 @@ contract Fragment is
     );
 
     // Unstructured storage slots
-    bytes32 private constant SLOT_stakeLock =
-        keccak256("fragcolor.fragment.stakeLock");
     bytes32 private constant SLOT_entityLogic =
         keccak256("fragcolor.fragment.entityLogic");
     bytes32 private constant SLOT_vaultLogic =
         keccak256("fragcolor.fragment.vaultLogic");
-    bytes32 private constant SLOT_utilityToken =
-        keccak256("fragcolor.fragment.utilityToken");
     bytes32 private constant SLOT_utilityLibrary =
         keccak256("fragcolor.fragment.utilityLibrary");
     bytes32 private constant SLOT_controller =
@@ -91,16 +89,9 @@ contract Fragment is
     // keep track of rezzed entitites
     bytes32 private constant FRAGMENT_ENTITIES =
         keccak256("fragcolor.fragment.entities");
-    // address to token to data map(map)
-    bytes32 private constant FRAGMENT_STAKE_A2T2D =
-        keccak256("fragcolor.fragment.a2t2d.v0");
-    // map token -> stakers set
-    bytes32 private constant FRAGMENT_STAKE_T2A =
-        keccak256("fragcolor.fragment.t2a.v0");
 
     constructor() ERC721("", "") Ownable() {
         // NOT INVOKED IF PROXIED
-        _setUint(SLOT_stakeLock, 23500);
         setupRoyalties(payable(0), FRAGMENT_ROYALTIES_BPS);
     }
 
@@ -128,7 +119,6 @@ contract Fragment is
         // Ownable
         Ownable._bootstrap();
         // Others
-        _setUint(SLOT_stakeLock, 23500);
         _setAddress(SLOT_controller, owner());
         _setAddress(
             SLOT_utilityLibrary,
@@ -143,38 +133,6 @@ contract Fragment is
             address(0xA439872b04aD580d9D573E41fD28a693B4B97515)
         );
         setupRoyalties(payable(owner()), FRAGMENT_ROYALTIES_BPS);
-    }
-
-    function getUint(bytes32 slot) public view returns (uint256 value) {
-        assembly {
-            value := sload(slot)
-        }
-    }
-
-    function _setUint(bytes32 slot, uint256 value) private {
-        assembly {
-            sstore(slot, value)
-        }
-    }
-
-    function setUint(bytes32 slot, uint256 value) external onlyOwner {
-        _setUint(slot, value);
-    }
-
-    function getAddress(bytes32 slot) public view returns (address value) {
-        assembly {
-            value := sload(slot)
-        }
-    }
-
-    function _setAddress(bytes32 slot, address value) private {
-        assembly {
-            sstore(slot, value)
-        }
-    }
-
-    function setAddress(bytes32 slot, address value) external onlyOwner {
-        _setAddress(slot, value);
     }
 
     function getUtilityLibrary() public view returns (address addr) {
@@ -206,169 +164,6 @@ contract Fragment is
     function contractURI() public view returns (string memory) {
         IUtility ut = IUtility(getUtilityLibrary());
         return ut.buildFragmentRootMetadata(owner(), FRAGMENT_ROYALTIES_BPS);
-    }
-
-    function stakeOf(bytes32 fragmentHash, address staker)
-        external
-        view
-        returns (uint256 amount, uint256 blockStart)
-    {
-        StakeData[1] storage data;
-        bytes32 slot = bytes32(
-            uint256(
-                keccak256(
-                    abi.encodePacked(FRAGMENT_STAKE_A2T2D, staker, fragmentHash)
-                )
-            )
-        );
-        assembly {
-            data.slot := slot
-        }
-
-        return (data[0].amount, data[0].blockStart);
-    }
-
-    function getStakeAt(bytes32 fragmentHash, uint256 index)
-        external
-        view
-        returns (address staker, uint256 amount)
-    {
-        EnumerableSet.AddressSet[1] storage s;
-        bytes32 sslot = bytes32(
-            uint256(
-                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A, fragmentHash))
-            )
-        );
-        assembly {
-            s.slot := sslot
-        }
-
-        staker = s[0].at(index);
-        StakeData[1] storage data;
-        bytes32 slot = bytes32(
-            uint256(
-                keccak256(
-                    abi.encodePacked(FRAGMENT_STAKE_A2T2D, staker, fragmentHash)
-                )
-            )
-        );
-        assembly {
-            data.slot := slot
-        }
-        amount = data[0].amount;
-    }
-
-    function getStakeCount(bytes32 fragmentHash)
-        external
-        view
-        returns (uint256)
-    {
-        EnumerableSet.AddressSet[1] storage s;
-        bytes32 sslot = bytes32(
-            uint256(
-                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A, fragmentHash))
-            )
-        );
-        assembly {
-            s.slot := sslot
-        }
-
-        return s[0].length();
-    }
-
-    function stake(bytes32 fragmentHash, uint256 amount) external {
-        IERC20 ut = IERC20(getAddress(SLOT_utilityToken));
-        assert(address(ut) != address(0));
-
-        uint256 balance = ut.balanceOf(msg.sender);
-        require(balance >= amount, "Fragment: not enough tokens to stake");
-
-        StakeData[1] storage data;
-        bytes32 slot = bytes32(
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        FRAGMENT_STAKE_A2T2D,
-                        msg.sender,
-                        fragmentHash
-                    )
-                )
-            )
-        );
-        assembly {
-            data.slot := slot
-        }
-
-        // sum it as users might add more tokens to the stake
-        data[0].amount += amount;
-        data[0].blockStart = block.number;
-        data[0].blockUnlock = block.number + getUint(SLOT_stakeLock);
-
-        EnumerableSet.AddressSet[1] storage adata;
-        bytes32 aslot = bytes32(
-            uint256(
-                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A, fragmentHash))
-            )
-        );
-        assembly {
-            adata.slot := aslot
-        }
-
-        adata[0].add(msg.sender);
-
-        emit Stake(fragmentHash, msg.sender, data[0].amount);
-
-        ut.safeTransferFrom(msg.sender, address(this), amount);
-    }
-
-    function unstake(bytes32 fragmentHash) external {
-        IERC20 ut = IERC20(getAddress(SLOT_utilityToken));
-        assert(address(ut) != address(0));
-
-        StakeData[1] storage data;
-        bytes32 slot = bytes32(
-            uint256(
-                keccak256(
-                    abi.encodePacked(
-                        FRAGMENT_STAKE_A2T2D,
-                        msg.sender,
-                        fragmentHash
-                    )
-                )
-            )
-        );
-        assembly {
-            data.slot := slot
-        }
-
-        // find amount
-        uint256 amount = data[0].amount;
-        assert(amount > 0);
-        // require lock time
-        require(
-            block.number >= data[0].blockUnlock,
-            "Fragment: cannot unstake yet"
-        );
-        // reset data
-        data[0].amount = 0;
-        data[0].blockStart = 0;
-        data[0].blockUnlock = 0;
-
-        EnumerableSet.AddressSet[1] storage adata;
-        bytes32 aslot = bytes32(
-            uint256(
-                keccak256(abi.encodePacked(FRAGMENT_STAKE_T2A, fragmentHash))
-            )
-        );
-        assembly {
-            adata.slot := aslot
-        }
-
-        adata[0].remove(msg.sender);
-
-        emit Stake(fragmentHash, msg.sender, 0);
-
-        ut.safeTransfer(msg.sender, amount);
     }
 
     function idOf(bytes32 fragmentHash) external view returns (uint256) {
@@ -664,7 +459,6 @@ contract Fragment is
         external
         onlyOwner
     {
-        assert(tokenAddress != getAddress(SLOT_utilityToken)); // prevent removal of our utility token!
         IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
     }
 
