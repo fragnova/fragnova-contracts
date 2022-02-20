@@ -11,7 +11,15 @@ contract RoyaltiesReceiver {
     uint256 public constant FRAGMENT_ROYALTIES_BPS = 1000;
 
     bytes4 private constant _INTERFACE_ID_ROYALTIES_CREATORCORE = 0xbb3bafd6;
+    // Interface ID of the function `royaltyInfo`  (https://eips.ethereum.org/EIPS/eip-2981)
+    // bytes4(keccak256("royaltyInfo(uint256,uint256)")) == 0x2a55205a
     bytes4 private constant _INTERFACE_ID_ROYALTIES_EIP2981 = 0x2a55205a;
+    /* Inteface ID of `getFeeBps` and `getFeeRecipents` (https://docs.rarible.org/ethereum/smart-contracts/royalties/)
+    * bytes4(keccak256('getFeeBps(uint256)')) == 0x0ebd4c7f
+    * bytes4(keccak256('getFeeRecipients(uint256)')) == 0xb9c4d9fb
+    *
+    * => 0x0ebd4c7f ^ 0xb9c4d9fb == 0xb7799584
+    */
     bytes4 private constant _INTERFACE_ID_ROYALTIES_RARIBLE = 0xb7799584;
 
     bytes32 private constant SLOT_royaltiesRecipient =
@@ -43,6 +51,7 @@ contract RoyaltiesReceiver {
         }
     }
 
+    /// @notice Sets Up
     function setupRoyalties(
         address payable royaltiesRecipient,
         uint256 royaltiesBps

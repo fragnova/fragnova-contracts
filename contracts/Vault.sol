@@ -8,6 +8,8 @@ import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IFragment.sol";
 import "./IEntity.sol";
 
+
+/// @title Vault is an Initializable Contract
 contract Vault is Initializable {
     using SafeERC20 for IERC20;
 
@@ -40,6 +42,11 @@ contract Vault is Initializable {
 
     function deposit() public payable {}
 
+    /// @notice The de-facto Constructor of the Vault Smart Contract
+    /// @param entityContract - The address of the RezProxy Contract that delegates all its calls to an Entity Contract
+    /// @param fragmentsLibrary - The address of the `Fragment` Contract
+    /// @dev The `initializer` modifier ensures this function is only called once
+    // The de-facto constructor stores `entityContract` in storage slot `SLOT_entityContract` and the `fragmentsLibrary` in storage slot `SLOT_fragmentsLibrary`
     function bootstrap(address entityContract, address fragmentsLibrary)
         public
         initializer

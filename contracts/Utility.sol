@@ -14,6 +14,7 @@ contract Utility {
 
     bytes private constant IMG_URI = "https://img.fragments.foundation/";
 
+    // The creation bytecode of the RezProxy contract is stored in REZ_CONTRACT (https://docs.soliditylang.org/en/v0.5.3/miscellaneous.html?highlight=creationcode#global-variables) (https://ethereum.stackexchange.com/questions/76334/what-is-the-difference-between-bytecode-init-code-deployed-bytedcode-creation)
     bytes private constant REZ_CONTRACT = type(RezProxy).creationCode;
 
     // This flag is used in rezzed contracts to determine the owner() call result

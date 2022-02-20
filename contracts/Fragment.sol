@@ -37,6 +37,8 @@ struct FragmentData {
 }
 
 // this contract uses proxy
+/// @title This contract holds all the ERC-721 Fragment Tokens.
+/// @dev The Royalty Payment Logic is implemented in `RoyaltiesReceiever`
 contract Fragment is
     ERC721Enumerable,
     Ownable,
@@ -168,6 +170,7 @@ contract Fragment is
         _setUint(slot, value);
     }
 
+    /// @dev Gets the address stored in storage slot `slot`
     function getAddress(bytes32 slot) public view returns (address value) {
         assembly {
             value := sload(slot)
@@ -184,6 +187,7 @@ contract Fragment is
         _setAddress(slot, value);
     }
 
+    /// @notice Loads the Address of the Utility Library from Storage
     function getUtilityLibrary() public view returns (address addr) {
         bytes32 slot = SLOT_utilityLibrary;
         assembly {
@@ -314,6 +318,9 @@ contract Fragment is
         }
     }
 
+
+    /// @notice Returns the includeCost field of the Fragment with the Token ID `fragmentHash`
+    /// @param fragmentHash The Token ID of the Fragment
     function includeCostOf(uint160 fragmentHash)
         public
         view
@@ -569,10 +576,16 @@ contract Fragment is
         return s[0].contains(addr);
     }
 
+    /// @notice Uploads a Fragment
+    /// @dev The hash of the concatenation of the immutableData and the references is the ERC-721 Token ID
+    /// @param immutableData The data of the Fragment.
+    /// @param mutableData
+    /// @param references A list of references to other Proto-Fragments
+    /// @param includeCost ¿
     function upload(
         bytes calldata immutableData, // immutable
         bytes calldata mutableData, // mutable
-        uint160[] calldata references, // immutable
+        uint160[] calldata references, // immutable The fragments that are
         uint256 includeCost // mutable
     ) external {
         // mint a new token and upload it
@@ -715,16 +728,26 @@ contract Fragment is
         );
     }
 
+
+    /// @notice Update the Fragment with the Token Id of `fragmentId`
+    /// @dev The hash of the concatenation of the immutableData and the references is the ERC-721 Token ID
+    /// @param fragmentHash The Token ID (i.e the hash of the Fragment)
+    /// @param mutableData The mutableData that will override the existing mutableDat
+    /// @param includeCost ¿
     function update(
         uint160 fragmentHash,
         bytes calldata mutableData,
         uint256 includeCost
     ) external fragmentOwnerOnly(fragmentHash) {
+
         FragmentData[1] storage data;
+
         bytes32 dslot = bytes32(
             uint256(keccak256(abi.encodePacked(FRAGMENT_DATA, fragmentHash)))
         );
+
         assembly {
+            // get the array of FragmentData that was stored at slot dslot (https://solidity-by-example.org/app/write-to-any-slot/)
             data.slot := dslot
         }
 
@@ -739,6 +762,15 @@ contract Fragment is
         emit Update(fragmentHash);
     }
 
+    /// @notice Create and deploy an Entity and Vault Contract based on the Fragment with token ID `fragmenthash`. Only the owner of the Fragment with tokenID `fragmentHash` can call this function
+    /// @dev Creates and Deploys 2 RezProxy Contracts. One of the 2 RezProxy Contracts delegates all its calls to the contract with address in storage slot `SLOT_entityLogic`, and the other to the contract with address in storage slot `SLOT_vaultLogic`
+    /// It then adds the address of the RezProxy Contract for the Entity Implementation Contract to storage slot `keccak256(abi.encodePacked(FRAGMENT_ENTITIES, fragmentHash))`.
+    /// @param fragmentHash The Token ID of the Fragment
+    /// @param tokenName The name of the Entity/Vault Contract that will be created and deployed
+    /// @param tokenSymbol The symbol of the Entity/Vault Contract that will be created and deployed
+    /// @param unique ¿
+    /// @param updateable ¿
+    /// @param maxSupply ¿
     function rez(
         uint160 fragmentHash,
         string calldata tokenName,
@@ -794,7 +826,7 @@ contract Fragment is
                 fragmentHash,
                 maxSupply,
                 address(this),
-                payable(vault),
+                payable(vault), // Functions and addresses declared payable can receive ether into the contract. (https://solidity-by-example.org/payable/)
                 unique,
                 updateable
             );
