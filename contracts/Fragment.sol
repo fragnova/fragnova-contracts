@@ -27,7 +27,7 @@ struct StakeData {
 }
 
 // this contract uses proxy
-/// @title This contract holds all the ERC-721 Fragment Tokens.
+/// @title This contract holds all the Proto-Fragments
 /// @dev The Royalty Payment Logic is implemented in `RoyaltiesReceiever`
 contract Fragment is
     ERC721Enumerable,
@@ -82,10 +82,10 @@ contract Fragment is
     // Use a human readable counter for IDs
     bytes32 private constant FRAGMENT_COUNTER =
         keccak256("fragcolor.fragment.counter");
-    // ID -> Fragment Hash
+    // Token ID -> Fragment Hash
     bytes32 private constant FRAGMENT_FRAGMENTS_ID2HASH =
         keccak256("fragcolor.fragment.fragments");
-    // ID -> Fragment Hash
+    // Token ID -> Fragment Hash (¿Shouldn't this be Fragment Hash -> Token ID?)
     bytes32 private constant FRAGMENT_FRAGMENTS_HASH2ID =
         keccak256("fragcolor.fragment.fragments");
     // keep track of rezzed entitites
@@ -237,6 +237,7 @@ contract Fragment is
         return s[0].contains(addr);
     }
 
+    /// @notice Returns the current chain’s EIP-155 unique identifier
     function _getChainId() private view returns (uint256) {
         uint256 id;
         assembly {
@@ -245,6 +246,7 @@ contract Fragment is
         return id;
     }
 
+    /// @notice Allows the Owner of this Contract to add an Authorizer (i.e Fragnova's Blockchain's Off-Chain Validator)
     function addAuth(address addr) external onlyOwner {
         EnumerableSet.AddressSet[1] storage auths;
         bytes32 slot = bytes32(
@@ -256,6 +258,7 @@ contract Fragment is
         auths[0].add(addr);
     }
 
+    /// @notice Allows the Owner of this Contract to remove an Authorizer (i.e Fragnova's Blockchain's Off-Chain Validator)
     function delAuth(address addr) external onlyOwner {
         EnumerableSet.AddressSet[1] storage auths;
         bytes32 slot = bytes32(
@@ -267,10 +270,17 @@ contract Fragment is
         auths[0].remove(addr);
     }
 
+    /// @notice Attaches a Proto-Fragment from Fragnova's Blockchain to this Smart Contract
+    /// @param fragmentHash - The Proto-Fragment ID to attach
+    /// @param signature - The signature provided by Fragnova's Blockahin's Off-Chain Validator to validate this attach request
+    /// @dev Verifies if the authorizer signed the message.
+    /// Then, it  mints an ERC-721 Token (where the ID is the one plus the uint256 stored in `uint256(keccak256(abi.encodePacked(FRAGMENT_COUNTER)))`)
+    /// and gives its ownership to `msg.sender`
     function attach(bytes32 fragmentHash, bytes calldata signature) external {
         require(!_exists(uint256(fragmentHash)), "Fragment already attached");
 
         uint64[1] storage nonce;
+        // ¿I wonder why we there is only one authorizer?
         EnumerableSet.AddressSet[1] storage auths;
         Counters.Counter[1] storage tokenIds;
         // read from unstructured storage
@@ -283,6 +293,7 @@ contract Fragment is
                 )
             );
             assembly {
+                // Make `nonce` array point to storage slot `slot`
                 nonce.slot := slot
             }
         }
@@ -291,6 +302,7 @@ contract Fragment is
                 uint256(keccak256(abi.encodePacked(FRAGMENT_ATTACH_AUTHS)))
             );
             assembly {
+                // Make `auths` array point to storage slot `slot`
                 auths.slot := slot
             }
         }
@@ -299,6 +311,7 @@ contract Fragment is
                 uint256(keccak256(abi.encodePacked(FRAGMENT_COUNTER)))
             );
             assembly {
+            // Make `tokenIds` array point to storage slot `slot`
                 tokenIds.slot := slot
             }
         }
@@ -308,6 +321,7 @@ contract Fragment is
 
         // Authenticate this operation
         {
+            // Returns a hash (of a hash) that will be later verified with `signature`
             bytes32 hash = ECDSA.toEthSignedMessageHash(
                 keccak256(
                     abi.encodePacked(
@@ -319,6 +333,7 @@ contract Fragment is
                 )
             );
 
+            // Verify whether the hash was signed by `signature` and return public address of signer
             address auth = ECDSA.recover(hash, signature);
 
             require(auths[0].contains(auth), "Invalid signature");
@@ -327,7 +342,7 @@ contract Fragment is
         tokenIds[0].increment();
         uint256 tokenId = tokenIds[0].current();
 
-        // Store to ID 2 Hash table
+        // Store to Token ID 2 Fragment Hash table
         {
             bytes32[1] storage fragmentHashStorage;
             bytes32 slot = bytes32(
@@ -340,10 +355,11 @@ contract Fragment is
             assembly {
                 fragmentHashStorage.slot := slot
             }
+            /// @dev Stores fragmentHash in `abi.encodePacked(FRAGMENT_FRAGMENTS_ID2HASH, tokenId)`
             fragmentHashStorage[0] = fragmentHash;
         }
 
-        // Store to Hash 2 ID table
+        // Store to Fragment Hash 2 Token ID table
         {
             uint256[1] storage fragmentIDStorage;
             bytes32 slot = bytes32(
@@ -360,6 +376,7 @@ contract Fragment is
                 fragmentIDStorage.slot := slot
             }
             require(fragmentIDStorage[0] == 0, "Fragment already attached");
+            /// @dev Stores tokenId in `abi.encodePacked(FRAGMENT_FRAGMENTS_HASH2ID, fragmentHash)`
             fragmentIDStorage[0] = tokenId;
         }
 
