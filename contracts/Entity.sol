@@ -17,7 +17,9 @@ import "./RoyaltiesReceiver.sol";
 struct FragmentInitData {
     uint256 fragmentId;
     uint256 maxSupply;
+    // The address of the `Fragment` Contract
     address fragmentsLibrary;
+    // The address of RezProxy Contract that delegates all its calls to a Vault Contract
     address payable vault;
     bool unique;
     bool updateable;
@@ -27,6 +29,9 @@ struct EntityData {
     uint64 blockNum;
 }
 
+
+/// @title An Entity Contract
+/// @dev This contract is an ERC-721 Initializable Contract
 contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
@@ -109,6 +114,12 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _;
     }
 
+
+    /// @notice The de-facto Constructor of the Entity Smart Contract
+    /// @param tokenName - The name of the ERC-721 Token of this ERC-721 Contract
+    /// @param tokenSymbol - The symbol of the ERC-721 Token of this ERC-721 Contract
+    /// @param params - A Fragment. The fragment represented using the struct `FragmentInitData`
+    /// @dev The `initializer` modifier ensures this function is only called once
     function bootstrap(
         string calldata tokenName,
         string calldata tokenSymbol,
@@ -177,10 +188,12 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _url = url;
     }
 
+    /// @notice Returns the Fragment ID of the Entity Contract
     function getFragment() external view returns (uint256) {
         return _fragmentId;
     }
 
+    /// @notice Returns he address of the `Fragment` Contract
     function getLibrary() external view returns (address) {
         return address(_fragmentsLibrary);
     }

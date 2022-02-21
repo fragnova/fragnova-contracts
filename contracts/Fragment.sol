@@ -27,6 +27,8 @@ struct StakeData {
 }
 
 // this contract uses proxy
+/// @title This contract holds all the ERC-721 Fragment Tokens.
+/// @dev The Royalty Payment Logic is implemented in `RoyaltiesReceiever`
 contract Fragment is
     ERC721Enumerable,
     Ownable,
@@ -135,6 +137,7 @@ contract Fragment is
         setupRoyalties(payable(owner()), FRAGMENT_ROYALTIES_BPS);
     }
 
+    /// @notice Loads the Address of the Utility Library from Storage
     function getUtilityLibrary() public view returns (address addr) {
         bytes32 slot = SLOT_utilityLibrary;
         assembly {
