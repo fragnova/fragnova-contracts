@@ -169,6 +169,8 @@ contract Fragment is
         return ut.buildFragmentRootMetadata(owner(), FRAGMENT_ROYALTIES_BPS);
     }
 
+    /// @notice Get the Token ID of Fragment Hash `fragmentHash`
+    /// @param fragmentHash - The Fragment Hash
     function idOf(bytes32 fragmentHash) external view returns (uint256) {
         uint256[1] storage s;
         bytes32 sslot = bytes32(
@@ -185,6 +187,8 @@ contract Fragment is
         return s[0];
     }
 
+    /// @notice Get the Fragment Hash of Token ID `fragmentId`
+    /// @param fragmentId - The Token ID
     function hashOf(uint256 fragmentId) public view returns (bytes32) {
         bytes32[1] storage s;
         bytes32 sslot = bytes32(
@@ -383,6 +387,13 @@ contract Fragment is
         _mint(msg.sender, tokenId);
     }
 
+    /// @notice Creates a Fragment/Entity using a Proto-Fragment with Token ID `fragmentID`. Note: Only the owner of the Proto-Fragment can call this function
+    /// @param fragmentId - The Token ID of the Proto-Fragment
+    /// @param tokenName - The name to give the Fragment/Entity
+    /// @param tokenSymbol - The symbol to give the Fragment/Entity
+    /// @param unique - ¿
+    /// @param updateable - ¿
+    /// @param maxSupply - ¿
     function spawn(
         uint256 fragmentId,
         string memory tokenName,
@@ -401,10 +412,12 @@ contract Fragment is
             assembly {
                 mstore(add(ptr, 0x20), fragmentHash)
             }
+            // Create and Deploy an Entity Smart Contract
             entity = ClonesWithCallData.cloneWithCallDataProvision(
                 getAddress(SLOT_entityLogic),
                 ptr
             );
+            // Create and Deploy a Vault Smart Contract
             vault = ClonesWithCallData.cloneWithCallDataProvision(
                 getAddress(SLOT_vaultLogic),
                 ptr
@@ -413,6 +426,7 @@ contract Fragment is
 
         // entity
         {
+            // Create a Struct that represents the Fragment/Entity
             FragmentInitData memory params = FragmentInitData(
                 fragmentId,
                 maxSupply,
@@ -422,6 +436,7 @@ contract Fragment is
                 updateable
             );
 
+            // Call the de-facto constructor of the Entity Smart Contract and pass in the information about how we want the Fragment/Entity to be
             IEntity(entity).bootstrap(tokenName, tokenSymbol, params);
 
             // keep track of this new contract
@@ -432,19 +447,24 @@ contract Fragment is
                 )
             );
             assembly {
+                // Make `s` array point to storage slot `slot`
                 s.slot := slot
             }
+            // Add `entity` to the AddressSet in `s[0]`
             s[0].add(entity);
         }
 
         // vault
         {
+            // Call the de-facto constructor of the Vault Smart Contract and pass in the information
+            // about the address of the Fragment/Entity Contract and the address of this contract (i.e the address of the Proto-Fragment Contract)
             IVault(payable(vault)).bootstrap(entity, address(this));
         }
 
         // emit events
         emit Spawn(fragmentHash, entity, vault);
     }
+
 
     function transferOwnership(address newOwner) public override onlyOwner {
         setupRoyalties(payable(newOwner), FRAGMENT_ROYALTIES_BPS);

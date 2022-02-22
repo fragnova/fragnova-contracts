@@ -39,6 +39,7 @@ contract Vault is Initializable {
 
     constructor() {}
 
+    /// @notice Deposits all payments made in linked `Entity` Smart Contract (the address of which can be found in `SLOT_entityContract`) to this associated `Vault` Smart Contract
     function deposit() public payable {}
 
     /// @notice The de-facto Constructor of the Vault Smart Contract
