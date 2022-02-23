@@ -46,6 +46,7 @@ contract Utility {
         return id;
     }
 
+    /// @notice Build and return the metadata URI for Proto-Fragment whose hash is `fragmentHash`
     function buildFragmentMetadata(bytes32 fragmentHash)
         public
         pure
@@ -82,6 +83,13 @@ contract Utility {
         return string(data);
     }
 
+    /// @notice Build and return the metadata URI for the Entity/Fragment whose Token ID is `id`
+    /// @param id - The Token ID of the Entity/Fragment
+    /// @param mutableHash - ¿
+    /// @param entityID - The Entity Contract Address
+    /// @param dataBlock - The block number where the Entity was last modified
+    /// @dev Returns a string in the following format "{METADATA_URI}?ch={_getChainId().toHexString()}&id={id.toHexString()}
+    ///         &e=0x{toAsciiString(entityId)}&m={uint256(mutableHash).toHexString()}&d={dataBlock.toHexString()}"
     function buildEntityMetadata(
         uint256 id,
         bytes32 mutableHash,
@@ -105,6 +113,12 @@ contract Utility {
         return string(query);
     }
 
+    /// @notice Returns a JSON containing the paramater names and values
+    /// @param name Entity/Fragment Contract's Name
+    /// @param desc Entity/Fragment Contract's Description
+    /// @param url Entity/Fragment Contract's URL
+    /// @param vaultAddress The Address of the Vault Contract that corresponds to the Entity/Fragment Contract
+    /// @param feeBasisPoints The Royalty Rate (in basis points)
     function buildEntityRootMetadata(
         string memory name,
         string memory desc,

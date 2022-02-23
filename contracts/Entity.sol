@@ -15,6 +15,7 @@ import "./IUtility.sol";
 import "./RoyaltiesReceiver.sol";
 
 struct FragmentInitData {
+    // The Proto-Fragment ID
     uint256 fragmentId;
     uint256 maxSupply;
     // The address of the `Fragment` Contract
@@ -56,6 +57,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
     uint256 private _publicMintingPrice;
     uint256 private _dutchStartBlock;
     uint256 private _dutchStep;
+    // The ID of the Proto-Fragment that is linked with this Contract
     uint256 private _fragmentId;
     uint256 private _maxSupply;
     uint256 private _maxPublicAmount;
@@ -153,6 +155,8 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         setupRoyalties(payable(address(_vault)), FRAGMENT_ROYALTIES_BPS);
     }
 
+    /// @notice Returns the tokenURI of the ERC-721 Token with ID `tokenId`. (Note: Every ERC-721 Contract must have this function)
+    /// The tokenURI on an NFT is a unique identifier of what the token "looks" like. A URI could be an API call over HTTPS, an IPFS hash, or anything else unique. (https://www.freecodecamp.org/news/how-to-make-an-nft-and-render-on-opensea-marketplace/#:~:text=come%20into%20play.-,TokenURI,hash%2C%20or%20anything%20else%20unique.)
     function tokenURI(uint256 tokenId)
         public
         view
@@ -173,6 +177,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
             );
     }
 
+    /// @notice Returns a JSON that represents the storefront-level metadata (for example a Collection in OpenSea) for your contract
     function contractURI() public view returns (string memory) {
         IUtility ut = IUtility(_fragmentsLibrary.getUtilityLibrary());
         return
@@ -185,6 +190,10 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
             );
     }
 
+    /// @notice Set the Contract Information
+    /// @param contractName - The contract name
+    /// @param desc - The contract description
+    /// @param url - The contract URL
     function setContractInfo(
         string calldata contractName,
         string calldata desc,
@@ -205,10 +214,12 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         return address(_fragmentsLibrary);
     }
 
+    /// @notice Get the address of the Assosciated Vault Smart Contract
     function getVault() external view returns (address) {
         return address(_vault);
     }
 
+    /// @notice Given a token with ID `tokenID`, return the data hash of the token and the Block Number where the Token Data was last modified
     function getData(uint256 tokenId)
         external
         view
@@ -217,6 +228,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         return (_entityRefs[tokenId], _idToBlock[tokenId].blockNum);
     }
 
+    /// @notice Check if the Data Hash `dataHash` corresponds with the Token with id `id`
     function containsId(uint160 dataHash, uint256 id)
         external
         view
@@ -225,6 +237,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         return _envToId[dataHash].contains(id);
     }
 
+    /// @notice Set the state variable `_delegate`. `_delegate` is in charge of authenticating sigatures on this contract
     function setDelegate(address delegate) public onlyOwner {
         _delegate = delegate;
     }
@@ -324,7 +337,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         We use a signature to allow an entity off chain to verify that the content is valid and vouch for it.
         If we want to skip that crafted address and random signatures can be used
     */
-    /// @notice Allows the `msg.sender` to mint `amount` number Fragment Tokens (which all have the same `environment`)
+    /// @notice Allows the `msg.sender` to mint `amount` number of Fragment Tokens (which all have the same `environment`)
     /// @param `signature` - The signature provided by the `_delegate` state variable. The signature authenticates whether the the caller can mint/purchase these Fragment Tokens
     /// @param `environment` - ¿
     /// @param `amount` - The amount of Fragments the caller wants to purchase.
@@ -378,6 +391,9 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         We use a signature to allow an entity off chain to verify that the content is valid and vouch for it.
         If we want to skip that crafted address and random signatures can be used
     */
+    /// @notice Allows the caller to bid for a Fragment (Note: The Auction Type is a Dutch Action. Therefore, the price of the Fragment will drop after every time-step/block)
+    /// @param `signature` - The signature provided by the `_delegate` state variable. The signature authenticates whether the the caller can mint/purchase these Fragment Tokens
+    /// @param `environment` - ¿
     function bid(bytes calldata signature, bytes calldata environment)
         external
         payable
@@ -430,7 +446,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
             _tokenIds.current() < _publicCap;
     }
 
-    /// @notice ¿Allow the Fragment(s) in this Contract to be Publicly Minted? NOTE: ONLY THE OWNER OF THIS CONTRACT CAN CALL THIS FUNCTION
+    /// @notice ¿Allow the Fragment(s) in this Contract to be Publicly Minted at price `price`? NOTE: ONLY THE OWNER OF THIS CONTRACT CAN CALL THIS FUNCTION
     /// @param price - The Minimum Price a Fragment can be bought for
     /// @param maxAmount - The maximum number of Fragments that can be bought in a single function call
     /// @param cap - The number of Fragments that are for sale
@@ -445,7 +461,13 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _publicCap = cap;
         assert(_publicCap <= _maxSupply);
     }
-
+    // A Dutch auction is one of several similar types of auctions for buying or selling goods.
+    // Most commonly, it means an auction in which the auctioneer begins with a high asking price in the case of selling,
+    // and lowers it until some participant accepts the price, or it reaches a predetermined reserve price.
+    /// @notice ¿Allow the Fragment(s) in this Contract to be auctioned to the highest bigger (The exact auction type used is a Dutch Auction) NOTE: ONLY THE OWNER OF THIS CONTRACT CAN CALL THIS FUNCTION
+    /// @param maxPrice - The starting price
+    /// @param priceStep - The amount the price decreases at every time step
+    /// @param slots - The number of Fragments that are for sale
     function openDutchAuction(
         uint256 maxPrice,
         uint256 priceStep,
@@ -459,10 +481,13 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         assert(_publicCap <= _maxSupply);
     }
 
+    /// @notice Stop public minting (i.e prevent further Fragments from being minted by anyone) NOTE: ONLY THE OWNER OF THIS CONTRACT CAN CALL THIS FUNCTION
     function stopMarket() external onlyOwner {
         _publicMinting = NO_PUB_MINTING;
     }
 
+    /// @notice Transfer ERC-20 Token with token contract address `tokenAddress` and amount `tokenAmount` to `fragmentOwner()`.
+    /// NOTE: ONLY THE CONTRACT OWNER CAN THIS CALL THIS FUNCTION
     function recoverERC20(address tokenAddress, uint256 tokenAmount)
         external
         onlyOwner
@@ -471,6 +496,8 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         IERC20(tokenAddress).safeTransfer(fragmentOwner(), tokenAmount);
     }
 
+    /// @notice Claim Ether that is held by this contract (i.e by this Vault Contract).
+    /// NOTE: ONLY THE CONTRACT OWNER CAN THIS CALL THIS FUNCTION
     function recoverETH(uint256 amount) external onlyOwner {
         // notice: fragmentOwner, not owner due to owner used for opensea workaround...
         payable(fragmentOwner()).transfer(amount);

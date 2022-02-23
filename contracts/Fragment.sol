@@ -117,6 +117,16 @@ contract Fragment is
             super.supportsInterface(interfaceId);
     }
 
+    /// @notice The de-facto Constructor of the Fragment Smart Contract.
+    ///         - Sets the addresses of the following contracts in storage slots:
+    ///             1. Utility Contract
+    ///             2. Entity Contract
+    ///             3. Vault Contract
+    ///         - Declares the owner of this contract (i.e of the `Fragment` contract) as Royalty Receiver and also sets its Royalty Rate (in bps)
+    /// @param entityContract - The address of the RezProxy Contract that delegates all its calls to an Entity Contract
+    /// @param fragmentsLibrary - The address of the `Fragment` Contract
+    /// @dev The `initializer` modifier ensures this function is only called once
+    // The de-facto constructor stores `entityContract` in storage slot `SLOT_entityContract` and the `fragmentsLibrary` in storage slot `SLOT_fragmentsLibrary`
     function bootstrap() public payable initializer {
         // Ownable
         Ownable._bootstrap();
@@ -145,6 +155,7 @@ contract Fragment is
         }
     }
 
+    /// @notice Loads the Address of the "controller" of this contract (i.e of the Fragments Library)
     function getController() public view returns (address addr) {
         bytes32 slot = SLOT_controller;
         assembly {
@@ -152,6 +163,8 @@ contract Fragment is
         }
     }
 
+    /// @notice Returns the tokenURI of the ERC-721 Token with ID `tokenId`. (Note: Every ERC-721 Contract must have this function)
+    /// The tokenURI on an NFT is a unique identifier of what the token "looks" like. A URI could be an API call over HTTPS, an IPFS hash, or anything else unique. (https://www.freecodecamp.org/news/how-to-make-an-nft-and-render-on-opensea-marketplace/#:~:text=come%20into%20play.-,TokenURI,hash%2C%20or%20anything%20else%20unique.)
     function tokenURI(uint256 tokenId)
         public
         view
@@ -205,6 +218,7 @@ contract Fragment is
         return s[0];
     }
 
+    /// @notice Returns the addresses of all the Entity contracts assosciated with a Proto-Fragment (whose ID is `fragmentID`)
     function getEntities(uint256 fragmentId)
         external
         view
@@ -225,6 +239,7 @@ contract Fragment is
         }
     }
 
+    /// @notice Returns a Boolean indicating whether `addr` is one of the Entity Contracts assosciated with a Proto-Fragment (whose ID is `fragmentID`)
     function isEntityOf(address addr, uint256 fragmentId)
         external
         view
@@ -274,7 +289,7 @@ contract Fragment is
         auths[0].remove(addr);
     }
 
-    /// @notice Attaches a Proto-Fragment from Fragnova's Blockchain to this Smart Contract
+    /// @notice Attaches a Proto-Fragment from Fragnova's Blockchain to this Smart Contract and assigns its ownership to `msg.sender`
     /// @param fragmentHash - The Proto-Fragment ID to attach
     /// @param signature - The signature provided by Fragnova's Blockahin's Off-Chain Validator to validate this attach request
     /// @dev Verifies if the authorizer signed the message.
@@ -384,6 +399,7 @@ contract Fragment is
             fragmentIDStorage[0] = tokenId;
         }
 
+        // Assign Ownernship on `tokenId` to `msg.sender`
         _mint(msg.sender, tokenId);
     }
 
@@ -465,7 +481,8 @@ contract Fragment is
         emit Spawn(fragmentHash, entity, vault);
     }
 
-
+    /// @notice Transfer Ownership of this contract (i.e of the `Fragment` contract) to `newOwner`
+    ///         Furthermore, the royalty recipient of this contract (i.e of the `Fragment` contract) is also `newOwner`
     function transferOwnership(address newOwner) public override onlyOwner {
         setupRoyalties(payable(newOwner), FRAGMENT_ROYALTIES_BPS);
         super.transferOwnership(newOwner);
@@ -495,6 +512,8 @@ contract Fragment is
         _burn(fragmentId);
     }
 
+    /// @notice Transfer ERC-20 Token with token contract address `tokenAddress` and amount `tokenAmount` to `owner()`.
+    /// NOTE: ONLY THE CONTRACT OWNER CAN THIS CALL THIS FUNCTION
     function recoverERC20(address tokenAddress, uint256 tokenAmount)
         external
         onlyOwner
@@ -502,6 +521,8 @@ contract Fragment is
         IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
     }
 
+    /// @notice Transfer Ethers with amount `amount` to `owner()`
+    /// NOTE: ONLY THE CONTRACT OWNER CAN THIS CALL THIS FUNCTION
     function recoverETH(uint256 amount) external onlyOwner {
         payable(owner()).transfer(amount);
     }

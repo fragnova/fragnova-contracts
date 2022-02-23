@@ -57,7 +57,7 @@ contract RoyaltiesReceiver {
 
 
     /// @notice Sets up the Royalties Recipient (`royaltiesRecipient`) and the basis points of the Sales Price that will go to the Royalties Recipient (`royaltiesBps`)
-    /// @param royaltiesRecipient - The Royalties Recipient
+    /// @param royaltiesRecipient - The Address of the royalties Recipient
     /// @param royaltiesBps - The basis points of the Sales Price that will go to the Royalties Recipient
     function setupRoyalties(
         address payable royaltiesRecipient,

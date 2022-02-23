@@ -432,6 +432,8 @@ contract PreERC721Genesis is Ownable, Initializable {
         return cids;
     }
 
+    /// @notice Returns the address of `tokenID`th element in the array `getOwners()`
+    /// @dev If the `tokenId` is contained the array state variable `_excludedTokens` or is greater than `getOwners()`, it returns `address(0x0)`
     function getGenesisOwner(uint256 tokenId) public view returns (address) {
         if (_excludedTokens.contains(tokenId)) {
             return address(0x0);
@@ -493,6 +495,8 @@ contract PreERC721Genesis is Ownable, Initializable {
         uint256 indexed tokenId
     );
 
+
+    /// @notice This function is called just so that we emit 100 `Transfer` events on the Blockchain - as this will allow OpenSea and others to track/find our NFT contract
     function generateEvents() external onlyController {
         address[TOTAL_TOKENS] memory owners = getOwners();
         for (uint256 i = 0; i < TOTAL_TOKENS; i++) {
@@ -506,6 +510,9 @@ contract PreERC721Genesis is Ownable, Initializable {
         return cids[tokenId - 1];
     }
 
+    /// @notice The de-facto Constructor of the PreER721 Smart Contract. Stores the address of Proxy of the PreERC721 Contract
+    /// @param controller - The address of the Proxy of the PreERC721 Contract
+    /// @dev The `initializer` modifier ensures this function is only called once
     function init(address controller) external onlyOwner initializer {
         _controller = controller;
     }

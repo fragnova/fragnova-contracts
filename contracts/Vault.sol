@@ -17,6 +17,8 @@ contract Vault is Initializable {
     bytes32 private constant SLOT_entityContract =
         bytes32(uint256(keccak256("fragments.vault.entityContract")) - 1);
 
+
+    /// @notice Returns the address of the owner of the Proto-Fragment
     function fragmentOwner() public view virtual returns (address) {
         address entityContract;
         bytes32 slot = SLOT_entityContract;
@@ -27,6 +29,7 @@ contract Vault is Initializable {
         return e.fragmentOwner();
     }
 
+    /// @notice Returns the address of the owner of the `Fragment` smart contract
     function foundation() public view virtual returns (address) {
         address fragmentsLibrary;
         bytes32 slot = SLOT_fragmentsLibrary;
@@ -42,7 +45,7 @@ contract Vault is Initializable {
     /// @notice Deposits all payments made in linked `Entity` Smart Contract (the address of which can be found in `SLOT_entityContract`) to this associated `Vault` Smart Contract
     function deposit() public payable {}
 
-    /// @notice The de-facto Constructor of the Vault Smart Contract
+    /// @notice The de-facto Constructor of the Vault Smart Contract. Stores the address of the Proxy of the Entity Contract and the address of the Fragments Library (`Fragments.sol`) in Storage Slots
     /// @param entityContract - The address of the RezProxy Contract that delegates all its calls to an Entity Contract
     /// @param fragmentsLibrary - The address of the `Fragment` Contract
     /// @dev The `initializer` modifier ensures this function is only called once
@@ -62,6 +65,9 @@ contract Vault is Initializable {
         }
     }
 
+    /// @notice Claim ERC-20 Tokens (whose token contract address is `tokenAddress`) that are held by this contract (i.e by this Vault Contract)
+    /// 80% of ERC-20 Tokens held goes to the Proto-Fragment Owner (`fragmentOwner()`)
+    /// and 20% goes to the Fragments Foundation
     function claimERC20(address tokenAddress) public {
         IERC20 erc20 = IERC20(tokenAddress);
         uint256 balance = erc20.balanceOf(address(this));
@@ -74,6 +80,9 @@ contract Vault is Initializable {
         erc20.safeTransfer(foundation(), balance);
     }
 
+    /// @notice Claim Ether that is held by this contract (i.e by this Vault Contract)
+    /// 80% of the Ethers held goes to the Proto-Fragment Owner (`fragmentOwner()`)
+    /// and 20% goes to the Fragments Foundation
     function claimETH() public {
         uint256 balance = address(this).balance;
         assert(balance > 0);
