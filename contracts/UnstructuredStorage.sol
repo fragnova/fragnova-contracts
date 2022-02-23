@@ -20,6 +20,7 @@ contract UnstructuredStorage is Ownable {
         _setUint(slot, value);
     }
 
+    /// @dev Gets the address stored in storage slot `slot`
     function getAddress(bytes32 slot) public view returns (address value) {
         assembly {
             value := sload(slot)

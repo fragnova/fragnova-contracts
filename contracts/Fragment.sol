@@ -27,6 +27,8 @@ struct StakeData {
 }
 
 // this contract uses proxy
+/// @title This contract holds all the Proto-Fragments
+/// @dev The Royalty Payment Logic is implemented in `RoyaltiesReceiever`
 contract Fragment is
     ERC721Enumerable,
     Ownable,
@@ -80,10 +82,10 @@ contract Fragment is
     // Use a human readable counter for IDs
     bytes32 private constant FRAGMENT_COUNTER =
         keccak256("fragcolor.fragment.counter");
-    // ID -> Fragment Hash
+    // Token ID -> Fragment Hash
     bytes32 private constant FRAGMENT_FRAGMENTS_ID2HASH =
         keccak256("fragcolor.fragment.fragments");
-    // ID -> Fragment Hash
+    // Token ID -> Fragment Hash (¿Shouldn't this be Fragment Hash -> Token ID?)
     bytes32 private constant FRAGMENT_FRAGMENTS_HASH2ID =
         keccak256("fragcolor.fragment.fragments");
     // keep track of rezzed entitites
@@ -115,6 +117,16 @@ contract Fragment is
             super.supportsInterface(interfaceId);
     }
 
+    /// @notice The de-facto Constructor of the Fragment Smart Contract.
+    ///         - Sets the addresses of the following contracts in storage slots:
+    ///             1. Utility Contract
+    ///             2. Entity Contract
+    ///             3. Vault Contract
+    ///         - Declares the owner of this contract (i.e of the `Fragment` contract) as Royalty Receiver and also sets its Royalty Rate (in bps)
+    /// @param entityContract - The address of the RezProxy Contract that delegates all its calls to an Entity Contract
+    /// @param fragmentsLibrary - The address of the `Fragment` Contract
+    /// @dev The `initializer` modifier ensures this function is only called once
+    // The de-facto constructor stores `entityContract` in storage slot `SLOT_entityContract` and the `fragmentsLibrary` in storage slot `SLOT_fragmentsLibrary`
     function bootstrap() public payable initializer {
         // Ownable
         Ownable._bootstrap();
@@ -135,6 +147,7 @@ contract Fragment is
         setupRoyalties(payable(owner()), FRAGMENT_ROYALTIES_BPS);
     }
 
+    /// @notice Loads the Address of the Utility Library from Storage
     function getUtilityLibrary() public view returns (address addr) {
         bytes32 slot = SLOT_utilityLibrary;
         assembly {
@@ -142,6 +155,7 @@ contract Fragment is
         }
     }
 
+    /// @notice Loads the Address of the "controller" of this contract (i.e of the Fragments Library)
     function getController() public view returns (address addr) {
         bytes32 slot = SLOT_controller;
         assembly {
@@ -149,6 +163,8 @@ contract Fragment is
         }
     }
 
+    /// @notice Returns the tokenURI of the ERC-721 Token with ID `tokenId`. (Note: Every ERC-721 Contract must have this function)
+    /// The tokenURI on an NFT is a unique identifier of what the token "looks" like. A URI could be an API call over HTTPS, an IPFS hash, or anything else unique. (https://www.freecodecamp.org/news/how-to-make-an-nft-and-render-on-opensea-marketplace/#:~:text=come%20into%20play.-,TokenURI,hash%2C%20or%20anything%20else%20unique.)
     function tokenURI(uint256 tokenId)
         public
         view
@@ -166,6 +182,8 @@ contract Fragment is
         return ut.buildFragmentRootMetadata(owner(), FRAGMENT_ROYALTIES_BPS);
     }
 
+    /// @notice Get the Token ID of Fragment Hash `fragmentHash`
+    /// @param fragmentHash - The Fragment Hash
     function idOf(bytes32 fragmentHash) external view returns (uint256) {
         uint256[1] storage s;
         bytes32 sslot = bytes32(
@@ -182,6 +200,8 @@ contract Fragment is
         return s[0];
     }
 
+    /// @notice Get the Fragment Hash of Token ID `fragmentId`
+    /// @param fragmentId - The Token ID
     function hashOf(uint256 fragmentId) public view returns (bytes32) {
         bytes32[1] storage s;
         bytes32 sslot = bytes32(
@@ -198,6 +218,7 @@ contract Fragment is
         return s[0];
     }
 
+    /// @notice Returns the addresses of all the Entity contracts assosciated with a Proto-Fragment (whose ID is `fragmentID`)
     function getEntities(uint256 fragmentId)
         external
         view
@@ -218,6 +239,7 @@ contract Fragment is
         }
     }
 
+    /// @notice Returns a Boolean indicating whether `addr` is one of the Entity Contracts assosciated with a Proto-Fragment (whose ID is `fragmentID`)
     function isEntityOf(address addr, uint256 fragmentId)
         external
         view
@@ -234,6 +256,7 @@ contract Fragment is
         return s[0].contains(addr);
     }
 
+    /// @notice Returns the current chain’s EIP-155 unique identifier
     function _getChainId() private view returns (uint256) {
         uint256 id;
         assembly {
@@ -242,6 +265,7 @@ contract Fragment is
         return id;
     }
 
+    /// @notice Allows the Owner of this Contract to add an Authorizer (i.e Fragnova's Blockchain's Off-Chain Validator)
     function addAuth(address addr) external onlyOwner {
         EnumerableSet.AddressSet[1] storage auths;
         bytes32 slot = bytes32(
@@ -253,6 +277,7 @@ contract Fragment is
         auths[0].add(addr);
     }
 
+    /// @notice Allows the Owner of this Contract to remove an Authorizer (i.e Fragnova's Blockchain's Off-Chain Validator)
     function delAuth(address addr) external onlyOwner {
         EnumerableSet.AddressSet[1] storage auths;
         bytes32 slot = bytes32(
@@ -264,10 +289,17 @@ contract Fragment is
         auths[0].remove(addr);
     }
 
+    /// @notice Attaches a Proto-Fragment from Fragnova's Blockchain to this Smart Contract and assigns its ownership to `msg.sender`
+    /// @param fragmentHash - The Proto-Fragment ID to attach
+    /// @param signature - The signature provided by Fragnova's Blockahin's Off-Chain Validator to validate this attach request
+    /// @dev Verifies if the authorizer signed the message.
+    /// Then, it  mints an ERC-721 Token (where the ID is the one plus the uint256 stored in `uint256(keccak256(abi.encodePacked(FRAGMENT_COUNTER)))`)
+    /// and gives its ownership to `msg.sender`
     function attach(bytes32 fragmentHash, bytes calldata signature) external {
         require(!_exists(uint256(fragmentHash)), "Fragment already attached");
 
         uint64[1] storage nonce;
+        // ¿I wonder why we there is only one authorizer?
         EnumerableSet.AddressSet[1] storage auths;
         Counters.Counter[1] storage tokenIds;
         // read from unstructured storage
@@ -280,6 +312,7 @@ contract Fragment is
                 )
             );
             assembly {
+                // Make `nonce` array point to storage slot `slot`
                 nonce.slot := slot
             }
         }
@@ -288,6 +321,7 @@ contract Fragment is
                 uint256(keccak256(abi.encodePacked(FRAGMENT_ATTACH_AUTHS)))
             );
             assembly {
+                // Make `auths` array point to storage slot `slot`
                 auths.slot := slot
             }
         }
@@ -296,6 +330,7 @@ contract Fragment is
                 uint256(keccak256(abi.encodePacked(FRAGMENT_COUNTER)))
             );
             assembly {
+            // Make `tokenIds` array point to storage slot `slot`
                 tokenIds.slot := slot
             }
         }
@@ -305,6 +340,7 @@ contract Fragment is
 
         // Authenticate this operation
         {
+            // Returns a hash (of a hash) that will be later verified with `signature`
             bytes32 hash = ECDSA.toEthSignedMessageHash(
                 keccak256(
                     abi.encodePacked(
@@ -316,6 +352,7 @@ contract Fragment is
                 )
             );
 
+            // Verify whether the hash was signed by `signature` and return public address of signer
             address auth = ECDSA.recover(hash, signature);
 
             require(auths[0].contains(auth), "Invalid signature");
@@ -324,7 +361,7 @@ contract Fragment is
         tokenIds[0].increment();
         uint256 tokenId = tokenIds[0].current();
 
-        // Store to ID 2 Hash table
+        // Store to Token ID 2 Fragment Hash table
         {
             bytes32[1] storage fragmentHashStorage;
             bytes32 slot = bytes32(
@@ -337,10 +374,11 @@ contract Fragment is
             assembly {
                 fragmentHashStorage.slot := slot
             }
+            /// @dev Stores fragmentHash in `abi.encodePacked(FRAGMENT_FRAGMENTS_ID2HASH, tokenId)`
             fragmentHashStorage[0] = fragmentHash;
         }
 
-        // Store to Hash 2 ID table
+        // Store to Fragment Hash 2 Token ID table
         {
             uint256[1] storage fragmentIDStorage;
             bytes32 slot = bytes32(
@@ -357,12 +395,21 @@ contract Fragment is
                 fragmentIDStorage.slot := slot
             }
             require(fragmentIDStorage[0] == 0, "Fragment already attached");
+            /// @dev Stores tokenId in `abi.encodePacked(FRAGMENT_FRAGMENTS_HASH2ID, fragmentHash)`
             fragmentIDStorage[0] = tokenId;
         }
 
+        // Assign Ownernship on `tokenId` to `msg.sender`
         _mint(msg.sender, tokenId);
     }
 
+    /// @notice Creates a Fragment/Entity using a Proto-Fragment with Token ID `fragmentID`. Note: Only the owner of the Proto-Fragment can call this function
+    /// @param fragmentId - The Token ID of the Proto-Fragment
+    /// @param tokenName - The name to give the Fragment/Entity
+    /// @param tokenSymbol - The symbol to give the Fragment/Entity
+    /// @param unique - ¿
+    /// @param updateable - ¿
+    /// @param maxSupply - ¿
     function spawn(
         uint256 fragmentId,
         string memory tokenName,
@@ -381,10 +428,12 @@ contract Fragment is
             assembly {
                 mstore(add(ptr, 0x20), fragmentHash)
             }
+            // Create and Deploy an Entity Smart Contract
             entity = ClonesWithCallData.cloneWithCallDataProvision(
                 getAddress(SLOT_entityLogic),
                 ptr
             );
+            // Create and Deploy a Vault Smart Contract
             vault = ClonesWithCallData.cloneWithCallDataProvision(
                 getAddress(SLOT_vaultLogic),
                 ptr
@@ -393,6 +442,7 @@ contract Fragment is
 
         // entity
         {
+            // Create a Struct that represents the Fragment/Entity
             FragmentInitData memory params = FragmentInitData(
                 fragmentId,
                 maxSupply,
@@ -402,6 +452,7 @@ contract Fragment is
                 updateable
             );
 
+            // Call the de-facto constructor of the Entity Smart Contract and pass in the information about how we want the Fragment/Entity to be
             IEntity(entity).bootstrap(tokenName, tokenSymbol, params);
 
             // keep track of this new contract
@@ -412,13 +463,17 @@ contract Fragment is
                 )
             );
             assembly {
+                // Make `s` array point to storage slot `slot`
                 s.slot := slot
             }
+            // Add `entity` to the AddressSet in `s[0]`
             s[0].add(entity);
         }
 
         // vault
         {
+            // Call the de-facto constructor of the Vault Smart Contract and pass in the information
+            // about the address of the Fragment/Entity Contract and the address of this contract (i.e the address of the Proto-Fragment Contract)
             IVault(payable(vault)).bootstrap(entity, address(this));
         }
 
@@ -426,6 +481,8 @@ contract Fragment is
         emit Spawn(fragmentHash, entity, vault);
     }
 
+    /// @notice Transfer Ownership of this contract (i.e of the `Fragment` contract) to `newOwner`
+    ///         Furthermore, the royalty recipient of this contract (i.e of the `Fragment` contract) is also `newOwner`
     function transferOwnership(address newOwner) public override onlyOwner {
         setupRoyalties(payable(newOwner), FRAGMENT_ROYALTIES_BPS);
         super.transferOwnership(newOwner);
@@ -455,6 +512,8 @@ contract Fragment is
         _burn(fragmentId);
     }
 
+    /// @notice Transfer ERC-20 Token with token contract address `tokenAddress` and amount `tokenAmount` to `owner()`.
+    /// NOTE: ONLY THE CONTRACT OWNER CAN THIS CALL THIS FUNCTION
     function recoverERC20(address tokenAddress, uint256 tokenAmount)
         external
         onlyOwner
@@ -462,6 +521,8 @@ contract Fragment is
         IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
     }
 
+    /// @notice Transfer Ethers with amount `amount` to `owner()`
+    /// NOTE: ONLY THE CONTRACT OWNER CAN THIS CALL THIS FUNCTION
     function recoverETH(uint256 amount) external onlyOwner {
         payable(owner()).transfer(amount);
     }
