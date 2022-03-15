@@ -83,8 +83,8 @@ contract("Fragment", accounts => {
   var tokenTwo = null;
 
   it("should upload a fragment", async () => {
-    console.log("About to await 5 seconds");
-    await delay(5000);
+    // console.log("About to await 5 seconds");
+    // await delay(5000);
 
     const params = {
       from: accounts[0],
@@ -254,7 +254,7 @@ contract("Fragment", accounts => {
     assert.equal(await newContract.methods.contractURI().call(), 'data:application/json,{"name":"PreERC721Sample\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000","description":"","seller_fee_basis_points":700,"fee_recipient":"0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1","image":"https://gateway.server.com/0x953f867f5e7af34b031d2689ea1486420571dfac0cd4043b173b0035e621c0dd/logo","external_link":"https://gateway.server.com/0x953f867f5e7af34b031d2689ea1486420571dfac0cd4043b173b0035e621c0dd/page"}');
 
     assert.equal(await newContract.methods.balanceOf(accounts[0]).call(), 10);
-    const tx2 = await newContract.methods.safeTransferFrom(accounts[0], accounts[2], 1).send({ from: accounts[0], gas: 500000 });
+    const tx2 = await newContract.methods.transferFrom(accounts[0], accounts[2], 1).send({ from: accounts[0], gas: 500000 });
     assert.equal(await newContract.methods.ownerOf(1).call(), accounts[2]);
     assert.equal(await newContract.methods.balanceOf(accounts[2]).call(), 11);
     assert.equal(await newContract.methods.balanceOf(accounts[0]).call(), 9);
