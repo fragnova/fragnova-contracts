@@ -33,4 +33,5 @@ module.exports = async function (deployer, network) {
   fs.writeFile("deployer-utils/pre721-bytecode.txt", pre721.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/pre721Factory-bytecode.txt", pre721Factory.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/pre721Genesis-bytecode.txt", pre721Genesis.bytecode, (_r, _e) => { });
+  fs.writeFile("deployer-utils/daoToken-bytecode.txt", daoToken.bytecode, (_r, _e) => { });
 };

@@ -14,6 +14,10 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     mapping(address => uint256) private _locks;
     address private _authority;
 
+    // Fragnova chain will listen to those events
+    event Lock(address indexed owner, uint256 amount);
+    event Unlock(address indexed owner, uint256 amount);
+
     constructor()
         ERC20("Fragnova Network Token", "FRAG")
         ERC20Permit("Fragnova Network Token")
@@ -67,8 +71,12 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
     function lock(uint256 amount) external {
         require(amount > 0, "Amount must be greater than 0");
+
         _locks[msg.sender] = amount;
+
         transfer(address(this), amount);
+
+        emit Lock(msg.sender, amount);
     }
 
     function unlock(bytes calldata signature) external {
@@ -86,8 +94,13 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
             "Invalid signature"
         );
 
-        // return the stake
+        // reset the stake
         _locks[msg.sender] = 0;
+
+        // return the stake
         transfer(msg.sender, amount);
+
+        // send events
+        emit Unlock(msg.sender, amount);
     }
 }
