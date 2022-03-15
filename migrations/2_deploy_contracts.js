@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-var daoToken = artifacts.require("FragmentDAOToken");
+var daoToken = artifacts.require("FRAGToken");
 var nft = artifacts.require("Fragment");
 var nftProxy = artifacts.require("FragmentProxy");
 var nftEntity = artifacts.require("Entity");
