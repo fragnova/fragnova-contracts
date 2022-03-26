@@ -15,8 +15,8 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     address private _authority;
 
     // Fragnova chain will listen to those events
-    event Lock(address indexed owner, uint256 amount);
-    event Unlock(address indexed owner, uint256 amount);
+    event Lock(address indexed owner, bytes signature, uint256 amount);
+    event Unlock(address indexed owner, bytes signature, uint256 amount);
 
     constructor()
         ERC20("Fragnova Network Token", "FRAG")
@@ -49,14 +49,6 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         super._burn(account, amount);
     }
 
-    function _getChainId() private view returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
-    }
-
     function setAuthority(address authority) public onlyOwner {
         _authority = authority;
     }
@@ -69,14 +61,23 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         _burn(account, amount);
     }
 
-    function lock(uint256 amount) external {
+    function lock(uint256 amount, bytes calldata signature) external {
         require(amount > 0, "Amount must be greater than 0");
+
+        // make sure the signature is valid
+        bytes32 hash = ECDSA.toEthSignedMessageHash(
+            keccak256(abi.encodePacked(msg.sender, block.chainid, amount))
+        );
+        require(
+            msg.sender == ECDSA.recover(hash, signature),
+            "Invalid signature"
+        );
 
         _locks[msg.sender] = amount;
 
         transfer(address(this), amount);
 
-        emit Lock(msg.sender, amount);
+        emit Lock(msg.sender, signature, amount);
     }
 
     function unlock(bytes calldata signature) external {
@@ -84,9 +85,7 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
         // authenticate first
         bytes32 hash = ECDSA.toEthSignedMessageHash(
-            keccak256(
-                abi.encodePacked(msg.sender, _getChainId(), msg.sender, amount)
-            )
+            keccak256(abi.encodePacked(msg.sender, block.chainid, amount))
         );
         require(
             _authority != address(0x0) &&
@@ -101,6 +100,6 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         transfer(msg.sender, amount);
 
         // send events
-        emit Unlock(msg.sender, amount);
+        emit Unlock(msg.sender, signature, amount);
     }
 }

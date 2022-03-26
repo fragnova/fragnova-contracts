@@ -222,7 +222,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
             keccak256(
                 abi.encodePacked(
                     msg.sender,
-                    _getChainId(),
+                    block.chainid,
                     _fragmentId,
                     environment
                 )
@@ -280,14 +280,6 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         _upload(dataHash, amount);
     }
 
-    function _getChainId() private view returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
-    }
-
     /*
         This is to allow public sales.
         We use a signature to allow an entity off chain to verify that the content is valid and vouch for it.
@@ -318,7 +310,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
         // All good authenticate now
         bytes32 hash = ECDSA.toEthSignedMessageHash(
             keccak256(
-                abi.encodePacked(msg.sender, _getChainId(), dataHash, amount)
+                abi.encodePacked(msg.sender, block.chainid, dataHash, amount)
             )
         );
         require(
@@ -362,7 +354,7 @@ contract Entity is ERC721Enumerable, Initializable, RoyaltiesReceiver {
 
         // Authenticate
         bytes32 hash = ECDSA.toEthSignedMessageHash(
-            keccak256(abi.encodePacked(msg.sender, _getChainId(), dataHash))
+            keccak256(abi.encodePacked(msg.sender, block.chainid, dataHash))
         );
         require(
             _delegate != address(0x0) &&

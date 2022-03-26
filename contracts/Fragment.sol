@@ -234,14 +234,6 @@ contract Fragment is
         return s[0].contains(addr);
     }
 
-    function _getChainId() private view returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
-    }
-
     function addAuth(address addr) external onlyOwner {
         EnumerableSet.AddressSet[1] storage auths;
         bytes32 slot = bytes32(
@@ -309,7 +301,7 @@ contract Fragment is
                 keccak256(
                     abi.encodePacked(
                         fragmentHash,
-                        _getChainId(),
+                        block.chainid,
                         msg.sender,
                         nonce[0]
                     )

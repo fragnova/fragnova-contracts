@@ -38,14 +38,6 @@ contract Utility {
         else return bytes1(uint8(b) + 0x57);
     }
 
-    function _getChainId() private view returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
-    }
-
     function buildFragmentMetadata(bytes32 fragmentHash)
         public
         pure
@@ -91,7 +83,7 @@ contract Utility {
         bytes memory query = abi.encodePacked(
             METADATA_URI,
             "?ch=",
-            _getChainId().toHexString(),
+            block.chainid.toHexString(),
             "&id=",
             id.toHexString(),
             "&e=0x",
