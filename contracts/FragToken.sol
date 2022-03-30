@@ -9,7 +9,8 @@ import "openzeppelin-solidity/contracts/token/ERC20/extensions/draft-ERC20Permit
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
 contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
-    uint256 constant INITIAL_SUPPLY = 1000000000 * (10**18);
+    uint8 constant DECIMALS = 12; // Preferred for Fragnova (Substrate)
+    uint256 constant INITIAL_SUPPLY = 1000000000 * (10**DECIMALS);
 
     mapping(address => uint256) private _locks;
     address private _authority;
@@ -47,6 +48,10 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         override(ERC20, ERC20Votes)
     {
         super._burn(account, amount);
+    }
+
+    function decimals() public pure override returns (uint8) {
+        return DECIMALS;
     }
 
     function setAuthority(address authority) public onlyOwner {
