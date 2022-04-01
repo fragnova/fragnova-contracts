@@ -11,9 +11,10 @@ import "openzeppelin-solidity/contracts/access/Ownable.sol";
 contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     uint8 constant DECIMALS = 12; // Preferred for Fragnova (Substrate)
     uint256 constant INITIAL_SUPPLY = 1000000000 * (10**DECIMALS);
+    uint256 constant LOCK_DURATION = 45500; // Roughly 1 week
 
-    mapping(address => uint256) private _locks;
-    address private _authority;
+    mapping(address => uint256) private _locksAmount;
+    mapping(address => uint256) private _locksBlock;
 
     // Fragnova chain will listen to those events
     event Lock(address indexed owner, bytes signature, uint256 amount);
@@ -54,10 +55,6 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         return DECIMALS;
     }
 
-    function setAuthority(address authority) public onlyOwner {
-        _authority = authority;
-    }
-
     function inflate(address to, uint256 amount) public onlyOwner {
         _mint(to, amount);
     }
@@ -78,33 +75,43 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
             "Invalid signature"
         );
 
-        _locks[msg.sender] = amount;
+        _locksAmount[msg.sender] = amount;
+        _locksBlock[msg.sender] = block.number;
 
         transfer(address(this), amount);
 
+        // We need to propagate the signature because it's the only reliable way to fetch the public key
+        // of the sender from other chains.
         emit Lock(msg.sender, signature, amount);
     }
 
     function unlock(bytes calldata signature) external {
-        uint256 amount = _locks[msg.sender];
+        require(
+            block.number > _locksBlock[msg.sender] + LOCK_DURATION,
+            "Lock didn't expire"
+        );
 
-        // authenticate first
+        uint256 amount = _locksAmount[msg.sender];
+
+        // make sure the signature is valid
         bytes32 hash = ECDSA.toEthSignedMessageHash(
             keccak256(abi.encodePacked(msg.sender, block.chainid, amount))
         );
         require(
-            _authority != address(0x0) &&
-                _authority == ECDSA.recover(hash, signature),
+            msg.sender == ECDSA.recover(hash, signature),
             "Invalid signature"
         );
 
         // reset the stake
-        _locks[msg.sender] = 0;
+        _locksAmount[msg.sender] = 0;
+        _locksBlock[msg.sender] = 0;
 
         // return the stake
         transfer(msg.sender, amount);
 
         // send events
+        // this will be used by the Fragnova chain to unlock the stake
+        // and potentially remove the stake from many protos automatically
         emit Unlock(msg.sender, signature, amount);
     }
 }
