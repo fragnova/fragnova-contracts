@@ -92,6 +92,7 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         );
 
         uint256 amount = _locksAmount[msg.sender];
+        require(amount > 0, "Amount must be greater than 0");
 
         // make sure the signature is valid
         bytes32 hash = ECDSA.toEthSignedMessageHash(
