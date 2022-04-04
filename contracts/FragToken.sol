@@ -17,8 +17,8 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     mapping(address => uint256) private _locksBlock;
 
     // Fragnova chain will listen to those events
-    event Lock(address indexed owner, bytes signature, uint256 amount);
-    event Unlock(address indexed owner, bytes signature, uint256 amount);
+    event Lock(bytes signature, uint256 amount);
+    event Unlock(bytes signature, uint256 amount);
 
     constructor()
         ERC20("Fragnova Network Token", "FRAG")
@@ -82,7 +82,7 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
         // We need to propagate the signature because it's the only reliable way to fetch the public key
         // of the sender from other chains.
-        emit Lock(msg.sender, signature, amount);
+        emit Lock(signature, amount);
     }
 
     function unlock(bytes calldata signature) external {
@@ -113,6 +113,6 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         // send events
         // this will be used by the Fragnova chain to unlock the stake
         // and potentially remove the stake from many protos automatically
-        emit Unlock(msg.sender, signature, amount);
+        emit Unlock(signature, amount);
     }
 }
