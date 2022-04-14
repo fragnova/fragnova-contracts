@@ -309,31 +309,22 @@ contract("Fragment", accounts => {
   //   assert.equal(10, includeCost.toNumber());
   // });
 
-  // it("should upload a fragment with reference, paying referenced", async () => {
-  //   const contract = await nft.deployed();
-  //   const dao20 = await dao.deployed();
-  //   await dao20.transfer(accounts[1], web3.utils.toWei("1024", "ether"));
-  //   const emptyCode = new Uint8Array(1024);
-  //   const initialBalance = await dao20.balanceOf.call(accounts[1]);
-  //   await dao20.approve(contract.address, 10, { from: accounts[1] });
-  //   await contract.stake(tokenOne, 10, { from: accounts[1] });
-  //   const count = await contract.getStakeCount.call(tokenOne);
-  //   assert(new BN(1, 1).eq(count));
-  //   const staked = await contract.getStakeAt.call(tokenOne, 0);
-  //   assert(new BN(10, 10).eq(staked.amount));
-  //   emptyCode[0] = 1; // make a small change in order to succeed
-  //   const tx = await contract.upload(emptyCode, emptyCode, [tokenOne], 0, { from: accounts[1] });
-  //   assert.equal(await contract.ownerOf.call(tx.logs[0].args.tokenId), accounts[1]);
-  //   const finalBalance = await dao20.balanceOf.call(accounts[1]);
-  //   assert(initialBalance.sub(new BN(10, 10)).eq(finalBalance));
-  //   tokenTwo = tx.logs[0].args.tokenId.toString();
-  //   var snapshot = await contract.getSnapshot(tokenOne, tokenTwo);
-  //   assert.equal(snapshot, "0x000000000000000000000000000000000000000000000000000000000000000af548e71c32522ed78c2588df2cfdc3acd5c04cf930953ecabcc86ee3532f317c000000000012000000000017");
-  //   snapshot = await contract.getSnapshot(tokenTwo, tokenOne);
-  //   assert.equal(snapshot, "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000");
-  //   const descendants = await contract.descendants(tokenOne);
-  //   assert.equal(descendants.length, 1);
-  // });
+  it("should upload a fragment with reference, paying referenced", async () => {
+    const contract = await nft.deployed();
+
+    const dao20 = await dao.deployed();
+    await dao20.transfer(accounts[1], 2000);
+
+    const parts = [
+      { t: "address", v: accounts[1] },
+      { t: "uint256", v: 5 },
+      { t: "uint256", v: 1000 },
+    ];
+    const messageHex = web3.utils.soliditySha3(...parts);
+    const signature = await signMessage(accounts[1], messageHex);
+
+    await dao20.lock(1000, signature, { from: accounts[1] });
+  });
 
   // it("should not upload a fragment with reference, paying referenced", async () => {
   //   try {

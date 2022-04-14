@@ -68,7 +68,7 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
         // make sure the signature is valid
         bytes32 hash = ECDSA.toEthSignedMessageHash(
-            keccak256(abi.encodePacked(msg.sender, block.chainid, amount))
+            keccak256(abi.encodePacked(msg.sender, uint256(block.chainid), amount))
         );
         require(
             msg.sender == ECDSA.recover(hash, signature),
