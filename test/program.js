@@ -316,8 +316,9 @@ contract("Fragment", accounts => {
     await dao20.transfer(accounts[1], 2000);
 
     const parts = [
+      { t: "string", v: "FragLock" },
       { t: "address", v: accounts[1] },
-      { t: "uint256", v: 5 },
+      { t: "uint64", v: 5 },
       { t: "uint256", v: 1000 },
     ];
     const messageHex = web3.utils.soliditySha3(...parts);

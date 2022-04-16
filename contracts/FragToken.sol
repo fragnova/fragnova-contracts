@@ -17,8 +17,8 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
     mapping(address => uint256) private _locksBlock;
 
     // Fragnova chain will listen to those events
-    event Lock(bytes signature, uint256 amount);
-    event Unlock(bytes signature, uint256 amount);
+    event Lock(address indexed sender, bytes signature, uint256 amount);
+    event Unlock(address indexed sender, bytes signature, uint256 amount);
 
     constructor()
         ERC20("Fragnova Network Token", "FRAG")
@@ -68,7 +68,14 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
         // make sure the signature is valid
         bytes32 hash = ECDSA.toEthSignedMessageHash(
-            keccak256(abi.encodePacked(msg.sender, uint256(block.chainid), amount))
+            keccak256(
+                abi.encodePacked(
+                    "FragLock",
+                    msg.sender,
+                    uint64(block.chainid),
+                    amount
+                )
+            )
         );
         require(
             msg.sender == ECDSA.recover(hash, signature),
@@ -82,7 +89,7 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
         // We need to propagate the signature because it's the only reliable way to fetch the public key
         // of the sender from other chains.
-        emit Lock(signature, amount);
+        emit Lock(msg.sender, signature, amount);
     }
 
     function unlock(bytes calldata signature) external {
@@ -96,7 +103,14 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
         // make sure the signature is valid
         bytes32 hash = ECDSA.toEthSignedMessageHash(
-            keccak256(abi.encodePacked(msg.sender, block.chainid, amount))
+            keccak256(
+                abi.encodePacked(
+                    "FragUnlock",
+                    msg.sender,
+                    uint64(block.chainid),
+                    amount
+                )
+            )
         );
         require(
             msg.sender == ECDSA.recover(hash, signature),
@@ -113,6 +127,6 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         // send events
         // this will be used by the Fragnova chain to unlock the stake
         // and potentially remove the stake from many protos automatically
-        emit Unlock(signature, amount);
+        emit Unlock(msg.sender, signature, amount);
     }
 }
