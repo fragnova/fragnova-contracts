@@ -82,14 +82,16 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
             "Invalid signature"
         );
 
-        _locksAmount[msg.sender] = amount;
+        // add to current locked amount
+        _locksAmount[msg.sender] = _locksAmount[msg.sender] + amount;
         _locksBlock[msg.sender] = block.number;
 
         transfer(address(this), amount);
 
         // We need to propagate the signature because it's the only reliable way to fetch the public key
         // of the sender from other chains.
-        emit Lock(msg.sender, signature, amount);
+        // emit total amount of locked tokens
+        emit Lock(msg.sender, signature, _locksAmount[msg.sender]);
     }
 
     function unlock(bytes calldata signature) external {
