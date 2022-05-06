@@ -4,17 +4,17 @@
 pragma solidity ^0.8.7;
 
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
-contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
+contract FRAGToken is ERC20, ERC20Permit, Ownable {
     uint8 constant DECIMALS = 12; // Preferred for Fragnova (Substrate)
-    uint256 constant INITIAL_SUPPLY = 1000000000 * (10**DECIMALS);
-    uint256 constant LOCK_DURATION = 45500; // Roughly 1 week
+    uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS);
 
     mapping(address => uint256) private _locksAmount;
     mapping(address => uint256) private _locksBlock;
+
+    uint256 private _lockCooldown = 45500; // Roughly 1 week
 
     // Fragnova chain will listen to those events
     event Lock(address indexed sender, bytes signature, uint256 amount);
@@ -27,40 +27,20 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
         _mint(msg.sender, INITIAL_SUPPLY);
     }
 
-    // The functions below are overrides required by Solidity.
-
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override(ERC20, ERC20Votes) {
-        super._afterTokenTransfer(from, to, amount);
-    }
-
-    function _mint(address to, uint256 amount)
-        internal
-        override(ERC20, ERC20Votes)
-    {
-        super._mint(to, amount);
-    }
-
-    function _burn(address account, uint256 amount)
-        internal
-        override(ERC20, ERC20Votes)
-    {
-        super._burn(account, amount);
-    }
-
     function decimals() public pure override returns (uint8) {
         return DECIMALS;
     }
 
-    function inflate(address to, uint256 amount) public onlyOwner {
+    function inflate(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }
 
-    function deflate(address account, uint256 amount) public onlyOwner {
+    function deflate(address account, uint256 amount) external onlyOwner {
         _burn(account, amount);
+    }
+
+    function setLockCooldown(uint256 duration) external onlyOwner {
+        _lockCooldown = duration;
     }
 
     function lock(uint256 amount, bytes calldata signature) external {
@@ -96,7 +76,7 @@ contract FRAGToken is ERC20, ERC20Permit, ERC20Votes, Ownable {
 
     function unlock(bytes calldata signature) external {
         require(
-            block.number > _locksBlock[msg.sender] + LOCK_DURATION,
+            block.number > _locksBlock[msg.sender] + _lockCooldown,
             "Lock didn't expire"
         );
 
