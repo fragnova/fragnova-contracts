@@ -9,15 +9,24 @@ import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
 contract FRAGToken is ERC20, ERC20Permit, Ownable {
     uint8 constant DECIMALS = 12; // Preferred for Fragnova (Substrate)
-    uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS);
+    uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS); 
+    uint256 private _lockCooldown = 45500; // Roughly 1 week 
+    uint256 private constant _TIMELOCK = 1 weeks;
 
     mapping(address => uint256) private _locksAmount;
     mapping(address => uint256) private _locksBlock;
+    mapping(address => uint256) private _lockTime;
 
-    uint256 private _lockCooldown = 45500; // Roughly 1 week
+    enum Period {
+        TwoWeeks,
+        OneMonth,
+        ThreeMonths,
+        SixMonths,
+        OneYear
+    }
 
     // Fragnova chain will listen to those events
-    event Lock(address indexed sender, bytes signature, uint256 amount);
+    event Lock(address indexed sender, bytes signature, uint256 amount, uint256 timelock);
     event Unlock(address indexed sender, bytes signature, uint256 amount);
 
     constructor()
@@ -43,7 +52,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         _lockCooldown = duration;
     }
 
-    function lock(uint256 amount, bytes calldata signature) external {
+    function lock(uint256 amount, bytes calldata signature, Period period) external {
         require(amount > 0, "Amount must be greater than 0");
 
         // make sure the signature is valid
@@ -66,18 +75,38 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         _locksAmount[msg.sender] = _locksAmount[msg.sender] + amount;
         _locksBlock[msg.sender] = block.number;
 
+        if(period == Period.TwoWeeks)
+            _lockTime[msg.sender] = block.timestamp + (2 * _TIMELOCK);
+        
+        if(period == Period.OneMonth)
+            _lockTime[msg.sender] = block.timestamp + (4 * _TIMELOCK);
+
+        if(period == Period.ThreeMonths)
+            _lockTime[msg.sender] = block.timestamp + (12 * _TIMELOCK);
+
+        if(period == Period.SixMonths)
+            _lockTime[msg.sender] = block.timestamp + (24 * _TIMELOCK);
+
+        if(period == Period.OneYear)
+            _lockTime[msg.sender] = block.timestamp + (52 * _TIMELOCK);
+
         transfer(address(this), amount);
 
         // We need to propagate the signature because it's the only reliable way to fetch the public key
         // of the sender from other chains.
         // emit total amount of locked tokens
-        emit Lock(msg.sender, signature, _locksAmount[msg.sender]);
+        emit Lock(msg.sender, signature, _locksAmount[msg.sender], _lockTime[msg.sender]);
     }
 
     function unlock(bytes calldata signature) external {
         require(
             block.number > _locksBlock[msg.sender] + _lockCooldown,
-            "Lock didn't expire"
+            "Lock cooldown didn't expire"
+        );
+
+        require(
+            _lockTime[msg.sender] != 0 && block.timestamp > _lockTime[msg.sender],
+            "Timelock didn't expire"
         );
 
         uint256 amount = _locksAmount[msg.sender];
@@ -102,6 +131,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         // reset the stake
         _locksAmount[msg.sender] = 0;
         _locksBlock[msg.sender] = 0;
+        _lockTime[msg.sender] = 0;
 
         // return the stake
         transfer(msg.sender, amount);
@@ -110,5 +140,9 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         // this will be used by the Fragnova chain to unlock the stake
         // and potentially remove the stake from many protos automatically
         emit Unlock(msg.sender, signature, amount);
+    }
+
+    function getTimeLock() public view returns(uint256) {
+        return _lockTime[msg.sender];
     }
 }

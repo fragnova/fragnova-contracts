@@ -1,7 +1,7 @@
-const { Address, bufferToHex, keccak256 } = require("ethereumjs-util");
-const { Transaction } = require("@ethereumjs/tx");
-const { BN } = require("bn.js");
-const crypto = require('crypto');
+// const { Address, bufferToHex, keccak256 } = require("ethereumjs-util");
+// const { Transaction } = require("@ethereumjs/tx");
+// const { BN } = require("bn.js");
+// const crypto = require('crypto');
 
 var nft = artifacts.require("Fragment");
 var entityNft = artifacts.require("Entity");
@@ -12,46 +12,46 @@ var pre721 = artifacts.require("PreERC721");
 var pre721Factory = artifacts.require("PreERC721Factory");
 var pre721Genesis = artifacts.require("PreERC721Genesis");
 
-function composeCall(bytecode, salt) {
-  return web3.eth.abi.encodeFunctionCall({
-    name: 'deploy',
-    type: 'function',
-    inputs: [{
-      type: 'bytes',
-      name: '_initCode'
-    }, {
-      type: 'bytes32',
-      name: '_salt'
-    }]
-  }, [bytecode, salt]);
-}
+// function composeCall(bytecode, salt) {
+//   return web3.eth.abi.encodeFunctionCall({
+//     name: 'deploy',
+//     type: 'function',
+//     inputs: [{
+//       type: 'bytes',
+//       name: '_initCode'
+//     }, {
+//       type: 'bytes32',
+//       name: '_salt'
+//     }]
+//   }, [bytecode, salt]);
+// }
 
-function randomHexString(size) {
-  if (size === 0) {
-    throw new Error('Zero-length randomHexString is useless.');
-  }
+// function randomHexString(size) {
+//   if (size === 0) {
+//     throw new Error('Zero-length randomHexString is useless.');
+//   }
 
-  if (size % 2 !== 0) {
-    throw new Error('randomHexString size must be divisible by 2.');
-  }
+//   if (size % 2 !== 0) {
+//     throw new Error('randomHexString size must be divisible by 2.');
+//   }
 
-  return (0, crypto.randomBytes)(size / 2).toString('hex');
-}
+//   return (0, crypto.randomBytes)(size / 2).toString('hex');
+// }
 
-function deterministicDeployment(contractBytes, gasCost) {
-  // console.log(composeCall(contractBytes, "0x711"));
-  const deployTx = new Transaction({
-    nonce: 0,
-    gasPrice: new BN(web3.utils.toWei("500", "gwei"), 10),
-    gasLimit: 247000,
-    value: 0,
-    data: "0x608060405234801561001057600080fd5b50610134806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80634af63f0214602d575b600080fd5b60cf60048036036040811015604157600080fd5b810190602081018135640100000000811115605b57600080fd5b820183602082011115606c57600080fd5b80359060200191846001830284011164010000000083111715608d57600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550509135925060eb915050565b604080516001600160a01b039092168252519081900360200190f35b6000818351602085016000f5939250505056fea26469706673582212206b44f8a82cb6b156bfcc3dc6aadd6df4eefd204bc928a4397fd15dacf6d5320564736f6c63430006020033",
-    v: 27,
-    r: "0x247000",
-    s: "0x2470"
-  });
-  return deployTx;
-}
+// function deterministicDeployment(contractBytes, gasCost) {
+//   // console.log(composeCall(contractBytes, "0x711"));
+//   const deployTx = new Transaction({
+//     nonce: 0,
+//     gasPrice: new BN(web3.utils.toWei("500", "gwei"), 10),
+//     gasLimit: 247000,
+//     value: 0,
+//     data: "0x608060405234801561001057600080fd5b50610134806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c80634af63f0214602d575b600080fd5b60cf60048036036040811015604157600080fd5b810190602081018135640100000000811115605b57600080fd5b820183602082011115606c57600080fd5b80359060200191846001830284011164010000000083111715608d57600080fd5b91908080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250929550509135925060eb915050565b604080516001600160a01b039092168252519081900360200190f35b6000818351602085016000f5939250505056fea26469706673582212206b44f8a82cb6b156bfcc3dc6aadd6df4eefd204bc928a4397fd15dacf6d5320564736f6c63430006020033",
+//     v: 27,
+//     r: "0x247000",
+//     s: "0x2470"
+//   });
+//   return deployTx;
+// }
 
 function fixSignature(signature) {
   // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
@@ -70,17 +70,17 @@ async function signMessage(signer, messageHex = '0x') {
   return fixSignature(await web3.eth.sign(messageHex, signer));
 };
 
-function toEthSignedMessageHash(messageHex) {
-  const messageBuffer = Buffer.from(messageHex.substring(2), 'hex');
-  const prefix = Buffer.from(`\u0019Ethereum Signed Message:\n${messageBuffer.length}`);
-  return web3.utils.sha3(Buffer.concat([prefix, messageBuffer]));
-}
+// function toEthSignedMessageHash(messageHex) {
+//   const messageBuffer = Buffer.from(messageHex.substring(2), 'hex');
+//   const prefix = Buffer.from(`\u0019Ethereum Signed Message:\n${messageBuffer.length}`);
+//   return web3.utils.sha3(Buffer.concat([prefix, messageBuffer]));
+// }
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+// const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 contract("Fragment", accounts => {
-  var tokenOne = null;
-  var tokenTwo = null;
+  // var tokenOne = null;
+  // var tokenTwo = null;
 
   it("should upload a fragment", async () => {
     // console.log("About to await 5 seconds");
@@ -214,7 +214,7 @@ contract("Fragment", accounts => {
     try {
       const tx = await contract.attach(fragmentHash, detachSignature, { from: accounts[0] });
     } catch (e) {
-      assert(e.reason == "Invalid signature", e);
+      assert(e.message.search('Invalid signature') >= 0);
       return;
     }
     assert(false, "expected exception not thrown");
@@ -324,103 +324,32 @@ contract("Fragment", accounts => {
     const messageHex = web3.utils.soliditySha3(...parts);
     const signature = await signMessage(accounts[1], messageHex);
 
-    await dao20.lock(1000, signature, { from: accounts[1] });
+    await dao20.lock(1000, signature, 0, { from: accounts[1] });
   });
 
-  // it("should not upload a fragment with reference, paying referenced", async () => {
-  //   try {
-  //     const contract = await nft.deployed();
-  //     await dao.deployed();
-  //     const emptyCode = new Uint8Array(1024);
-  //     emptyCode[0] = 2; // make a small change in order to succeed
-  //     await contract.upload(emptyCode, emptyCode, [tokenOne], 0, { from: accounts[2] });
-  //   } catch (e) {
-  //     assert(e.reason == "Fragment: not enough staked amount to reference");
-  //     return;
-  //   }
-  //   assert(false, "expected exception not thrown");
-  // });
+  it("should be unable to unlock if still timelocked", async () => {
+    const dao20 = await dao.deployed();
 
-  // // it("should not transfer a fragment", async () => {
-  // //   try {
-  // //     const contract = await nft.deployed();
-  // //     await contract.safeTransferFrom(accounts[0], accounts[1], tokenOne);
-  // //   } catch (e) {
-  // //     assert(e.reason == "Fragment: cannot transfer fragments");
-  // //     return;
-  // //   }
-  // //   assert(false, "expected exception not thrown");
-  // // });
+    const parts = [
+      { t: "string", v: "FragLock" },
+      { t: "address", v: accounts[1] },
+      { t: "uint64", v: 5 },
+      { t: "uint256", v: 1000 },
+    ];
+    const messageHex = web3.utils.soliditySha3(...parts);
+    const signature = await signMessage(accounts[1], messageHex);
 
-  // var fragmentOneEntity = null;
+    await dao20.lock(1000, signature, 0, { from: accounts[1] });
+    
+    try {
+      const tx = await dao20.unlock(signature, { from: accounts[1] });
+    } catch (e) {
+      assert(e.message.search("Lock cooldown didn't expire") >= 0);
+    }
 
-  // it("should rez a entity from fragment", async () => {
-  //   const contract = await nft.deployed();
-  //   const tx = await contract.rez(tokenTwo, "Token Two", "TWO", false, false, 10, { from: accounts[1] });
-  //   console.log(tx);
-  //   fragmentOneEntity = tx.logs[0].args.entityContract;
-  //   const entity = new web3.eth.Contract(entityNft.abi, fragmentOneEntity);
-  //   const fragment = await entity.methods.getFragment().call();
-  //   assert.equal(fragment, tokenTwo);
-  //   const library = await entity.methods.getLibrary().call();
-  //   assert.equal(library, nft.address);
+    var timeLock = await dao20.getTimeLock({ from: accounts[1] });
+    var twoWeeksFromNow = new Date().getDate() + 14;
+    assert(twoWeeksFromNow, timeLock, "Dates are the same")
+  });
 
-  //   const secondaryFeesSupport = await entity.methods.supportsInterface("0xb7799584").call();
-  //   assert(secondaryFeesSupport);
-  // });
-
-  // it("should not rez a entity from fragment", async () => {
-  //   const contract = await nft.deployed();
-  //   // this one already exists at this point
-  //   try {
-  //     await contract.rez(tokenTwo, "Token Two", "TWO", true, false, 10, { from: accounts[1] });
-  //   } catch (e) {
-  //     assert(e.reason == "Create2: Failed on deploy");
-  //     return;
-  //   }
-  //   assert(false, "expected exception not thrown");
-  // });
-
-  // it("should mint an NFT from entity as owner", async () => {
-  //   const entity = new web3.eth.Contract(entityNft.abi, fragmentOneEntity);
-  //   const empty = new Uint8Array(1024);
-
-  //   await entity.methods
-  //     .setPublicSale(web3.utils.toWei("0.1", "ether"), 1, 2)
-  //     .send({ from: accounts[1], gas: 500000 });
-
-  //   await entity.methods
-  //     .setDelegate(accounts[3])
-  //     .send({ from: accounts[1], gas: 500000 });
-
-  //   const tx = await entity.methods
-  //     .upload(empty, 1)
-  //     .send({ from: accounts[1], gas: 500000 });
-  // });
-
-  // it("should mint one from entity as buyer", async () => {
-  //   const contract = await nft.deployed();
-  //   const entity = new web3.eth.Contract(entityNft.abi, fragmentOneEntity);
-  //   const empty = new Uint8Array(1024);
-  //   const partsDataHash = [
-  //     { t: "uint160", v: tokenTwo },
-  //     { t: "bytes", v: web3.utils.bytesToHex(empty) }
-  //   ];
-  //   const dataHash = web3.utils.soliditySha3(...partsDataHash);
-  //   const parts = [
-  //     { t: "address", v: accounts[4] },
-  //     { t: "uint256", v: "0x1" },
-  //     { t: "bytes32", v: dataHash },
-  //     { t: "uint96", v: "1" },
-  //   ];
-  //   const messageHex = web3.utils.soliditySha3(...parts);
-  //   const signature = await signMessage(accounts[3], messageHex);
-  //   const tx = await entity.methods
-  //     .mint(signature, empty, 1)
-  //     .send({ from: accounts[4], gas: 800000, value: web3.utils.toWei("0.1", "ether") });
-  //   console.log(tx);
-  //   const res = await entity.methods.tokenURI(2).call();
-  //   console.log(res);
-  //   assert.equal(res, 'https://metadata.fragments.foundation/?ch=0x01&id=0x02&e=' + fragmentOneEntity.toLowerCase() + '&m=0xfa321bd82f92ef059c267763b69b7c27d6c70bd1ea86b94194ff74884fdd1ae0&d=0x22');
-  // });
 });
