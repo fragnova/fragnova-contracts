@@ -24,6 +24,8 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         OneYear
     }
 
+    uint256 private _lockCooldown = 45500; // Roughly 1 week
+
     // Fragnova chain will listen to those events
     event Lock(address indexed sender, bytes signature, uint256 amount, uint256 timelock);
     event Unlock(address indexed sender, bytes signature, uint256 amount);
