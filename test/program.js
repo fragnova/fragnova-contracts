@@ -159,8 +159,17 @@ contract("Fragment", accounts => {
     const lockTx = await dao20.lock(1000, signature, 0, { from: accounts[1] });
     truffleAssert.eventEmitted(lockTx, 'Lock');
 
+    const parts_unlock = [
+      { t: "string", v: "FragLock" },
+      { t: "address", v: accounts[1] },
+      { t: "uint64", v: 5 },
+      { t: "uint256", v: 1000 },
+    ];
+    const messageHex_unlock = web3.utils.soliditySha3(...parts_unlock);
+    const signature_unlock = await signMessage(accounts[1], messageHex_unlock);
+
     await truffleAssert.reverts(
-      dao20.unlock(signature, { from: accounts[1] }),
+      dao20.unlock(signature_unlock, { from: accounts[1] }),
       "Timelock didn't expire"
     );
 
