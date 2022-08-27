@@ -1,4 +1,5 @@
 const fs = require('fs');
+const truffleAssert = require('truffle-assertions');
 
 var daoToken = artifacts.require("FRAGToken");
 var nft = artifacts.require("Fragment");

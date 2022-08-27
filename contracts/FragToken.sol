@@ -9,15 +9,25 @@ import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
 contract FRAGToken is ERC20, ERC20Permit, Ownable {
     uint8 constant DECIMALS = 12; // Preferred for Fragnova (Substrate)
-    uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS);
+    uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS); 
+    uint256 private constant _TIMELOCK = 1 weeks;
 
     mapping(address => uint256) private _locksAmount;
     mapping(address => uint256) private _locksBlock;
+    mapping(address => uint256) private _locktime;
+
+    enum Period {
+        TwoWeeks,
+        OneMonth,
+        ThreeMonths,
+        SixMonths,
+        OneYear
+    }
 
     uint256 private _lockCooldown = 45500; // Roughly 1 week
 
     // Fragnova chain will listen to those events
-    event Lock(address indexed sender, bytes signature, uint256 amount);
+    event Lock(address indexed sender, bytes signature, uint256 amount, uint256 timelock);
     event Unlock(address indexed sender, bytes signature, uint256 amount);
 
     constructor()
@@ -39,12 +49,9 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         _burn(account, amount);
     }
 
-    function setLockCooldown(uint256 duration) external onlyOwner {
-        _lockCooldown = duration;
-    }
-
-    function lock(uint256 amount, bytes calldata signature) external {
+    function lock(uint256 amount, bytes calldata signature, uint256 period) external {
         require(amount > 0, "Amount must be greater than 0");
+        require(period >= 0 && period <= 4, "Time lock period not allowed");
 
         // make sure the signature is valid
         bytes32 hash = ECDSA.toEthSignedMessageHash(
@@ -53,7 +60,8 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
                     "FragLock",
                     msg.sender,
                     uint64(block.chainid),
-                    amount
+                    amount,
+                    period
                 )
             )
         );
@@ -64,20 +72,34 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
 
         // add to current locked amount
         _locksAmount[msg.sender] = _locksAmount[msg.sender] + amount;
-        _locksBlock[msg.sender] = block.number;
+
+        if(period == uint256(Period.TwoWeeks))
+            _locktime[msg.sender] = block.timestamp + (2 * _TIMELOCK);
+        
+        else if(period == uint256(Period.OneMonth))
+            _locktime[msg.sender] = block.timestamp + (4 * _TIMELOCK);
+
+        else if(period == uint256(Period.ThreeMonths))
+            _locktime[msg.sender] = block.timestamp + (12 * _TIMELOCK);
+
+        else if(period == uint256(Period.SixMonths))
+            _locktime[msg.sender] = block.timestamp + (24 * _TIMELOCK);
+
+        else if(period == uint256(Period.OneYear))
+            _locktime[msg.sender] = block.timestamp + (52 * _TIMELOCK);
 
         transfer(address(this), amount);
 
         // We need to propagate the signature because it's the only reliable way to fetch the public key
         // of the sender from other chains.
         // emit total amount of locked tokens
-        emit Lock(msg.sender, signature, _locksAmount[msg.sender]);
+        emit Lock(msg.sender, signature, _locksAmount[msg.sender], _locktime[msg.sender]);
     }
 
     function unlock(bytes calldata signature) external {
         require(
-            block.number > _locksBlock[msg.sender] + _lockCooldown,
-            "Lock didn't expire"
+            _locktime[msg.sender] != 0 && block.timestamp > _locktime[msg.sender],
+            "Timelock didn't expire"
         );
 
         uint256 amount = _locksAmount[msg.sender];
@@ -102,6 +124,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         // reset the stake
         _locksAmount[msg.sender] = 0;
         _locksBlock[msg.sender] = 0;
+        _locktime[msg.sender] = 0;
 
         // return the stake
         transfer(msg.sender, amount);
@@ -110,5 +133,9 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         // this will be used by the Fragnova chain to unlock the stake
         // and potentially remove the stake from many protos automatically
         emit Unlock(msg.sender, signature, amount);
+    }
+
+    function getTimeLock() external view returns(uint256) {
+        return _locktime[msg.sender];
     }
 }

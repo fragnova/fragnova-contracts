@@ -11,7 +11,8 @@
     "openzeppelin-solidity": "sinkingsugar/openzeppelin-contracts#617ac5e79957fc7699207d1103abd6eb6e5d475a"
   },
   "devDependencies": {
-    "@truffle/hdwallet-provider": "^2.0.0"
+    "@truffle/hdwallet-provider": "^2.0.0",
+    "truffle-assertions": "*"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
