@@ -27,7 +27,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
     uint256 private _lockCooldown = 45500; // Roughly 1 week
 
     // Fragnova chain will listen to those events
-    event Lock(address indexed sender, bytes signature, uint256 amount, uint256 timelock);
+    event Lock(address indexed sender, bytes signature, uint256 amount, uint256 lock_period);
     event Unlock(address indexed sender, bytes signature, uint256 amount);
 
     constructor()
@@ -49,9 +49,9 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         _burn(account, amount);
     }
 
-    function lock(uint256 amount, bytes calldata signature, uint256 period) external {
+    function lock(uint256 amount, bytes calldata signature, uint256 lock_period) external {
         require(amount > 0, "Amount must be greater than 0");
-        require(period >= 0 && period <= 4, "Time lock period not allowed");
+        require(lock_period >= 0 && lock_period <= 4, "Time lock period not allowed");
 
         // make sure the signature is valid
         bytes32 hash = ECDSA.toEthSignedMessageHash(
@@ -61,7 +61,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
                     msg.sender,
                     uint64(block.chainid),
                     amount,
-                    period
+                    lock_period
                 )
             )
         );
@@ -73,19 +73,19 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         // add to current locked amount
         _locksAmount[msg.sender] = _locksAmount[msg.sender] + amount;
 
-        if(period == uint256(Period.TwoWeeks))
+        if(lock_period == uint256(Period.TwoWeeks))
             _locktime[msg.sender] = block.timestamp + (2 * _TIMELOCK);
         
-        else if(period == uint256(Period.OneMonth))
+        else if(lock_period == uint256(Period.OneMonth))
             _locktime[msg.sender] = block.timestamp + (4 * _TIMELOCK);
 
-        else if(period == uint256(Period.ThreeMonths))
+        else if(lock_period == uint256(Period.ThreeMonths))
             _locktime[msg.sender] = block.timestamp + (12 * _TIMELOCK);
 
-        else if(period == uint256(Period.SixMonths))
+        else if(lock_period == uint256(Period.SixMonths))
             _locktime[msg.sender] = block.timestamp + (24 * _TIMELOCK);
 
-        else if(period == uint256(Period.OneYear))
+        else if(lock_period == uint256(Period.OneYear))
             _locktime[msg.sender] = block.timestamp + (52 * _TIMELOCK);
 
         transfer(address(this), amount);
@@ -93,7 +93,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         // We need to propagate the signature because it's the only reliable way to fetch the public key
         // of the sender from other chains.
         // emit total amount of locked tokens
-        emit Lock(msg.sender, signature, _locksAmount[msg.sender], _locktime[msg.sender]);
+        emit Lock(msg.sender, signature, _locksAmount[msg.sender], lock_period);
     }
 
     function unlock(bytes calldata signature) external {
