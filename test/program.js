@@ -134,7 +134,7 @@ contract("Fragment", accounts => {
       { t: "address", v: accounts[1] },
       { t: "uint64", v: 5 },
       { t: "uint256", v: 1000 },
-      { t: "uint256", v: 0 },
+      { t: "uint8", v: 0 },
     ];
     const messageHex = web3.utils.soliditySha3(...parts);
     const signature = await signMessage(accounts[1], messageHex);
@@ -151,7 +151,7 @@ contract("Fragment", accounts => {
       { t: "address", v: accounts[1] },
       { t: "uint64", v: 5 },
       { t: "uint256", v: 1000 },
-      { t: "uint256", v: 0 },
+      { t: "uint8", v: 0 },
     ];
     const messageHex = web3.utils.soliditySha3(...parts);
     const signature = await signMessage(accounts[1], messageHex);
@@ -190,7 +190,7 @@ contract("Fragment", accounts => {
       { t: "address", v: accounts[1] },
       { t: "uint64", v: 5 },
       { t: "uint256", v: 1000 },
-      { t: "uint256", v: 0 },
+      { t: "uint8", v: 0 },
     ];
     const messageHex = web3.utils.soliditySha3(...parts);
     const signature = await signMessage(accounts[1], messageHex);

@@ -27,7 +27,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
     uint256 private _lockCooldown = 45500; // Roughly 1 week
 
     // Fragnova chain will listen to those events
-    event Lock(address indexed sender, bytes signature, uint256 amount, uint256 lock_period);
+    event Lock(address indexed sender, bytes signature, uint256 amount, uint8 lock_period);
     event Unlock(address indexed sender, bytes signature, uint256 amount);
 
     constructor()
@@ -49,7 +49,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         _burn(account, amount);
     }
 
-    function lock(uint256 amount, bytes calldata signature, uint256 lock_period) external {
+    function lock(uint256 amount, bytes calldata signature, uint8 lock_period) external {
         require(amount > 0, "Amount must be greater than 0");
         require(lock_period >= 0 && lock_period <= 4, "Time lock period not allowed");
 
