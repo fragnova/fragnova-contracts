@@ -80,10 +80,10 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
             _locktime[msg.sender] = block.timestamp + (4 * _TIMELOCK);
 
         else if(lock_period == uint256(Period.ThreeMonths))
-            _locktime[msg.sender] = block.timestamp + (12 * _TIMELOCK);
+            _locktime[msg.sender] = block.timestamp + (13 * _TIMELOCK);
 
         else if(lock_period == uint256(Period.SixMonths))
-            _locktime[msg.sender] = block.timestamp + (24 * _TIMELOCK);
+            _locktime[msg.sender] = block.timestamp + (26 * _TIMELOCK);
 
         else if(lock_period == uint256(Period.OneYear))
             _locktime[msg.sender] = block.timestamp + (52 * _TIMELOCK);
