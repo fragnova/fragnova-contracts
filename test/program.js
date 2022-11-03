@@ -1,12 +1,15 @@
 var nft = artifacts.require("Fragment");
 var entityNft = artifacts.require("Entity");
 var vault = artifacts.require("Vault");
-var dao = artifacts.require("FRAGToken");
+var fragToken = artifacts.require("FRAGToken");
 var utility = artifacts.require("Utility");
 var pre721 = artifacts.require("PreERC721");
 var pre721Factory = artifacts.require("PreERC721Factory");
 var pre721Genesis = artifacts.require("PreERC721Genesis");
 const truffleAssert = require('truffle-assertions');
+const ethUtil = require('ethereumjs-util');
+const eip712 = require('eip-712');
+const hashes = require('@noble/hashes/utils');
 
 function fixSignature(signature) {
   // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
@@ -25,6 +28,41 @@ async function signMessage(signer, messageHex = '0x') {
   return fixSignature(await web3.eth.sign(messageHex, signer));
 };
 
+async function eip712_message(parts, contract) {
+  const chainId = await web3.eth.getChainId();
+
+  const msgParams = {
+    "types":{
+        "EIP712Domain":[
+          {"name":"name","type":"string"},
+          {"name":"version","type":"string"},
+          {"name":"chainId","type":"uint256"},
+          {"name":"verifyingContract","type":"address"}
+        ],
+        "Msg":[
+          {"name":"name","type":"string"},
+          {"name":"sender","type":"address"},
+          {"name":"amount", "type":"uint256"},
+          {"name":"lock_period", "type":"uint"}
+        ]
+      },
+      "primaryType":"Msg",
+      "domain":{
+        "name":"Fragnova Network Token",
+        "version":"1",
+        "chainId":chainId,
+        "verifyingContract":contract
+      },
+      "message":{
+        "name": parts[0].v,
+        "sender": parts[1].v,
+        "amount": parts[2].v,
+        "lock_period": parts[3].v
+      }
+    };
+    return msgParams;
+};
+
 contract("Fragment", accounts => {
 
   it("should upload a fragment", async () => {
@@ -34,7 +72,7 @@ contract("Fragment", accounts => {
       value: web3.utils.toWei("1", "ether"),
     };
     await web3.eth.sendTransaction(params);
-    const dao20 = await dao.deployed();
+    const fragToken20 = await fragToken.deployed();
 
     const nftClone = await nft.new();
     let receipt = await web3.eth.getTransactionReceipt(nftClone.transactionHash);
@@ -44,7 +82,7 @@ contract("Fragment", accounts => {
     const entityContract = await entityNft.deployed();
     const vaultContract = await vault.deployed();
 
-    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.utilityToken"), dao20.address, { from: "0x0123456789012345678901234567890123456789" });
+    await contract.setAddress(web3.utils.sha3("fragcolor.fragment.utilityToken"), fragToken20.address, { from: "0x0123456789012345678901234567890123456789" });
     await contract.setAddress(web3.utils.sha3("fragcolor.fragment.entityLogic"), entityContract.address, { from: "0x0123456789012345678901234567890123456789" });
     await contract.setAddress(web3.utils.sha3("fragcolor.fragment.vaultLogic"), vaultContract.address, { from: "0x0123456789012345678901234567890123456789" });
     await contract.setAddress(web3.utils.sha3("fragcolor.fragment.utilityLibrary"), utility.address, { from: "0x0123456789012345678901234567890123456789" });
@@ -123,57 +161,58 @@ contract("Fragment", accounts => {
     assert.equal(await newContract.methods.balanceOf(accounts[0]).call(), 9);
   });
 
-  it("should upload a fragment with reference, paying referenced", async () => {
-    const contract = await nft.deployed();
+  it("should be able to lock", async () => {
 
-    const dao20 = await dao.deployed();
-    await dao20.transfer(accounts[1], 2000);
+    const fragToken20 = await fragToken.deployed();
+    await fragToken20.transfer(accounts[1], 2000);
 
     const parts = [
-      { t: "string", v: "FragLock" },
+      { t: "string", v: web3.utils.soliditySha3("FragLock") },
       { t: "address", v: accounts[1] },
-      { t: "uint64", v: 5 },
-      { t: "uint256", v: 1000 },
-      { t: "uint8", v: 0 },
+      { t: "uint256", v: web3.utils.soliditySha3(1000) },
+      { t: "uint", v: web3.utils.soliditySha3(0) },
     ];
-    const messageHex = web3.utils.soliditySha3(...parts);
-    const signature = await signMessage(accounts[1], messageHex);
+    
+    const message = await eip712_message(parts, fragToken20.address);
+    const toSign = eip712.getMessage(message, true);
+    const signature = await web3.eth.signTypedData(toSign, accounts[1]);
+    //const signature = ethUtil.ecsign(toSign, accounts[1]);
 
-    const result = await dao20.lock(1000, signature, 0, { from: accounts[1] });
+    const result = await fragToken20.lock(1000, signature, 0, { from: accounts[1] });
     truffleAssert.eventEmitted(result, 'Lock');
   });
 
   it("should be unable to unlock if still timelocked", async () => {
-    const dao20 = await dao.deployed();
+    const fragToken20 = await fragToken.deployed();
 
     const parts = [
       { t: "string", v: "FragLock" },
       { t: "address", v: accounts[1] },
-      { t: "uint64", v: 5 },
+      { t: "uint256", v: 5 },
       { t: "uint256", v: 1000 },
-      { t: "uint8", v: 0 },
+      { t: "uint", v: 0 },
     ];
     const messageHex = web3.utils.soliditySha3(...parts);
     const signature = await signMessage(accounts[1], messageHex);
 
-    const lockTx = await dao20.lock(1000, signature, 0, { from: accounts[1] });
+    const lockTx = await fragToken20.lock(1000, signature, 0, { from: accounts[1] });
     truffleAssert.eventEmitted(lockTx, 'Lock');
 
     const parts_unlock = [
       { t: "string", v: "FragLock" },
       { t: "address", v: accounts[1] },
-      { t: "uint64", v: 5 },
+      { t: "uint256", v: 5 },
       { t: "uint256", v: 1000 },
     ];
     const messageHex_unlock = web3.utils.soliditySha3(...parts_unlock);
     const signature_unlock = await signMessage(accounts[1], messageHex_unlock);
 
     await truffleAssert.reverts(
-      dao20.unlock(signature_unlock, { from: accounts[1] }),
+      fragToken20.unlock(signature_unlock, { from: accounts[1] }),
       "Timelock didn't expire"
     );
 
-    var timeLock = await dao20.getTimeLock({ from: accounts[1] });
+    var timeLock = await fragToken20.getTimeLock({ from: accounts[1] });
 
     var date = new Date(timeLock * 1000).getTime(); // convert to Javascript date from UNIX timestamp
     var today = new Date().getTime();
@@ -182,13 +221,13 @@ contract("Fragment", accounts => {
   });
 
   it("should fail when lock period not valid", async () => {
-    const dao20 = await dao.deployed();
-    await dao20.transfer(accounts[1], 2000);
+    const fragToken20 = await fragToken.deployed();
+    await fragToken20.transfer(accounts[1], 2000);
 
     const parts = [
       { t: "string", v: "FragLock" },
       { t: "address", v: accounts[1] },
-      { t: "uint64", v: 5 },
+      { t: "uint256", v: 5 },
       { t: "uint256", v: 1000 },
       { t: "uint8", v: 0 },
     ];
@@ -196,7 +235,7 @@ contract("Fragment", accounts => {
     const signature = await signMessage(accounts[1], messageHex);
 
     await truffleAssert.reverts(
-      dao20.lock(100, signature, 5, { from: accounts[1] }),
+      fragToken20.lock(100, signature, 5, { from: accounts[1] }),
       "Time lock period not allowed"
     );
   });
