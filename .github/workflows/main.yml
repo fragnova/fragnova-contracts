@@ -13,9 +13,9 @@ jobs:
     - name: Test
       run: |
         npm install -g truffle
-        npm install -g ganache-cli
+        npm install -g ganache
         npm install
-        ganache-cli -d --chainId 5 -q -u 0x0123456789012345678901234567890123456789 -p 18545 &
+        ganache-cli -d --chain.chainId 5 -q -u 0x0123456789012345678901234567890123456789 -p 18545 &
         sleep 5
         truffle test --network development --show-events
 

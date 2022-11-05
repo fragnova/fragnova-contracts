@@ -4,10 +4,10 @@
 pragma solidity >=0.8.0 <0.9.0;
 
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
+import "openzeppelin-solidity/contracts/utils/cryptography/draft-EIP712.sol";
 
-contract FRAGToken is ERC20, ERC20Permit, Ownable{
+contract FRAGToken is ERC20, EIP712, Ownable{
     uint8 constant DECIMALS = 12; // Preferred for Fragnova (Substrate)
     uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS); 
     uint256 private constant _TIMELOCK = 1 weeks;
@@ -29,10 +29,11 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
     // Fragnova chain will listen to those events
     event Lock(address indexed sender, bytes signature, uint256 amount, uint8 lock_period);
     event Unlock(address indexed sender, bytes signature, uint256 amount);
+    event Hash(uint256 chainId);
 
     constructor()
         ERC20("Fragnova Network Token", "FRAG")
-        ERC20Permit("Fragnova Network Token")
+        EIP712("Fragnova Network Token", "1")
     {
         _mint(msg.sender, INITIAL_SUPPLY);
     }
@@ -49,21 +50,22 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         _burn(account, amount);
     }
 
-    function lock(uint256 amount, bytes calldata signature, uint8 lock_period) external {
+    function lock(bytes calldata signature, uint256 amount, uint8 lock_period) external {
         require(amount > 0, "Amount must be greater than 0");
         require(lock_period >= 0 && lock_period <= 4, "Time lock period not allowed");
 
         bytes32 digest = _hashTypedDataV4(
             keccak256(
                 abi.encode(
-                    keccak256(abi.encodePacked("Msg(string name,address sender,uint256 chainId,uint256 amount,uint lock_period)")),
+                    keccak256(abi.encodePacked("Msg(string name,address sender,uint256 amount,uint8 lock_period)")),
                     keccak256(abi.encodePacked("FragLock")),
-                    keccak256(abi.encodePacked(msg.sender)),
-                    keccak256(abi.encodePacked(amount)),
-                    keccak256(abi.encodePacked(lock_period))
+                    msg.sender,
+                    amount,
+                    lock_period
                 )
             )
         );
+        
         require(
             msg.sender == ECDSA.recover(digest, signature),
             "Invalid signature"

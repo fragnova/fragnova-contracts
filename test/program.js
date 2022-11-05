@@ -7,9 +7,12 @@ var pre721 = artifacts.require("PreERC721");
 var pre721Factory = artifacts.require("PreERC721Factory");
 var pre721Genesis = artifacts.require("PreERC721Genesis");
 const truffleAssert = require('truffle-assertions');
-const ethUtil = require('ethereumjs-util');
 const eip712 = require('eip-712');
-const hashes = require('@noble/hashes/utils');
+const ethSignUtil = require('@metamask/eth-sig-util');
+const ethUtils = require('ethereumjs-util');
+const bip39 = require('bip39');
+const hdkey = require('@truffle/hdwallet-provider');
+const wallet = require('ethereumjs-wallet');
 
 function fixSignature(signature) {
   // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
@@ -28,42 +31,40 @@ async function signMessage(signer, messageHex = '0x') {
   return fixSignature(await web3.eth.sign(messageHex, signer));
 };
 
-async function eip712_message(parts, contract) {
-  const chainId = await web3.eth.getChainId();
-
-  const msgParams = {
-    "types":{
-        "EIP712Domain":[
-          {"name":"name","type":"string"},
-          {"name":"version","type":"string"},
-          {"name":"chainId","type":"uint256"},
-          {"name":"verifyingContract","type":"address"}
-        ],
-        "Msg":[
-          {"name":"name","type":"string"},
-          {"name":"sender","type":"address"},
-          {"name":"amount", "type":"uint256"},
-          {"name":"lock_period", "type":"uint"}
-        ]
-      },
-      "primaryType":"Msg",
-      "domain":{
-        "name":"Fragnova Network Token",
-        "version":"1",
-        "chainId":chainId,
-        "verifyingContract":contract
-      },
-      "message":{
-        "name": parts[0].v,
-        "sender": parts[1].v,
-        "amount": parts[2].v,
-        "lock_period": parts[3].v
-      }
-    };
-    return msgParams;
+function eip712_message(chainId, parts, contract) {
+  const typedData = {
+    domain: {
+      name: 'Fragnova Network Token',
+      version: '1',
+      chainId: chainId,
+      verifyingContract: contract
+    },
+    message: {
+      name: parts[0].v,
+      sender: parts[1].v,
+      amount: parts[2].v,
+      lock_period: parts[3].v
+    },
+    primaryType:'Msg',
+    types: {
+      EIP712Domain: [
+        {type:'string', name: 'name'},
+        {type:'string', name: 'version'},
+        {type:'uint256', name: 'chainId'},
+        {type:'address', name: 'verifyingContract'}
+      ],
+      Msg:[
+        {type: "string", name: "name"},
+        {type: "address", name: "sender"},
+        {type: "uint256", name: "amount"},
+        {type: "uint8", name: "lock_period"}
+      ]
+    }, 
+  };
+    return typedData;
 };
 
-contract("Fragment", accounts => {
+contract("Fragment", (accounts) => {
 
   it("should upload a fragment", async () => {
     const params = {
@@ -161,42 +162,47 @@ contract("Fragment", accounts => {
     assert.equal(await newContract.methods.balanceOf(accounts[0]).call(), 9);
   });
 
+});
+
+contract("FRAGToken", (accounts) => {
+
   it("should be able to lock", async () => {
-
-    const fragToken20 = await fragToken.deployed();
-    await fragToken20.transfer(accounts[1], 2000);
-
+    //await web3.eth.accounts.wallet.create(1); // create 3 accounts
+    const firstAccount = accounts[0];
+    const chainId = await web3.eth.getChainId();
+    const contract = await fragToken.deployed();
     const parts = [
-      { t: "string", v: web3.utils.soliditySha3("FragLock") },
-      { t: "address", v: accounts[1] },
-      { t: "uint256", v: web3.utils.soliditySha3(1000) },
-      { t: "uint", v: web3.utils.soliditySha3(0) },
+      { t: "name", v: "FragLock" },
+      { t: "sender", v: firstAccount },
+      { t: "amount", v: 1000 },
+      { t: "lock_period", v: 0 },
     ];
     
-    const message = await eip712_message(parts, fragToken20.address);
-    const toSign = eip712.getMessage(message, true);
-    const signature = await web3.eth.signTypedData(toSign, accounts[1]);
-    //const signature = ethUtil.ecsign(toSign, accounts[1]);
-
-    const result = await fragToken20.lock(1000, signature, 0, { from: accounts[1] });
+    await contract.transfer(firstAccount, 2000);
+    const typedData = eip712_message(chainId, parts, contract.address);
+    const private_key = new Buffer.from("4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d", 'hex');
+    const signature = ethSignUtil.signTypedData({privateKey: private_key, data: typedData, version: ethSignUtil.SignTypedDataVersion.V4});
+    const result = await contract.lock(signature, parts[2].v, parts[3].v, { from: firstAccount });
     truffleAssert.eventEmitted(result, 'Lock');
   });
 
   it("should be unable to unlock if still timelocked", async () => {
+    const account = accounts[0];
     const fragToken20 = await fragToken.deployed();
-
+    const chainId = await web3.eth.getChainId();
+    const contract = await fragToken.deployed();
     const parts = [
-      { t: "string", v: "FragLock" },
-      { t: "address", v: accounts[1] },
-      { t: "uint256", v: 5 },
-      { t: "uint256", v: 1000 },
-      { t: "uint", v: 0 },
+      { t: "name", v: "FragLock" },
+      { t: "sender", v: account },
+      { t: "amount", v: 1000 },
+      { t: "lock_period", v: 0 },
     ];
-    const messageHex = web3.utils.soliditySha3(...parts);
-    const signature = await signMessage(accounts[1], messageHex);
 
-    const lockTx = await fragToken20.lock(1000, signature, 0, { from: accounts[1] });
-    truffleAssert.eventEmitted(lockTx, 'Lock');
+    const typedData = eip712_message(chainId, parts, contract.address);
+    const private_key = new Buffer.from("4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d", 'hex');
+    const signature = ethSignUtil.signTypedData({privateKey: private_key, data: typedData, version: ethSignUtil.SignTypedDataVersion.V4});
+    const result = await contract.lock(signature, parts[2].v, parts[3].v, { from: account });
+    truffleAssert.eventEmitted(result, 'Lock');
 
     const parts_unlock = [
       { t: "string", v: "FragLock" },
@@ -235,7 +241,7 @@ contract("Fragment", accounts => {
     const signature = await signMessage(accounts[1], messageHex);
 
     await truffleAssert.reverts(
-      fragToken20.lock(100, signature, 5, { from: accounts[1] }),
+      fragToken20.lock(signature, 100, 5, { from: accounts[1] }),
       "Time lock period not allowed"
     );
   });
