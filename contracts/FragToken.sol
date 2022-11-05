@@ -29,7 +29,6 @@ contract FRAGToken is ERC20, EIP712, Ownable{
     // Fragnova chain will listen to those events
     event Lock(address indexed sender, bytes signature, uint256 amount, uint8 lock_period);
     event Unlock(address indexed sender, bytes signature, uint256 amount);
-    event Hash(uint256 chainId);
 
     constructor()
         ERC20("Fragnova Network Token", "FRAG")
