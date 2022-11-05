@@ -7,12 +7,7 @@ var pre721 = artifacts.require("PreERC721");
 var pre721Factory = artifacts.require("PreERC721Factory");
 var pre721Genesis = artifacts.require("PreERC721Genesis");
 const truffleAssert = require('truffle-assertions');
-const eip712 = require('eip-712');
 const ethSignUtil = require('@metamask/eth-sig-util');
-const ethUtils = require('ethereumjs-util');
-const bip39 = require('bip39');
-const hdkey = require('@truffle/hdwallet-provider');
-const wallet = require('ethereumjs-wallet');
 
 function fixSignature(signature) {
   // in geth its always 27/28, in ganache its 0/1. Change to 27/28 to prevent
@@ -167,7 +162,6 @@ contract("Fragment", (accounts) => {
 contract("FRAGToken", (accounts) => {
 
   it("should be able to lock", async () => {
-    //await web3.eth.accounts.wallet.create(1); // create 3 accounts
     const firstAccount = accounts[0];
     const chainId = await web3.eth.getChainId();
     const contract = await fragToken.deployed();
@@ -188,7 +182,6 @@ contract("FRAGToken", (accounts) => {
 
   it("should be unable to unlock if still timelocked", async () => {
     const account = accounts[0];
-    const fragToken20 = await fragToken.deployed();
     const chainId = await web3.eth.getChainId();
     const contract = await fragToken.deployed();
     const parts = [
@@ -204,21 +197,13 @@ contract("FRAGToken", (accounts) => {
     const result = await contract.lock(signature, parts[2].v, parts[3].v, { from: account });
     truffleAssert.eventEmitted(result, 'Lock');
 
-    const parts_unlock = [
-      { t: "string", v: "FragLock" },
-      { t: "address", v: accounts[1] },
-      { t: "uint256", v: 5 },
-      { t: "uint256", v: 1000 },
-    ];
-    const messageHex_unlock = web3.utils.soliditySha3(...parts_unlock);
-    const signature_unlock = await signMessage(accounts[1], messageHex_unlock);
-
+    const signature_unlock = ethSignUtil.signTypedData({privateKey: private_key, data: typedData, version: ethSignUtil.SignTypedDataVersion.V4});
     await truffleAssert.reverts(
-      fragToken20.unlock(signature_unlock, { from: accounts[1] }),
+      contract.unlock(signature_unlock, { from: account }),
       "Timelock didn't expire"
     );
 
-    var timeLock = await fragToken20.getTimeLock({ from: accounts[1] });
+    var timeLock = await contract.getTimeLock({ from: account });
 
     var date = new Date(timeLock * 1000).getTime(); // convert to Javascript date from UNIX timestamp
     var today = new Date().getTime();
@@ -227,21 +212,23 @@ contract("FRAGToken", (accounts) => {
   });
 
   it("should fail when lock period not valid", async () => {
-    const fragToken20 = await fragToken.deployed();
-    await fragToken20.transfer(accounts[1], 2000);
+    const contract = await fragToken.deployed();
+    await contract.transfer(accounts[0], 2000);
+    const chainId = await web3.eth.getChainId();
 
     const parts = [
       { t: "string", v: "FragLock" },
-      { t: "address", v: accounts[1] },
-      { t: "uint256", v: 5 },
+      { t: "address", v: accounts[0] },
       { t: "uint256", v: 1000 },
       { t: "uint8", v: 0 },
     ];
-    const messageHex = web3.utils.soliditySha3(...parts);
-    const signature = await signMessage(accounts[1], messageHex);
+    await contract.transfer(accounts[0], 2000);
+    const typedData = eip712_message(chainId, parts, contract.address);
+    const private_key = new Buffer.from("4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d", 'hex');
+    const signature = ethSignUtil.signTypedData({privateKey: private_key, data: typedData, version: ethSignUtil.SignTypedDataVersion.V4});
 
     await truffleAssert.reverts(
-      fragToken20.lock(signature, 100, 5, { from: accounts[1] }),
+      contract.lock(signature, 100, 5, { from: accounts[0] }),
       "Time lock period not allowed"
     );
   });

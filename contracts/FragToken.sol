@@ -107,18 +107,19 @@ contract FRAGToken is ERC20, EIP712, Ownable{
         require(amount > 0, "Amount must be greater than 0");
 
         // make sure the signature is valid
-        bytes32 hash = ECDSA.toEthSignedMessageHash(
+         bytes32 digest = _hashTypedDataV4(
             keccak256(
-                abi.encodePacked(
-                    "FragUnlock",
+                abi.encode(
+                    keccak256(abi.encodePacked("Msg(string name,address sender,uint256 amount)")),
+                    keccak256(abi.encodePacked("FragUnlock")),
                     msg.sender,
-                    uint64(block.chainid),
                     amount
                 )
             )
         );
+        
         require(
-            msg.sender == ECDSA.recover(hash, signature),
+            msg.sender == ECDSA.recover(digest, signature),
             "Invalid signature"
         );
 
