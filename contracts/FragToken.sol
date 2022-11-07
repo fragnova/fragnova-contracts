@@ -123,9 +123,9 @@ contract FRAGToken is ERC20, EIP712, Ownable{
         );
 
         // reset the stake
-        _locksAmount[msg.sender] = 0;
-        _locksBlock[msg.sender] = 0;
-        _locktime[msg.sender] = 0;
+        delete _locksAmount[msg.sender];
+        delete _locksBlock[msg.sender];
+        delete _locktime[msg.sender];
 
         // return the stake
         transfer(msg.sender, amount);
