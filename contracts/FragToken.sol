@@ -5,9 +5,9 @@ pragma solidity >=0.8.0 <0.9.0;
 
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
-import "openzeppelin-solidity/contracts/utils/cryptography/draft-EIP712.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
-contract FRAGToken is ERC20, EIP712, Ownable{
+contract FRAGToken is ERC20, ERC20Permit, Ownable{
     uint8 constant DECIMALS = 12; // Preferred for Fragnova (Substrate)
     uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS); 
     uint256 private constant _TIMELOCK = 1 weeks;
@@ -32,7 +32,7 @@ contract FRAGToken is ERC20, EIP712, Ownable{
 
     constructor()
         ERC20("Fragnova Network Token", "FRAG")
-        EIP712("Fragnova Network Token", "1")
+        ERC20Permit("Fragnova Network Token")
     {
         _mint(msg.sender, INITIAL_SUPPLY);
     }
