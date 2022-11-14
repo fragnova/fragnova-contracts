@@ -1,7 +1,6 @@
 const fs = require('fs');
-const truffleAssert = require('truffle-assertions');
 
-var daoToken = artifacts.require("FRAGToken");
+var fragToken = artifacts.require("FRAGToken");
 var nft = artifacts.require("Fragment");
 var nftProxy = artifacts.require("FragmentProxy");
 var nftEntity = artifacts.require("Entity");
@@ -18,7 +17,7 @@ module.exports = async function (deployer, network) {
 
   await deployer.deploy(nft);
   await deployer.deploy(nftEntity);
-  await deployer.deploy(daoToken);
+  await deployer.deploy(fragToken);
   await deployer.deploy(vault);
   await deployer.deploy(utility);
   await deployer.deploy(pre721);
@@ -34,5 +33,5 @@ module.exports = async function (deployer, network) {
   fs.writeFile("deployer-utils/pre721-bytecode.txt", pre721.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/pre721Factory-bytecode.txt", pre721Factory.bytecode, (_r, _e) => { });
   fs.writeFile("deployer-utils/pre721Genesis-bytecode.txt", pre721Genesis.bytecode, (_r, _e) => { });
-  fs.writeFile("deployer-utils/daoToken-bytecode.txt", daoToken.bytecode, (_r, _e) => { });
+  fs.writeFile("deployer-utils/fragToken-bytecode.txt", fragToken.bytecode, (_r, _e) => { });
 };
