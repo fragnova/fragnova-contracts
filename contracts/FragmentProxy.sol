@@ -3,7 +3,7 @@
 
 pragma solidity ^0.8.7;
 
-import "openzeppelin-solidity/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 contract FragmentProxy is TransparentUpgradeableProxy {
     constructor()

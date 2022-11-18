@@ -1,6 +1,7 @@
 node_modules/
 build/
-chainblocks*.log
+*.log
 chains/CBlocks/web3.dll
 deployer-utils/results.txt
 verify*.json
+.vscode/

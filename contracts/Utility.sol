@@ -4,7 +4,7 @@
 pragma solidity ^0.8.7;
 
 import "./RezProxy.sol";
-import "openzeppelin-solidity/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract Utility {
     using Strings for uint256;
