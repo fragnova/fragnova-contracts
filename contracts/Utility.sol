@@ -4,17 +4,14 @@
 pragma solidity ^0.8.7;
 
 import "./RezProxy.sol";
-import "openzeppelin-solidity/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract Utility {
     using Strings for uint256;
 
-    bytes private constant METADATA_URI =
-        "https://metadata.fragments.foundation/";
+    bytes private constant METADATA_URI = "https://meta-proxy.fragnova.com/";
 
-    bytes private constant IMG_URI = "https://img.fragments.foundation/";
-
-    bytes private constant REZ_CONTRACT = type(RezProxy).creationCode;
+    bytes private constant IMG_URI = "https://img-proxy.fragnova.com/";
 
     // This flag is used in rezzed contracts to determine the owner() call result
     // for now NFT marketplaces are a wildwest and we need to override it with our addresses in order to be able to ensure royalties distribution
@@ -41,35 +38,15 @@ contract Utility {
         else return bytes1(uint8(b) + 0x57);
     }
 
-    function _getChainId() private view returns (uint256) {
-        uint256 id;
-        assembly {
-            id := chainid()
-        }
-        return id;
-    }
-
-    function buildFragmentMetadata(
-        uint160 hashId,
-        bytes32 mutableHash,
-        uint256 includeCost,
-        uint256 immutableBlock,
-        uint256 mutableBlock
-    ) public view returns (string memory metadata) {
+    function buildFragmentMetadata(bytes32 fragmentHash)
+        public
+        pure
+        returns (string memory metadata)
+    {
         bytes memory query = abi.encodePacked(
             METADATA_URI,
-            "?ch=",
-            _getChainId().toHexString(),
-            "&t=",
-            uint256(hashId).toHexString(),
-            "&m=",
-            uint256(mutableHash).toHexString(),
-            "&i=",
-            includeCost.toHexString(),
-            "&ib=",
-            immutableBlock.toHexString(),
-            "&mb=",
-            mutableBlock.toHexString()
+            "?f=",
+            uint256(fragmentHash).toHexString()
         );
 
         return string(query);
@@ -91,7 +68,7 @@ contract Utility {
             '"image":"',
             IMG_URI,
             'fragments-logo.png",',
-            '"external_link":"https://fragments.foundation"}'
+            '"external_link":"https://fragnova.com"}'
         );
 
         return string(data);
@@ -106,7 +83,7 @@ contract Utility {
         bytes memory query = abi.encodePacked(
             METADATA_URI,
             "?ch=",
-            _getChainId().toHexString(),
+            block.chainid.toHexString(),
             "&id=",
             id.toHexString(),
             "&e=0x",
@@ -149,9 +126,5 @@ contract Utility {
         );
 
         return string(data);
-    }
-
-    function getRezProxyBytecode() public pure returns (bytes memory bytecode) {
-        return REZ_CONTRACT;
     }
 }

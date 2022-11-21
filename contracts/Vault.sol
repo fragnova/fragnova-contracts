@@ -3,8 +3,8 @@
 
 pragma solidity ^0.8.7;
 
-import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./IFragment.sol";
 import "./IEntity.sol";
 

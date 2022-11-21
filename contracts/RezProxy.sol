@@ -3,8 +3,8 @@
 
 pragma solidity ^0.8.7;
 
-import "openzeppelin-solidity/contracts/proxy/Proxy.sol";
-import "openzeppelin-solidity/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/proxy/Proxy.sol";
+import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 
 contract RezProxy is Proxy {
     bytes32 private constant _IMPLEMENTATION_SLOT =

@@ -6,14 +6,16 @@ jobs:
   Tests:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
+      with:
+        node-version: 16
     - name: Test
       run: |
         npm install -g truffle
-        npm install -g ganache-cli
+        npm install -g ganache
         npm install
-        ganache-cli -d --chainId 1 -q -u 0x7F7eF2F9D8B0106cE76F66940EF7fc0a3b23C974 -p 18545 &
+        ganache -d --chain.chainId 5 -u 0x0123456789012345678901234567890123456789 -p 18545 -q --wallet.accountKeysPath test/accounts.json &
         sleep 5
         truffle test --network development --show-events
 
