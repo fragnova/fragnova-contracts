@@ -7,15 +7,19 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/access/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
-contract FRAGToken is ERC20, ERC20Permit, Ownable{
+/// @title FRAG Token Smart Contract
+/// @dev Extends ERC721 Non-Fungible Token Standard basic implementation.
+contract FRAGToken is ERC20, ERC20Permit, Ownable {
     uint8 constant DECIMALS = 12; // Preferred for Fragnova (Substrate)
     uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS); 
     uint256 private constant _TIMELOCK = 1 weeks;
 
+    /// @notice Mapping maps
     mapping(address => uint256) private _locksAmount;
     mapping(address => uint256) private _locksBlock;
     mapping(address => uint256) private _locktime;
 
+    /// @notice **Enum** represents the **different time periods** in which **some FRAG Token can be locked**
     enum Period {
         TwoWeeks,
         OneMonth,
@@ -37,14 +41,22 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         _mint(msg.sender, INITIAL_SUPPLY);
     }
 
+    /// @notice Get the **maximum number of decimal places** of the FRAG Token
+    /// @return Maximum number of decimal places of the FRAG Token
     function decimals() public pure override returns (uint8) {
         return DECIMALS;
     }
 
+    /// @notice Increase the Token Supply of the FRAG Token
+    /// @param to Public Account Address to transfer the newly-mined FRAG Token to
+    /// @param amount Amount of FRAG Token to mint
     function inflate(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);
     }
 
+    /// @notice Decrease the Token Supply of the FRAG Token
+    /// @param account Public Account Address to transfer the newly-mined FRAG Token to
+    /// @param amount Amount of FRAG Token to burn
     function deflate(address account, uint256 amount) external onlyOwner {
         _burn(account, amount);
     }
