@@ -1,5 +1,5 @@
-/* SPDX-License-Identifier: BUSL-1.1 */
-/* Copyright © 2021 Fragcolor Pte. Ltd. */
+/// SPDX-License-Identifier: BUSL-1.1
+/// Copyright © 2021 Fragcolor Pte. Ltd.
 
 pragma solidity >=0.8.0 <0.9.0;
 
@@ -14,9 +14,12 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
     uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS); 
     uint256 private constant _TIMELOCK = 1 weeks;
 
-    /// @notice Mapping maps
+    /// @notice **Mapping** that maps a **Public Account Address** to the **amount of FRAG Token is currently locked by the Public Account Address**
     mapping(address => uint256) private _locksAmount;
+    /// @notice ???
     mapping(address => uint256) private _locksBlock;
+    /// @notice **Mapping** that maps a **Public Account Address** to the
+    /// **block-timestamp after which the Public Account Address can unlock the FRAG Token that is currently locked by it**
     mapping(address => uint256) private _locktime;
 
     /// @notice **Enum** represents the **different time periods** in which **some FRAG Token can be locked**
@@ -61,6 +64,11 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         _burn(account, amount);
     }
 
+    /// @notice Lock some FRAG Token
+    /// @param signature Signature signed by the caller of this function indicating the amount of FRAG token (param `amount`) that the caller wants to lock
+    /// and the time period (param `time_period`) he wants to lock it for
+    /// @param amount Amount of FRAG Token to lock
+    /// @param lock_period **Index** of the **`Period` enum variant** that **you want to use**.
     function lock(bytes calldata signature, uint256 amount, uint8 lock_period) external {
         require(amount > 0, "Amount must be greater than 0");
         require(lock_period >= 0 && lock_period <= 4, "Time lock period not allowed");
@@ -108,6 +116,8 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         emit Lock(msg.sender, signature, _locksAmount[msg.sender], lock_period);
     }
 
+    /// @notice Unlock the FRAG Token that is currently locked under your name
+    /// @param signature Signature signed by the caller of this function indicating the amount of FRAG Token that the caller wants to unlock
     function unlock(bytes calldata signature) external {
         require(
             _locktime[msg.sender] != 0 && block.timestamp > _locktime[msg.sender],
@@ -148,6 +158,8 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         emit Unlock(msg.sender, signature, amount);
     }
 
+    /// @notice Get the amount of FRAG Token that is currently locked under your name
+    /// @return Amount of FRAG Token that is currently locked under your name
     function getTimeLock() external view returns(uint256) {
         return _locktime[msg.sender];
     }
