@@ -16,6 +16,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         address sender;
         uint256 locktime;
         uint256 amount;
+        bool unlocked;
     }
 
     LockInfo private _lockInfo;
@@ -76,6 +77,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
 
         _lockInfo.sender = msg.sender;
         _lockInfo.amount = amount;
+        _lockInfo.unlocked = false;
 
         if(lock_period == uint256(Period.TwoWeeks)) 
             _lockInfo.locktime = block.timestamp + (2 * _TIMELOCK);
@@ -112,8 +114,14 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         // loop over all the locks performed by the sender and calculate the aggregate unlockable
         uint256 amount = 0;
         for (uint i = 0; i < _userlocks[msg.sender].length; i++) {
-            if(_userlocks[msg.sender][i].locktime < block.timestamp) {
+            if(_userlocks[msg.sender][i].locktime < block.timestamp && !_userlocks[msg.sender][i].unlocked) {
                 amount += _userlocks[msg.sender][i].amount;
+                // once added to the total, set to it zero
+                _userlocks[msg.sender][i].amount = 0;
+                // this avoids to consider this element in the array again. 
+                // The `amount` is anyway set to zero for additional safety
+                _userlocks[msg.sender][i].unlocked = true;
+
             }
         }
 
@@ -135,9 +143,6 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         );
 
         require(amount > 0, "Nothing available to unlock.");
-
-        // reset the stake
-        // TODO
 
         // return the stake
         transfer(msg.sender, amount);
