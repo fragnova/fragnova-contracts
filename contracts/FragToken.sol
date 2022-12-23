@@ -113,7 +113,8 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
 
         // loop over all the locks performed by the sender and calculate the aggregate unlockable
         uint256 amount = 0;
-        for (uint i = 0; i < _userlocks[msg.sender].length; i++) {
+        uint256 length = _userlocks[msg.sender].length;
+        for (uint i = 0; i < length; i++) {
             if(_userlocks[msg.sender][i].locktime < block.timestamp && !_userlocks[msg.sender][i].unlocked) {
                 amount += _userlocks[msg.sender][i].amount;
                 // once added to the total, set to it zero
