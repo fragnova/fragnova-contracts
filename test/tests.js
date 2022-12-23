@@ -37,6 +37,37 @@ function eip712_message(chainId, parts, contract) {
     return typedData;
 };
 
+function eip712_message_unlock(chainId, parts, contract) {
+  const typedDataUnlock = {
+    domain: {
+      name: 'Fragnova Network Token',
+      version: '1',
+      chainId: chainId,
+      verifyingContract: contract
+    },
+    message: {
+      name: parts[0].v,
+      sender: parts[1].v,
+      amount: parts[2].v,
+    },
+    primaryType:'Msg',
+    types: {
+      EIP712Domain: [
+        {type:'string', name: 'name'},
+        {type:'string', name: 'version'},
+        {type:'uint256', name: 'chainId'},
+        {type:'address', name: 'verifyingContract'}
+      ],
+      Msg:[
+        {type: "string", name: "name"},
+        {type: "address", name: "sender"},
+        {type: "uint256", name: "amount"},
+      ]
+    }, 
+  };
+    return typedDataUnlock;
+};
+
 contract("FRAGToken", (accounts) => {
 
   it("should be able to lock", async () => {
@@ -68,6 +99,11 @@ contract("FRAGToken", (accounts) => {
       { t: "amount", v: 1000 },
       { t: "lock_period", v: 0 },
     ];
+    const parts_unlock = [
+      { t: "name", v: "FragUnlock" },
+      { t: "sender", v: account },
+      { t: "amount", v: 0 },
+    ];
 
     const typedData = eip712_message(chainId, parts, contract.address);
     const private_key = new Buffer.from("4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d", 'hex');
@@ -75,18 +111,12 @@ contract("FRAGToken", (accounts) => {
     const result = await contract.lock(signature, parts[2].v, parts[3].v, { from: account });
     truffleAssert.eventEmitted(result, 'Lock');
 
-    const signature_unlock = ethSignUtil.signTypedData({privateKey: private_key, data: typedData, version: ethSignUtil.SignTypedDataVersion.V4});
+    const typedDataUnlock = eip712_message_unlock(chainId, parts_unlock, contract.address);
+    const signature_unlock = ethSignUtil.signTypedData({privateKey: private_key, data: typedDataUnlock, version: ethSignUtil.SignTypedDataVersion.V4});
     await truffleAssert.reverts(
       contract.unlock(signature_unlock, { from: account }),
-      "Timelock didn't expire"
+      "Nothing available to unlock."
     );
-
-    var timeLock = await contract.getTimeLock({ from: account });
-
-    var date = new Date(timeLock * 1000).getTime(); // convert to Javascript date from UNIX timestamp
-    var today = new Date().getTime();
-    var one_day = 1000 * 60 * 60 * 24; // one day in millisecond
-    assert(14 == Math.round((date - today)/one_day), "Lock time is two weeks");
   });
 
   it("should fail when lock period not valid", async () => {
