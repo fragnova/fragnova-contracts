@@ -73,40 +73,40 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
             "Invalid signature"
         );
 
-        LockInfo memory _lockInfo;
-        _lockInfo.sender = msg.sender;
-        _lockInfo.amount = amount;
-        _lockInfo.unlocked = false;
+        LockInfo memory lockInfo;
+        lockInfo.sender = msg.sender;
+        lockInfo.amount = amount;
+        lockInfo.unlocked = false;
 
         if(lock_period == uint256(Period.TwoWeeks)) 
-            _lockInfo.locktime = block.timestamp + (2 * _TIMELOCK);
+            lockInfo.locktime = block.timestamp + (2 * _TIMELOCK);
         
         
         else if(lock_period == uint256(Period.OneMonth))
-            _lockInfo.locktime = block.timestamp + (4 * _TIMELOCK);
+            lockInfo.locktime = block.timestamp + (4 * _TIMELOCK);
         
 
         else if(lock_period == uint256(Period.ThreeMonths))
-            _lockInfo.locktime = block.timestamp + (13 * _TIMELOCK);
+            lockInfo.locktime = block.timestamp + (13 * _TIMELOCK);
         
 
         else if(lock_period == uint256(Period.SixMonths))
-            _lockInfo.locktime = block.timestamp + (26 * _TIMELOCK);
+            lockInfo.locktime = block.timestamp + (26 * _TIMELOCK);
         
 
         else if(lock_period == uint256(Period.OneYear))
-            _lockInfo.locktime = block.timestamp + (52 * _TIMELOCK);
+            lockInfo.locktime = block.timestamp + (52 * _TIMELOCK);
         
         else revert("This revert should not happen.");
         
-        _userlocks[msg.sender].push(_lockInfo);
+        _userlocks[msg.sender].push(lockInfo);
 
         transfer(address(this), amount);
 
         // We need to propagate the signature because it's the only reliable way to fetch the public key
         // of the sender from other chains.
         // emit total amount of locked tokens
-        emit Lock(msg.sender, signature, _lockInfo.amount, lock_period);
+        emit Lock(msg.sender, signature, lockInfo.amount, lock_period);
     }
 
     function unlock(bytes calldata signature) external {
