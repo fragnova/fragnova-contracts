@@ -19,8 +19,6 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         bool unlocked;
     }
 
-    LockInfo private _lockInfo;
-
     mapping(address => LockInfo[]) private _userlocks;
 
     enum Period {
@@ -75,6 +73,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
             "Invalid signature"
         );
 
+        LockInfo memory _lockInfo;
         _lockInfo.sender = msg.sender;
         _lockInfo.amount = amount;
         _lockInfo.unlocked = false;
@@ -98,7 +97,8 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         else if(lock_period == uint256(Period.OneYear))
             _lockInfo.locktime = block.timestamp + (52 * _TIMELOCK);
         
-
+        else revert("This revert should not happen.");
+        
         _userlocks[msg.sender].push(_lockInfo);
 
         transfer(address(this), amount);
