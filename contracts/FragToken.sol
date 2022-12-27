@@ -100,7 +100,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         else revert("This revert should not happen.");
         
         uint256 struct_hash = uint256(keccak256(abi.encode(lockInfo))); // struct are not supported by encodedPacked
-        uint256 hash_lock = uint256(keccak256(abi.encodePacked(struct_hash, msg.sender, block.timestamp)));
+        uint256 hash_lock = uint256(keccak256(abi.encodePacked(struct_hash, msg.sender)));
         _userlocks[msg.sender].add(hash_lock);
         _lockInfos[hash_lock] = lockInfo;
 
