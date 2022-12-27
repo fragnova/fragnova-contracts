@@ -100,7 +100,7 @@ contract("FRAGToken", (accounts) => {
     const parts = [
       { t: "name", v: "FragLock" },
       { t: "sender", v: account },
-      { t: "amount", v: 1000 },
+      { t: "amount", v: 500 },
       { t: "lock_period", v: 0 },
     ];
     const parts_unlock = [
@@ -123,20 +123,20 @@ contract("FRAGToken", (accounts) => {
     );
   });
 
-  it("should be unable to unlock after lock period the correct amount", async () => {
+  it("should be able to unlock the correct amount after lock period is over", async () => {
     const account = accounts[0];
     const chainId = await web3.eth.getChainId();
     const contract = await fragToken.deployed();
     const parts = [
       { t: "name", v: "FragLock" },
       { t: "sender", v: account },
-      { t: "amount", v: 1000 },
+      { t: "amount", v: 2000 },
       { t: "lock_period", v: 0 },
     ];
     const parts_unlock = [
       { t: "name", v: "FragUnlock" },
       { t: "sender", v: account },
-      { t: "amount", v: 3000 }, // aggregated lock amounts from the other previous js tests are considered too
+      { t: "amount", v: 3500 }, // aggregated lock amounts from the other previous js tests are considered too (1000 + 500 + 2000)
     ];
 
     // execute a lock
@@ -166,7 +166,7 @@ contract("FRAGToken", (accounts) => {
     const parts_unlock_new = [
       { t: "name", v: "FragUnlock" },
       { t: "sender", v: account },
-      { t: "amount", v: 1000 }, 
+      { t: "amount", v: 2000 }, 
     ];
 
     // execute an unlock where there will be only the latest 1000 tokens locked.
