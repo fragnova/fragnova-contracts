@@ -150,7 +150,7 @@ contract("FRAGToken", (accounts) => {
     const signature_unlock = ethSignUtil.signTypedData({privateKey: private_key, data: typedDataUnlock, version: ethSignUtil.SignTypedDataVersion.V4});
     await truffleAssert.reverts(
       contract.unlock(signature_unlock, { from: account }),
-      "Nothing available to unlock."
+      "All tokens are still not possible to unlock"
     );
   });
 
@@ -224,7 +224,7 @@ contract("FRAGToken", (accounts) => {
     const signature_unlock_new = ethSignUtil.signTypedData({privateKey: private_key, data: typedDataUnlock_new, version: ethSignUtil.SignTypedDataVersion.V4});
     await truffleAssert.reverts(
       contract.unlock(signature_unlock_new, { from: account }),
-      "No previous lock executed"
+      "There no locked tokens OR they have been all already unlocked"
     );
   });
 

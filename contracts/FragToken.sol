@@ -109,7 +109,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
 
         uint256 amount = 0;
         uint256 len = _lockInfos[msg.sender].length;
-        require(_lockInfos[msg.sender].length > 0, "No previous lock executed");
+        require(_lockInfos[msg.sender].length > 0, "There no locked tokens OR they have been all already unlocked");
         // loop over all the locks performed by the sender and calculate the aggregate unlockable
         for (uint i = len - 1; i >= 0 ; i--) {
             if(_lockInfos[msg.sender][i].locktime < block.timestamp) {
@@ -139,7 +139,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
             "Invalid signature"
         );
 
-        require(amount > 0, "Nothing available to unlock.");
+        require(amount > 0, "All tokens are still not possible to unlock");
 
         // return the stake
         transfer(msg.sender, amount);
