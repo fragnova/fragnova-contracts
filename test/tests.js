@@ -253,12 +253,12 @@ contract("FRAGToken", (accounts) => {
     const parts_unlock = [
       { t: "name", v: "FragUnlock" },
       { t: "sender", v: account },
-      { t: "amount", v: 2000 }, // aggregated lock amounts from the other previous js tests are considered too (1000 + 500 + 2000)
+      { t: "amount", v: 2000 }, 
     ];
     const parts_unlock_four_months = [
       { t: "name", v: "FragUnlock" },
       { t: "sender", v: account },
-      { t: "amount", v: 600 }, // aggregated lock amounts from the other previous js tests are considered too (1000 + 500 + 2000)
+      { t: "amount", v: 600 }, 
     ];
 
     // execute first lock
@@ -289,14 +289,14 @@ contract("FRAGToken", (accounts) => {
     const result_unlock = await contract.unlock(signature_unlock, { from: account });
     truffleAssert.eventEmitted(result_unlock, 'Unlock');
 
-    // execute unlock after four months
-    const duration_four_months = time.duration.weeks(20);
+    // execute unlock after three months
+    const duration_four_months = time.duration.weeks(10); // 4 weeks set previously in the chain + 10 now
     await time.increase(duration_four_months);
 
     const typedDataUnlock_four_months = eip712_message_unlock(chainId, parts_unlock_four_months, contract.address);
     const signature_unlock_four_months = ethSignUtil.signTypedData({privateKey: private_key, data: typedDataUnlock_four_months, version: ethSignUtil.SignTypedDataVersion.V4});
-    await contract.unlock(signature_unlock_four_months, { from: account });
-    truffleAssert.eventEmitted(result_unlock, 'Unlock');
+    const result_unlock_four_months = await contract.unlock(signature_unlock_four_months, { from: account });
+    truffleAssert.eventEmitted(result_unlock_four_months, 'Unlock');
 
   });
 
