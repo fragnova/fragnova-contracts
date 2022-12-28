@@ -69,9 +69,6 @@ function eip712_message_unlock(chainId, parts, contract) {
     return typedDataUnlock;
 };
 
-function get_signature(parts, private_key) {
-}
-
 contract("FRAGToken", (accounts) => {
 
   it("should be able to lock", async () => {
@@ -127,6 +124,7 @@ contract("FRAGToken", (accounts) => {
     const account = accounts[0];
     const chainId = await web3.eth.getChainId();
     const contract = await fragToken.deployed();
+    await contract.transfer(account, 5000);
     const parts = [
       { t: "name", v: "FragLock" },
       { t: "sender", v: account },

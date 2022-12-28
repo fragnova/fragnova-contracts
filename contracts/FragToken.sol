@@ -18,10 +18,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         uint256 amount;
     }
 
-    using EnumerableSet for EnumerableSet.UintSet;
-
-    mapping(address => EnumerableSet.UintSet) private _userlocks;
-    mapping(uint256 => LockInfo) private _lockInfos;
+    mapping(address => LockInfo[]) private _lockInfos;
 
     enum Period {
         TwoWeeks,
@@ -99,10 +96,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         
         else revert("This revert should not happen.");
         
-        uint256 struct_hash = uint256(keccak256(abi.encode(lockInfo))); // struct are not supported by encodedPacked
-        uint256 hash_lock = uint256(keccak256(abi.encodePacked(struct_hash, msg.sender)));
-        _userlocks[msg.sender].add(hash_lock);
-        _lockInfos[hash_lock] = lockInfo;
+        _lockInfos[msg.sender].push(lockInfo);
 
         transfer(address(this), amount);
 
@@ -115,27 +109,15 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
     function unlock(bytes calldata signature) external {
 
         uint256 amount = 0;
-        uint256 len = _userlocks[msg.sender].length();
-        uint256[] memory toRemove = new uint256[](len);
-
         // loop over all the locks performed by the sender and calculate the aggregate unlockable
-        for (uint i = 0; i < len; i++) {
-            uint256 struct_hash = _userlocks[msg.sender].at(i); 
-
-            if(_lockInfos[struct_hash].locktime < block.timestamp) {
-                amount += _lockInfos[struct_hash].amount;
-
-                toRemove[i] = struct_hash;
+        for (uint i = _lockInfos[msg.sender].length - 1; i >= 0 ; i--) {
+            if(_lockInfos[msg.sender][i].locktime < block.timestamp) {
+                amount += _lockInfos[msg.sender][i].amount;
+                _lockInfos[msg.sender].pop();
             }
-        }
-
-        // Remove the hashes that have just been unlocked.
-        // Because of how remove() works in EnumerableSet, it is easier to call it separately and not inside the previous for loop. 
-        // https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/structs/EnumerableSet.sol#L83
-        uint256 toRemove_len = toRemove.length;
-        for (uint i = 0; i < toRemove_len; i++) {
-            delete _lockInfos[toRemove[i]];
-                _userlocks[msg.sender].remove(toRemove[i]);
+            if(i == 0) { // This to avoid Arithmetic overflow when i == 0.
+                break;
+            }
         }
 
         // make sure the signature is valid
