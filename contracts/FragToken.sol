@@ -108,10 +108,13 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
     function unlock(bytes calldata signature) external {
 
         uint256 amount = 0;
+        uint256 len = _lockInfos[msg.sender].length;
+        require(_lockInfos[msg.sender].length > 0, "No previous lock executed");
         // loop over all the locks performed by the sender and calculate the aggregate unlockable
-        for (uint i = _lockInfos[msg.sender].length - 1; i >= 0 ; i--) {
+        for (uint i = len - 1; i >= 0 ; i--) {
             if(_lockInfos[msg.sender][i].locktime < block.timestamp) {
                 amount += _lockInfos[msg.sender][i].amount;
+                _lockInfos[msg.sender][i] = _lockInfos[msg.sender][_lockInfos[msg.sender].length - 1];
                 _lockInfos[msg.sender].pop();
             }
             if(i == 0) { // This to avoid Arithmetic overflow when i == 0.
