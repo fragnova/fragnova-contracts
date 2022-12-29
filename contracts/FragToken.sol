@@ -12,9 +12,12 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
     uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS); 
     uint256 private constant _TIMELOCK = 1 weeks;
 
-    mapping(address => uint256) private _locksAmount;
-    mapping(address => uint256) private _locksBlock;
-    mapping(address => uint256) private _locktime;
+    struct LockInfo {
+        uint256 locktime;
+        uint256 amount;
+    }
+
+    mapping(address => LockInfo[]) private _lockInfos;
 
     enum Period {
         TwoWeeks,
@@ -23,8 +26,6 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         SixMonths,
         OneYear
     }
-
-    uint256 private _lockCooldown = 45500; // Roughly 1 week
 
     // Fragnova chain will listen to those events
     event Lock(address indexed sender, bytes signature, uint256 amount, uint8 lock_period);
@@ -70,40 +71,57 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
             "Invalid signature"
         );
 
-        // add to current locked amount
-        _locksAmount[msg.sender] = _locksAmount[msg.sender] + amount;
+        LockInfo memory lockInfo;
+        lockInfo.amount = amount;
 
-        if(lock_period == uint256(Period.TwoWeeks))
-            _locktime[msg.sender] = block.timestamp + (2 * _TIMELOCK);
+        if(lock_period == uint256(Period.TwoWeeks)) 
+            lockInfo.locktime = block.timestamp + (2 * _TIMELOCK);
+        
         
         else if(lock_period == uint256(Period.OneMonth))
-            _locktime[msg.sender] = block.timestamp + (4 * _TIMELOCK);
+            lockInfo.locktime = block.timestamp + (4 * _TIMELOCK);
+        
 
         else if(lock_period == uint256(Period.ThreeMonths))
-            _locktime[msg.sender] = block.timestamp + (13 * _TIMELOCK);
+            lockInfo.locktime = block.timestamp + (13 * _TIMELOCK);
+        
 
         else if(lock_period == uint256(Period.SixMonths))
-            _locktime[msg.sender] = block.timestamp + (26 * _TIMELOCK);
+            lockInfo.locktime = block.timestamp + (26 * _TIMELOCK);
+        
 
         else if(lock_period == uint256(Period.OneYear))
-            _locktime[msg.sender] = block.timestamp + (52 * _TIMELOCK);
+            lockInfo.locktime = block.timestamp + (52 * _TIMELOCK);
+        
+        else revert("This revert should not happen.");
+        
+        _lockInfos[msg.sender].push(lockInfo);
 
         transfer(address(this), amount);
 
         // We need to propagate the signature because it's the only reliable way to fetch the public key
         // of the sender from other chains.
         // emit total amount of locked tokens
-        emit Lock(msg.sender, signature, _locksAmount[msg.sender], lock_period);
+        emit Lock(msg.sender, signature, lockInfo.amount, lock_period);
     }
 
     function unlock(bytes calldata signature) external {
-        require(
-            _locktime[msg.sender] != 0 && block.timestamp > _locktime[msg.sender],
-            "Timelock didn't expire"
-        );
 
-        uint256 amount = _locksAmount[msg.sender];
-        require(amount > 0, "Amount must be greater than 0");
+        uint256 amount = 0;
+        LockInfo[] storage x = _lockInfos[msg.sender];
+        uint256 len = x.length;
+        require(len > 0, "There no locked tokens OR they have been all already unlocked");
+        // loop over all the locks performed by the sender and calculate the aggregate unlockable
+        for (uint i = len - 1; i >= 0 ; i--) {
+            if(x[i].locktime < block.timestamp) {
+                amount += x[i].amount;
+                x[i] = x[x.length - 1]; // `len` here cannot be used because the array is dynamically resized by pop
+                x.pop();
+            }
+            if(i == 0) { // This to avoid Arithmetic overflow when i == 0.
+                break;
+            }
+        }
 
         // make sure the signature is valid
          bytes32 digest = _hashTypedDataV4(
@@ -122,10 +140,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
             "Invalid signature"
         );
 
-        // reset the stake
-        delete _locksAmount[msg.sender];
-        delete _locksBlock[msg.sender];
-        delete _locktime[msg.sender];
+        require(amount > 0, "All tokens are still not possible to unlock");
 
         // return the stake
         transfer(msg.sender, amount);
@@ -134,9 +149,5 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         // this will be used by the Fragnova chain to unlock the stake
         // and potentially remove the stake from many protos automatically
         emit Unlock(msg.sender, signature, amount);
-    }
-
-    function getTimeLock() external view returns(uint256) {
-        return _locktime[msg.sender];
     }
 }
