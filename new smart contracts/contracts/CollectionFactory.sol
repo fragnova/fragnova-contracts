@@ -5,7 +5,8 @@ import {EnumerableSet} from "openzeppelin-solidity/contracts/utils/structs/Enume
 import {ECDSA} from "openzeppelin-solidity/contracts/utils/cryptography/ECDSA.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {ProtoCollection, InstanceCollection} from "./Collection.sol";
+import {ProtoCollection} from "./ProtoCollection.sol";
+import {InstanceCollection} from "./InstanceCollection.sol";
 import {ClonesWithImmutableArgs} from "clones-with-immutable-args/ClonesWithImmutableArgs.sol";
 
 import "hardhat/console.sol";
@@ -13,10 +14,10 @@ import "hardhat/console.sol";
 pragma solidity ^0.8.0;
 
 /// @notice **Enum** represents the **different types** that a **Collection can be**.
-    enum CollectionType {
-        ProtoFragment,
-        FragmentInstance
-    }
+enum CollectionType {
+    ProtoFragment,
+    FragmentInstance
+}
 
 contract CollectionFactory is Ownable {
     using EnumerableSet for EnumerableSet.AddressSet;
