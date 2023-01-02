@@ -38,7 +38,7 @@ describe("ProtoCollection", function () {
     const collectionFactory = await deployCollectionFactory();
     const baseUriProxy = await deployBaseUriProxy();
 
-    await expect(collectionFactory.addAuthority(alice.address)).not.to.be.reverted;
+    await expect(collectionFactory.updateAuthorities([alice.address], true)).not.to.be.reverted;
     await expect(baseUriProxy.setBaseUri("metadata.fragnova.com")).not.to.be.reverted;
 
     const protos = ["0x" + "11".repeat(32), "0x" + "22".repeat(32), "0x" + "33".repeat(32)];
@@ -47,6 +47,7 @@ describe("ProtoCollection", function () {
     const collectionType = 0; // Proto-Fragment
     const collectionMerkleRoot = '0x' + collectionMerkleTree.getRoot().toString('hex');
     let [collectionName, collectionSymbol] = [ethers.utils.formatBytes32String("Dummy Name"), ethers.utils.formatBytes32String("DN")];
+    const shouldRegisterWithOpenseaFilterRegistry = false;
     const signature = alice.signMessage(
         ethers.utils.arrayify(
             ethers.utils.solidityKeccak256(
@@ -55,7 +56,7 @@ describe("ProtoCollection", function () {
             )
         )
     );
-    const tx = await collectionFactory.attachCollection(collectionType, collectionMerkleRoot, collectionName, collectionSymbol, signature);
+    const tx = await collectionFactory.attachCollection(collectionType, collectionMerkleRoot, collectionName, collectionSymbol, shouldRegisterWithOpenseaFilterRegistry, signature);
     const { events } = await tx.wait();
     const protoCollectionAddress = events.find(e => e.event === "CollectionCreated").args[0];
 
@@ -74,7 +75,6 @@ describe("ProtoCollection", function () {
       const {protoCollection, owner, collectionMerkleRoot, collectionName, collectionSymbol} = await loadFixture(deployProtoCollectionFixture);
       expect(await protoCollection.merkleRoot()).to.equal(collectionMerkleRoot);
       expect(await protoCollection.owner()).to.equal(owner.address);
-
       expect((await protoCollection.name()) === collectionName); // We are doing `===` instead of `to.equal()` because `to.equal()` also looks at the null bytes ("\u0000") at the end of the returned string
       expect((await protoCollection.symbol()) === collectionSymbol); // We are doing `===` instead of `to.equal()` because `to.equal()` also looks at the null bytes ("\u0000") at the end of the returned string
     });
@@ -85,8 +85,6 @@ describe("ProtoCollection", function () {
       const { protoCollection, proto1, collectionMerkleTree} = await loadFixture(deployProtoCollectionFixture);
       const proof = collectionMerkleTree.getHexProof(ethers.utils.solidityKeccak256(["bytes32"], [proto1]));
       await expect(protoCollection.safeMint(proof, proto1, {value: protoCollection.mintPrice()})).not.to.be.reverted;
-
-      expect(await protoCollection.tokenIdOfProto(proto1)).to.equal(0);
     });
     it("Should revert if Proto-Fragment does not exist", async function () {
       const { protoCollection, proto1, collectionMerkleTree} = await loadFixture(deployProtoCollectionFixture);

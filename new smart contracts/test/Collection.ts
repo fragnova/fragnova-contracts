@@ -19,7 +19,7 @@ describe("Collection", function () {
 
     const Collection = await ethers.getContractFactory('Collection');
     const collection = await Collection.deploy();
-
+    await expect(collection.initialize(owner.address, false)).not.to.be.reverted;
 
     return { collection, baseUriProxy, owner, alice};
   }

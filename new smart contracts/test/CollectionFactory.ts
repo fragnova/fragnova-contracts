@@ -30,31 +30,53 @@ describe("CollectionFactory", function () {
     });
   });
 
-  // describe("Add Authority", function () {
-  //   it("Should work", async function () {
-  //     const { collectionFactory, alice } = await loadFixture(deployCollectionFactoryFixture);
-  //     await expect(collectionFactory.addAuthority(alice.address)).not.to.be.reverted;
-  //     expect(await collectionFactory.getAuthorities()).to.equal([alice]);
-  //   });
-  //
-  //   it("Should revert if caller is not owner", async function () {
-  //     const { collectionFactory, alice } = await loadFixture(deployCollectionFactoryFixture);
-  //     await expect(collectionFactory.connect(alice).addAuthority(alice.address)).to.be.revertedWith(
-  //         "Ownable: caller is not the owner"
-  //     );
-  //   });
-  // });
+  describe("Update Authority", function () {
+    describe("Add Authorities", function () {
+      it("Should work", async function () {
+        const { collectionFactory, alice, bob } = await loadFixture(deployCollectionFactoryFixture);
+        await expect(collectionFactory.updateAuthorities([alice.address, bob.address], true)).not.to.be.reverted;
+        expect(await collectionFactory.getAuthorities()).to.deep.equal([alice.address, bob.address]);
+      });
+
+      it("Should revert if caller is not owner", async function () {
+        const { collectionFactory, alice, bob } = await loadFixture(deployCollectionFactoryFixture);
+        await expect(collectionFactory.connect(alice).updateAuthorities([alice.address, bob.address], true)).to.be.revertedWith(
+            "Ownable: caller is not the owner"
+        );
+      });
+    });
+
+    describe("Remove Authorities", function () {
+      it("Should work", async function () {
+        const { collectionFactory, alice, bob } = await loadFixture(deployCollectionFactoryFixture);
+        await expect(collectionFactory.updateAuthorities([alice.address, bob.address], true)).not.to.be.reverted;
+
+        await expect(collectionFactory.updateAuthorities([alice.address], false)).not.to.be.reverted;
+        expect(await collectionFactory.getAuthorities()).to.deep.equal([bob.address]);
+      });
+
+      it("Should revert if caller is not owner", async function () {
+        const { collectionFactory, alice, bob } = await loadFixture(deployCollectionFactoryFixture);
+        await expect(collectionFactory.updateAuthorities([alice.address, bob.address], true)).not.to.be.reverted;
+
+        await expect(collectionFactory.connect(alice).updateAuthorities([alice.address], false)).to.be.revertedWith(
+            "Ownable: caller is not the owner"
+        );
+      });
+    });
+  });
 
   describe("Attach Collection", function () {
     it("Should work", async function () {
       const { collectionFactory, alice, bob } = await loadFixture(deployCollectionFactoryFixture);
 
-      await expect(collectionFactory.addAuthority(alice.address)).not.to.be.reverted;
+      await expect(collectionFactory.updateAuthorities([alice.address], true)).not.to.be.reverted;
 
       const collectionType = 0; // ProtoFragment
       const collectionMerkleRoot = "0x" + "77".repeat(32);
       const collectionName = ethers.utils.formatBytes32String("Dummy Name");
       const collectionSymbol = ethers.utils.formatBytes32String("DN");
+      const shouldRegisterWithOpenseaFilterRegistry = false;
       const signature = await alice.signMessage(
           ethers.utils.arrayify(
               ethers.utils.solidityKeccak256(
@@ -69,7 +91,8 @@ describe("CollectionFactory", function () {
           collectionMerkleRoot,
           collectionName,
           collectionSymbol,
-          signature
+          shouldRegisterWithOpenseaFilterRegistry,
+          signature,
       )).to.emit(collectionFactory, "CollectionCreated");
 
     });
@@ -77,12 +100,13 @@ describe("CollectionFactory", function () {
     it("Should revert if the signature is invalid", async function () {
       const { collectionFactory, alice, bob } = await loadFixture(deployCollectionFactoryFixture);
 
-      await expect(collectionFactory.addAuthority(alice.address)).not.to.be.reverted;
+      await expect(collectionFactory.updateAuthorities([alice.address], true)).not.to.be.reverted;
 
       const collectionType = 0; // ProtoFragment
       const collectionMerkleRoot = "0x" + "77".repeat(32);
       const collectionName = ethers.utils.formatBytes32String("Dummy Name");
       const collectionSymbol = ethers.utils.formatBytes32String("DN");
+      const shouldRegisterWithOpenseaFilterRegistry = false;
       const signature = "0xbbf4029d3724f75f1a5ec385aa696558c1e62d34af59d5c6494346f4602129f64cbc450cb006ad13ac58b0600391e3a599d070974f8873f0b720b90a22a1e1b21c"; // random signature
 
       await expect(collectionFactory.connect(bob).attachCollection(
@@ -90,6 +114,7 @@ describe("CollectionFactory", function () {
           collectionMerkleRoot,
           collectionName,
           collectionSymbol,
+          shouldRegisterWithOpenseaFilterRegistry,
           signature
       )).to.be.revertedWith(
           "Invalid Signature"

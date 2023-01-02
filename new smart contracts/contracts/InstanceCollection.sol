@@ -10,9 +10,9 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {NotProofRead, Mask} from "./Libraries.sol";
 
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import {ClonedCollection} from "./ClonedCollection.sol";
+import {Collection} from "./Collection.sol";
 
-contract InstanceCollection is ClonedCollection {
+contract InstanceCollection is Collection {
     using NotProofRead for bytes;
     using Mask for bytes;
     using Strings for uint256;

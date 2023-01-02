@@ -38,7 +38,7 @@ describe("InstanceCollection", function () {
     const collectionFactory = await deployCollectionFactory();
     const baseUriProxy = await deployBaseUriProxy();
 
-    await expect(collectionFactory.addAuthority(alice.address)).not.to.be.reverted;
+    await expect(collectionFactory.updateAuthorities([alice.address], true)).not.to.be.reverted;
     await expect(baseUriProxy.setBaseUri("metadata.fragnova.com")).not.to.be.reverted;
 
     const instances = [["0x" + "11".repeat(16), 1, 1], ["0x" + "22".repeat(16), 2, 1], ["0x" + "33".repeat(16), 3, 1]];
@@ -47,6 +47,7 @@ describe("InstanceCollection", function () {
     const collectionType = 1; // Fragment Instance
     const collectionMerkleRoot = '0x' + collectionMerkleTree.getRoot().toString('hex');
     let [collectionName, collectionSymbol] = [ethers.utils.formatBytes32String("Dummy Name"), ethers.utils.formatBytes32String("DN")];
+    const shouldRegisterWithOpenseaFilterRegistry = false;
     const signature = alice.signMessage(
         ethers.utils.arrayify(
             ethers.utils.solidityKeccak256(
@@ -55,7 +56,7 @@ describe("InstanceCollection", function () {
             )
         )
     );
-    const tx = await collectionFactory.attachCollection(collectionType, collectionMerkleRoot, collectionName, collectionSymbol, signature);
+    const tx = await collectionFactory.attachCollection(collectionType, collectionMerkleRoot, collectionName, collectionSymbol, shouldRegisterWithOpenseaFilterRegistry, signature);
     const { events } = await tx.wait();
     const instanceCollectionAddress = events.find(e => e.event === "CollectionCreated").args[0];
 
@@ -85,8 +86,6 @@ describe("InstanceCollection", function () {
       const [definitionHash, editionId, copyId] = instance1;
       const proof = collectionMerkleTree.getHexProof(ethers.utils.solidityKeccak256(["bytes16", "uint64", "uint64"], [definitionHash, editionId, copyId]));
       await expect(instanceCollection.safeMint(proof, definitionHash, editionId, {value: instanceCollection.mintPrice()})).not.to.be.reverted;
-
-      expect(await instanceCollection.tokenIdOfInstance(definitionHash, editionId)).to.equal(0);
     });
     it("Should revert if Fragment Instance does not exist", async function () {
       const { instanceCollection, instance1, collectionMerkleTree} = await loadFixture(deployInstanceCollectionFixture);

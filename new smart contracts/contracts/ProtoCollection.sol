@@ -10,16 +10,15 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {NotProofRead} from "./Libraries.sol";
 
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import {ClonedCollection} from "./ClonedCollection.sol";
+import {Collection} from "./Collection.sol";
 
-contract ProtoCollection is ClonedCollection {
+contract ProtoCollection is Collection {
     using NotProofRead for bytes;
     using Strings for uint256;
 
     /// @notice **Mapping** that maps a **minted Proto-Fragment** to its **Token ID + 1**.
     /// @dev The reason we map it to **token ID + 1** (instead of just the **token ID**) is because the default/uninitialized value of a Solidity mapping is 0.
     mapping(bytes32 => uint256) public proto2token;
-
     /// @notice **Mapping** that maps a **Token ID** to its corresponding **Proto-Fragment**.
     mapping(uint256 => bytes32) public token2proto;
 

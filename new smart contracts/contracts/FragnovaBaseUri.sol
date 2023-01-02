@@ -3,9 +3,9 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 contract FragnovaBaseUri is Initializable, UUPSUpgradeable, OwnableUpgradeable {
 
@@ -13,8 +13,8 @@ contract FragnovaBaseUri is Initializable, UUPSUpgradeable, OwnableUpgradeable {
     string public baseUri;
 
     /// @dev TIP: To avoid leaving the proxy in an uninitialized state, the initializer function should be called as early as possible by providing the encoded function call as the `_data` argument to {ERC1967Proxy-constructor}.
-    function initialize() public initializer {
-
+    function initialize() external initializer {
+        __Ownable_init();
     }
 
     /// @inheritdoc UUPSUpgradeable
