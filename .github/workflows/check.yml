@@ -46,7 +46,8 @@ jobs:
       - name: Check if `CollectionFactory.attachCollection()` works
         run: |
           cd clamor
-          RUST_LOG=bitswap=trace,pallet_protos::pallet=trace,pallet_frag::pallet=trace,pallet_fragments::pallet=trace,pallet_accounts::pallet=trace cargo run --dev --tmp --rpc-external --rpc-port 9933 --rpc-cors all --ws-external --enable-offchain-indexing true --rpc-methods=Unsafe --ipfs-server &
+          cargo build
+          RUST_LOG=bitswap=trace,pallet_protos::pallet=trace,pallet_frag::pallet=trace,pallet_fragments::pallet=trace,pallet_accounts::pallet=trace target/debug/clamor --dev --tmp --rpc-external --rpc-port 9933 --rpc-cors all --ws-external --enable-offchain-indexing true --rpc-methods=Unsafe --ipfs-server &
           sleep 120
           cd ..
           
