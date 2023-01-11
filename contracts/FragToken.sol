@@ -7,9 +7,9 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
-contract FRAGToken is ERC20, ERC20Permit, Ownable{
+contract FRAGToken is ERC20, ERC20Permit, Ownable {
     uint8 constant DECIMALS = 12; // Preferred for Fragnova (Substrate)
-    uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS); 
+    uint256 constant INITIAL_SUPPLY = 10_000_000_000 * (10**DECIMALS);
     uint256 private constant _TIMELOCK = 1 weeks;
 
     struct LockInfo {
@@ -28,7 +28,12 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
     }
 
     // Fragnova chain will listen to those events
-    event Lock(address indexed sender, bytes signature, uint256 amount, uint8 lock_period);
+    event Lock(
+        address indexed sender,
+        bytes signature,
+        uint256 amount,
+        uint8 lock_period
+    );
     event Unlock(address indexed sender, bytes signature, uint256 amount);
 
     constructor()
@@ -50,14 +55,25 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         _burn(account, amount);
     }
 
-    function lock(bytes calldata signature, uint256 amount, uint8 lock_period) external {
+    function lock(
+        bytes calldata signature,
+        uint256 amount,
+        uint8 lock_period
+    ) external {
         require(amount > 0, "Amount must be greater than 0");
-        require(lock_period >= 0 && lock_period <= 4, "Time lock period not allowed");
+        require(
+            lock_period >= 0 && lock_period <= 4,
+            "Time lock period not allowed"
+        );
 
         bytes32 digest = _hashTypedDataV4(
             keccak256(
                 abi.encode(
-                    keccak256(abi.encodePacked("Msg(string name,address sender,uint256 amount,uint8 lock_period)")),
+                    keccak256(
+                        abi.encodePacked(
+                            "Msg(string name,address sender,uint256 amount,uint8 lock_period)"
+                        )
+                    ),
                     keccak256(abi.encodePacked("FragLock")),
                     msg.sender,
                     amount,
@@ -65,7 +81,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
                 )
             )
         );
-        
+
         require(
             msg.sender == ECDSA.recover(digest, signature),
             "Invalid signature"
@@ -74,27 +90,18 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
         LockInfo memory lockInfo;
         lockInfo.amount = amount;
 
-        if(lock_period == uint256(Period.TwoWeeks)) 
+        if (lock_period == uint256(Period.TwoWeeks))
             lockInfo.locktime = block.timestamp + (2 * _TIMELOCK);
-        
-        
-        else if(lock_period == uint256(Period.OneMonth))
+        else if (lock_period == uint256(Period.OneMonth))
             lockInfo.locktime = block.timestamp + (4 * _TIMELOCK);
-        
-
-        else if(lock_period == uint256(Period.ThreeMonths))
+        else if (lock_period == uint256(Period.ThreeMonths))
             lockInfo.locktime = block.timestamp + (13 * _TIMELOCK);
-        
-
-        else if(lock_period == uint256(Period.SixMonths))
+        else if (lock_period == uint256(Period.SixMonths))
             lockInfo.locktime = block.timestamp + (26 * _TIMELOCK);
-        
-
-        else if(lock_period == uint256(Period.OneYear))
+        else if (lock_period == uint256(Period.OneYear))
             lockInfo.locktime = block.timestamp + (52 * _TIMELOCK);
-        
         else revert("This revert should not happen.");
-        
+
         _lockInfos[msg.sender].push(lockInfo);
 
         transfer(address(this), amount);
@@ -106,35 +113,54 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable{
     }
 
     function unlock(bytes calldata signature) external {
-
         uint256 amount = 0;
         LockInfo[] storage x = _lockInfos[msg.sender];
         uint256 len = x.length;
-        require(len > 0, "There no locked tokens OR they have been all already unlocked");
+        require(
+            len > 0,
+            "There no locked tokens OR they have been all already unlocked"
+        );
         // loop over all the locks performed by the sender and calculate the aggregate unlockable
-        for (uint i = len - 1; i >= 0 ; i--) {
-            if(x[i].locktime < block.timestamp) {
+        uint256 min_locktime = 0;
+        uint256 max_locktime = 0;
+        for (uint256 i = len - 1; i >= 0; i--) {
+            uint256 locktime = x[i].locktime;
+            if (locktime < block.timestamp) {
+                if (min_locktime == 0) {
+                    min_locktime = locktime;
+                }
                 amount += x[i].amount;
                 x[i] = x[x.length - 1]; // `len` here cannot be used because the array is dynamically resized by pop
                 x.pop();
+
+                if (locktime > max_locktime) {
+                    max_locktime = locktime;
+                }
             }
-            if(i == 0) { // This to avoid Arithmetic overflow when i == 0.
+            if (i == 0) {
+                // This to avoid Arithmetic overflow when i == 0.
                 break;
             }
         }
 
         // make sure the signature is valid
-         bytes32 digest = _hashTypedDataV4(
+        bytes32 digest = _hashTypedDataV4(
             keccak256(
                 abi.encode(
-                    keccak256(abi.encodePacked("Msg(string name,address sender,uint256 amount)")),
+                    keccak256(
+                        abi.encodePacked(
+                            "Msg(string name,address sender,uint256 amount,uint256 min_locktime,uint256 max_locktime)"
+                        )
+                    ),
                     keccak256(abi.encodePacked("FragUnlock")),
                     msg.sender,
-                    amount
+                    amount,
+                    min_locktime,
+                    max_locktime
                 )
             )
         );
-        
+
         require(
             msg.sender == ECDSA.recover(digest, signature),
             "Invalid signature"
