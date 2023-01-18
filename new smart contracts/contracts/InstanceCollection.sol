@@ -102,7 +102,7 @@ contract InstanceCollection is Collection {
             "Fragment Instance is not a part of the Collection"
         );
 
-        uint256 nextTokenId = _nextTokenId();
+        uint256 nextTokenId = _nextTokenId(); // Note: `_nextTokenId()` thinks that Token IDs start at 0
         instance2token[instanceId] = nextTokenId + 1; // The reason we map it to **token ID + 1** (instead of just the **token ID**) is because the default/uninitialized value of a Solidity mapping is 0.
         token2instance[nextTokenId] = instanceId;
         _safeMint(msg.sender, 1);

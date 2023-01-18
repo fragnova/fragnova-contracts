@@ -25,7 +25,7 @@ contract CollectionFactory is Ownable {
     /// @notice **Mapping** that maps a **Collection Type** to **a list of Collections of the Collection Type** that **exists on this Blockchain**
     mapping(CollectionType => address[]) private collections;
     /// @notice **Mapping** that maps a **Public Account Address** to its **Detach Nonce**
-    mapping(address => uint256) private nonces;
+    mapping(address => uint64) private nonces;
     /// @notice Address of a `ProtoCollection` contract that can be used as a template (for cloning new contracts of the same type)
     ProtoCollection public protoCollectionImplementation;
     /// @notice Address of an `InstanceCollection` contract that can be used as a template (for cloning new contracts of the same type)
@@ -77,7 +77,7 @@ contract CollectionFactory is Ownable {
                         collectionMerkleRoot,
                         block.chainid,
                         msg.sender,
-                        nonces[msg.sender]
+                        nonces[msg.sender] + 1
                     )
                 )
             ),

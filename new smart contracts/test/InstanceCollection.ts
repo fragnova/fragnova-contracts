@@ -51,8 +51,8 @@ describe("InstanceCollection", function () {
     const signature = alice.signMessage(
         ethers.utils.arrayify(
             ethers.utils.solidityKeccak256(
-                ["string", "bytes32", "uint256", "address", "uint256"],
-                ["Fragment Instance", collectionMerkleRoot, env.network.config.chainId, owner.address, 0]
+                ["string", "bytes32", "uint256", "address", "uint64"],
+                ["Fragment Instance", collectionMerkleRoot, env.network.config.chainId, owner.address, 1]
             )
         )
     );

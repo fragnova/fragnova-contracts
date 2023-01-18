@@ -43,18 +43,17 @@ jobs:
         with:
           node-version: '14'  # The node-version input is optional. If not supplied, the node version from PATH will be used. However, it is recommended to always specify Node.js version and don't rely on the system one.
 
-      - name: Check if `CollectionFactory.attachCollection()` works
+      - name: Check if Hardhat Tests Pass (which includes the End-To-End Test)
         run: |
           cd clamor
           cargo build
-          RUST_LOG=bitswap=trace,pallet_protos::pallet=trace,pallet_frag::pallet=trace,pallet_fragments::pallet=trace,pallet_accounts::pallet=trace target/debug/clamor --dev --tmp --rpc-external --rpc-port 9933 --rpc-cors all --ws-external --enable-offchain-indexing true --rpc-methods=Unsafe --ipfs-server &
+          RUST_LOG=bitswap=trace,pallet_protos::pallet=trace,pallet_fragments::pallet=trace,pallet_detach::pallet=trace,pallet_accounts::pallet=trace target/debug/clamor --dev --tmp --rpc-external --rpc-port 9933 --rpc-cors all --ws-external --enable-offchain-indexing 1 --rpc-methods=Unsafe --ipfs-server &
           sleep 120
           cd ..
           
           cd new\ smart\ contracts/
-          npm install 
-          
-          echo "Bonjour, tout le monde"
+          npm install
+          npx hardhat test
           
           kill %1
           
