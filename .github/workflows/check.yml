@@ -1,4 +1,4 @@
-name: Hola, todo el mundo
+name: Check CI
 
 # Controls when the action will run.
 on:
@@ -51,7 +51,7 @@ jobs:
           sleep 120
           cd ..
           
-          cd new\ smart\ contracts/
+          cd new-smart-contracts
           npm install
           npx hardhat test
           

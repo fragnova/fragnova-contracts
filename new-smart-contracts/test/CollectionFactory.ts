@@ -227,7 +227,7 @@ describe("CollectionFactory", function () {
             targetChain = 'EthereumGoerli';
             break;
           default:
-            throw new Error("What is real never ceases to be. The unreal never is.");
+            throw new Error("The Hardhat Network's Chain ID must be either 1, 4 or 5");
         }
         const protoHashes = [protoHash, protoHash2];
         const txHash = await api.tx.protos.detach(
@@ -306,7 +306,7 @@ describe("CollectionFactory", function () {
             targetChain = 'EthereumGoerli';
             break;
           default:
-            throw new Error("What is real never ceases to be. The unreal never is.");
+            throw new Error("The Hardhat Network's Chain ID must be either 1, 4 or 5");
         }
         const editionIds: Array<number> = instanceIds.map(([_, edition_Id], index) => edition_Id);
         const txHash = api.tx.fragments.detach(
