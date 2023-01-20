@@ -90,8 +90,8 @@ describe("CollectionFactory", function () {
       const signature = await alice.signMessage(
           ethers.utils.arrayify(
               ethers.utils.solidityKeccak256(
-                  ["string", "bytes32", "uint256", "address", "uint64"],
-                  ["Proto-Fragment", collectionMerkleRoot, env.network.config.chainId, bob.address, 1]
+                  ["uint8", "bytes32", "uint256", "address", "uint64"],
+                  [collectionType, collectionMerkleRoot, env.network.config.chainId, bob.address, 1]
               )
           )
       );
@@ -167,7 +167,7 @@ describe("CollectionFactory", function () {
         linkedAsset: null,
         license: null,
         cluster: null,
-        data: "Proto-Indo-European",
+        data: {Local: "Proto-Indo-European"},
       });
       protoHash = blake2AsU8a("Proto-Indo-European");
       await sleep(6000);
@@ -178,7 +178,7 @@ describe("CollectionFactory", function () {
         linkedAsset: null,
         license: null,
         cluster: null,
-        data: "Proto-Austronesian",
+        data: {Local: "Proto-Austronesian"},
       });
       protoHash2 = blake2AsU8a("Proto-Austronesian");
       await sleep(6000);
@@ -246,7 +246,7 @@ describe("CollectionFactory", function () {
 
               if (event.section === "detach" && event.method === "CollectionDetached") {
                 const [merkleRoot, remoteSignature, collectionType, collection] = event.data;
-                if (new TextDecoder("utf-8").decode(collectionType) === "Proto-Fragment") {
+                if (collectionType.toJSON() === "Proto") {
                   resolve(event.data);
                 }
               }
@@ -267,7 +267,7 @@ describe("CollectionFactory", function () {
         const ProtoCollection = await ethers.getContractFactory('ProtoCollection');
         const protoCollection = ProtoCollection.attach(this.address);
 
-        const collectionMerkleTree = new MerkleTree(protoHashes.map(p => ethers.utils.arrayify(ethers.utils.solidityKeccak256(["bytes32"], [p]))), ethers.utils.keccak256, {sortPairs: true});
+        const collectionMerkleTree = new MerkleTree(protoHashes.map(p => ethers.utils.arrayify(ethers.utils.solidityKeccak256(["bytes32"], [p]))), ethers.utils.keccak256, {sortPairs: true, sortLeaves: true});
 
         expect(await protoCollection.merkleRoot()).to.equal(collectionMerkleTree.getHexRoot());
 
@@ -325,7 +325,7 @@ describe("CollectionFactory", function () {
               const { event, phase } = record;
               if (event.section === "detach" && event.method === "CollectionDetached") {
                 const [merkleRoot, remoteSignature, collectionType, collection] = event.data;
-                if (new TextDecoder("utf-8").decode(collectionType) === "Fragment Instance") {
+                if (collectionType.toJSON() === "Instance") {
                   resolve(event.data);
                 }
               }
@@ -345,7 +345,7 @@ describe("CollectionFactory", function () {
         const InstanceCollection = await ethers.getContractFactory('InstanceCollection');
         const instanceCollection = InstanceCollection.attach(this.address);
 
-        const collectionMerkleTree = new MerkleTree(instanceIds.map(i => ethers.utils.arrayify( ethers.utils.solidityKeccak256(["bytes16", "uint64", "uint64"], [ethers.utils.hexlify(i[0]), i[1], i[2]]))), ethers.utils.keccak256, {sortPairs: true});
+        const collectionMerkleTree = new MerkleTree(instanceIds.map(i => ethers.utils.arrayify( ethers.utils.solidityKeccak256(["bytes16", "uint64", "uint64"], [ethers.utils.hexlify(i[0]), i[1], i[2]]))), ethers.utils.keccak256, {sortPairs: true, sortLeaves: true});
 
         expect(await instanceCollection.merkleRoot()).to.equal(collectionMerkleTree.getHexRoot());
 

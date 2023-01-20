@@ -43,7 +43,7 @@ describe("ProtoCollection", function () {
 
     const protos = ["0x" + "11".repeat(32), "0x" + "22".repeat(32), "0x" + "33".repeat(32)];
     const [proto1] = protos;
-    const collectionMerkleTree = new MerkleTree(protos.map(p => ethers.utils.arrayify(ethers.utils.solidityKeccak256(["bytes32"], [p]))), ethers.utils.keccak256, {sortPairs: true});
+    const collectionMerkleTree = new MerkleTree(protos.map(p => ethers.utils.arrayify(ethers.utils.solidityKeccak256(["bytes32"], [p]))), ethers.utils.keccak256, {sortPairs: true, sortLeaves: true});
     const collectionType = 0; // Proto-Fragment
     const collectionMerkleRoot = '0x' + collectionMerkleTree.getRoot().toString('hex');
     let [collectionName, collectionSymbol] = [ethers.utils.formatBytes32String("Dummy Name"), ethers.utils.formatBytes32String("DN")];
@@ -51,8 +51,8 @@ describe("ProtoCollection", function () {
     const signature = alice.signMessage(
         ethers.utils.arrayify(
             ethers.utils.solidityKeccak256(
-                ["string", "bytes32", "uint256", "address", "uint64"],
-                ["Proto-Fragment", collectionMerkleRoot, env.network.config.chainId, owner.address, 1]
+                ["uint8", "bytes32", "uint256", "address", "uint64"],
+                [collectionType, collectionMerkleRoot, env.network.config.chainId, owner.address, 1]
             )
         )
     );

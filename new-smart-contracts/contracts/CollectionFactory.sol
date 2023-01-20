@@ -12,8 +12,8 @@ import {InstanceCollection} from "./InstanceCollection.sol";
 
 /// @notice **Enum** represents the **different types** that a **Collection can be**.
 enum CollectionType {
-    ProtoFragment,
-    FragmentInstance
+    Proto,
+    Instance
 }
 
 contract CollectionFactory is Ownable {
@@ -52,9 +52,9 @@ contract CollectionFactory is Ownable {
         pure
         returns (string memory)
     {
-        if (collectionType == CollectionType.ProtoFragment) {
+        if (collectionType == CollectionType.Proto) {
             return "Proto-Fragment";
-        } else if (collectionType == CollectionType.FragmentInstance) {
+        } else if (collectionType == CollectionType.Instance) {
             return "Fragment Instance";
         } else {
             revert("Systematic Error");
@@ -73,7 +73,7 @@ contract CollectionFactory is Ownable {
             ECDSA.toEthSignedMessageHash(
                 keccak256(
                     abi.encodePacked(
-                        getString(collectionType),
+                        uint8(collectionType),
                         collectionMerkleRoot,
                         block.chainid,
                         msg.sender,
@@ -147,13 +147,13 @@ contract CollectionFactory is Ownable {
 
         address newContract;
 
-        if (collectionType == CollectionType.ProtoFragment) {
+        if (collectionType == CollectionType.Proto) {
             newContract = address(protoCollectionImplementation).clone(data);
             ProtoCollection(newContract).initialize(
                 msg.sender,
                 shouldRegisterWithOpenseaFilterRegistry
             );
-        } else if (collectionType == CollectionType.FragmentInstance) {
+        } else if (collectionType == CollectionType.Instance) {
             newContract = address(instanceCollectionImplementation).clone(data);
             InstanceCollection(newContract).initialize(
                 msg.sender,
