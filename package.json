@@ -1,5 +1,5 @@
 {
-  "name": "fragnova-contracts",
+  "name": "hasten-contracts",
   "version": "1.0.0",
   "description": "",
   "main": "truffle-config.js",
@@ -8,16 +8,13 @@
   },
   "dependencies": {
     "@ethereumjs/tx": "^3.1.1",
-    "@metamask/eth-sig-util": "^5.0.0",
-    "@primitivefi/hardhat-dodoc": "^0.2.3",
-    "ethereumjs-util": "^7.1.5",
     "openzeppelin-solidity": "sinkingsugar/openzeppelin-contracts#617ac5e79957fc7699207d1103abd6eb6e5d475a",
-    "solidity-docgen": "^0.6.0-beta.32",
-    "web3": "^1.8.0"
+    "ethereumjs-util": "^7.1.5",
+    "web3": "^1.8.0",
+    "@metamask/eth-sig-util": "^5.0.0"
   },
   "devDependencies": {
     "@truffle/hdwallet-provider": "^2.0.0",
-    "hardhat": "^2.12.4",
     "truffle-assertions": "*"
   },
   "scripts": {
