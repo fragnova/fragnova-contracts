@@ -126,7 +126,7 @@ contract FRAGToken is ERC20, ERC20Permit, Ownable {
         for (uint256 i = len - 1; i >= 0; i--) {
             uint256 locktime = x[i].locktime;
             if (locktime < block.timestamp) {
-                if (min_locktime == 0) {
+                if (locktime < min_locktime) {
                     min_locktime = locktime;
                 }
                 amount += x[i].amount;
