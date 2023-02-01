@@ -111,7 +111,7 @@ contract CollectionFactory is Ownable {
         }
     }
 
-    /// @notice Attaches a **Detached (detached from the Clamor Blockchain) Collection** to **this Blockchain**.
+    /// @notice Attaches a **Detached (detached from the Fragnova Blockchain) Collection** to **this Blockchain**.
     /// This is done by **deploying a new `FragnovaCollection` smart contract onto this Blockchain** which will contain the **merkle root of the detached collection**
     /// and **assigning its ownership to the caller of this function**.
     ///

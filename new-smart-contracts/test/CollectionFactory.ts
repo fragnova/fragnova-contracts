@@ -134,10 +134,10 @@ describe("CollectionFactory", function () {
 
   });
 
-  describe("Detach Collection from Clamor and Attach it to Ethereum", function () {
+  describe("Detach Collection from Fragnova and Attach it to Ethereum", function () {
 
     let api: ApiPromise;
-    let clamorAlice: AddressOrPair;
+    let fragnovaAlice: AddressOrPair;
     let protoHash: Uint8Array;
     let protoHash2: Uint8Array;
     let definitionHash: Uint8Array;
@@ -155,12 +155,12 @@ describe("CollectionFactory", function () {
       api = await createFragnovaApi("ws://127.0.0.1:9944");
 
       const keyring = new Keyring({type: 'sr25519', ss58Format: 93});
-      clamorAlice = keyring.addFromUri('//Alice');
+      fragnovaAlice = keyring.addFromUri('//Alice');
 
       await api.rpc.author.insertKey("deta", "//Alice", ethers.utils.hexlify(new Keyring({type: 'ed25519'}).addFromUri("//Alice").publicKey));
 
       const protos = new Protos(api);
-      await protos.upload(clamorAlice, {
+      await protos.upload(fragnovaAlice, {
         references: [],
         category: {text: 'plain'},
         tags: [],
@@ -171,7 +171,7 @@ describe("CollectionFactory", function () {
       });
       protoHash = blake2AsU8a("Proto-Indo-European");
       await sleep(6000);
-      await protos.upload(clamorAlice, {
+      await protos.upload(fragnovaAlice, {
         references: [],
         category: {text: 'plain'},
         tags: [],
@@ -184,7 +184,7 @@ describe("CollectionFactory", function () {
       await sleep(6000);
 
       const fragments = new Fragments(api);
-      await fragments.create(clamorAlice, {
+      await fragments.create(fragnovaAlice, {
         protoHash: protoHash,
         metadata: {name: "Le nom", currency: "Native"},
         permissions: new Uint8Array(2),
@@ -193,7 +193,7 @@ describe("CollectionFactory", function () {
       });
       definitionHash = blake2AsU8a(new Uint8Array([...protoHash, ...api.createType("FragmentMetadata", {name: "Le nom", currency: null}).toU8a()]), 128);
       await sleep(6000);
-      await fragments.mint(clamorAlice, {
+      await fragments.mint(fragnovaAlice, {
         definitionHash: definitionHash,
         options: {Quantity: 77},
         stackAmount: null,
@@ -214,7 +214,7 @@ describe("CollectionFactory", function () {
         const ethereumAuthorities = ecdsaEthereumAuthorities.map(ecdsaPublicKey => ethers.utils.computeAddress(ecdsaPublicKey));
         await expect(collectionFactory.updateAuthorities(ethereumAuthorities, true)).not.to.be.reverted;
 
-        // Detach Proto-Fragments from Clamor
+        // Detach Proto-Fragments from Fragnova
         let targetChain: string;
         switch (env.network.config.chainId) {
           case 1:
@@ -234,7 +234,7 @@ describe("CollectionFactory", function () {
             protoHashes as Vec<U8aFixed>,
             targetChain,
             alice.address
-        ).signAndSend(clamorAlice);
+        ).signAndSend(fragnovaAlice);
 
         const [merkleRoot, remoteSignature, collectionType, collection] = await new Promise((resolve, reject) => {
           // Subscribe to system events via storage.
@@ -285,7 +285,7 @@ describe("CollectionFactory", function () {
         // the `it` hook should timeout after 20,000 ms (the default is 2000 ms). We do this because it takes time to get the nonce and then call `accounts.link()`
         this.timeout(200_000);
 
-        // We use `bob` here instead of `alice` because `alice`'s nonce may have been incremented (in Clamor) when the `describe("Proto-Fragment Collection")` test above was run
+        // We use `bob` here instead of `alice` because `alice`'s nonce may have been incremented (in Fragnova) when the `describe("Proto-Fragment Collection")` test above was run
         const { collectionFactory, bob } = await loadFixture(deployCollectionFactoryFixture);
 
         // Update Ethereum Authorities in `CollectionFactory`
@@ -293,7 +293,7 @@ describe("CollectionFactory", function () {
         const ethereumAuthorities = ecdsaEthereumAuthorities.map(ecdsaPublicKey => ethers.utils.computeAddress(ecdsaPublicKey));
         await expect(collectionFactory.updateAuthorities(ethereumAuthorities, true)).not.to.be.reverted;
 
-        // Detach Fragment Instances from Clamor
+        // Detach Fragment Instances from Fragnova
         let targetChain: string;
         switch (env.network.config.chainId) {
           case 1:
@@ -314,7 +314,7 @@ describe("CollectionFactory", function () {
             editionIds,
             targetChain,
             bob.address
-        ).signAndSend(clamorAlice);
+        ).signAndSend(fragnovaAlice);
 
         const [merkleRoot, remoteSignature, collectionType, collection] = await new Promise((resolve, reject) => {
           // Subscribe to system events via storage.

@@ -1,7 +1,7 @@
 {
   "name": "fragnova-contracts",
   "version": "1.0.0",
-  "description": "Solidity Smart Contracts that allow you to interact with the Clamor/Fragnova Blockchain",
+  "description": "Solidity Smart Contracts that allow you to interact with the Fragnova Blockchain",
   "main": "index.js",
   "repository": "https://github.com/fragcolor-xyz/fragnova-contracts",
   "author": "Fragcolor Pte. Ltd.",
