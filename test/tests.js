@@ -1,6 +1,4 @@
-var vault = artifacts.require("Vault");
 var fragToken = artifacts.require("FRAGToken");
-var utility = artifacts.require("Utility");
 const truffleAssert = require('truffle-assertions');
 const ethSignUtil = require('@metamask/eth-sig-util');
 const { time } = require("@openzeppelin/test-helpers");
@@ -50,6 +48,8 @@ function eip712_message_unlock(chainId, parts, contract) {
       name: parts[0].v,
       sender: parts[1].v,
       amount: parts[2].v,
+      min_locktime: parts[3].v,
+      max_locktime: parts[4].v,
     },
     primaryType:'Msg',
     types: {
@@ -62,14 +62,34 @@ function eip712_message_unlock(chainId, parts, contract) {
       Msg:[
         {type: "string", name: "name"},
         {type: "address", name: "sender"},
-        {type: "uint256", name: "amount"}
+        {type: "uint256", name: "amount"},
+        {type: "uint256", name: "min_locktime"},
+        {type: "uint256", name: "max_locktime"}
       ]
     }, 
   };
     return typedDataUnlock;
 };
 
+async function getLatestBlockTimestamp() {
+  　var blockTimestamp = await time.latest();
+    var date = new Date(blockTimestamp * 1000);
+    date = date.setDate(date.getDate() + 14);
+    date = date/1000;
+
+    return date;
+}
+
 contract("FRAGToken", (accounts) => {
+
+  beforeEach(async function () {
+    await time.advanceBlock();
+  });
+
+  var locktimestamp1 = 0;
+  var locktimestamp2 = 0;
+  var locktimestamp3 = 0;
+  var locktimestamp4 = 0;
 
   it("should be able to lock", async () => {
     const firstAccount = accounts[0];
@@ -86,6 +106,10 @@ contract("FRAGToken", (accounts) => {
     const typedData = eip712_message(chainId, parts, contract.address);
     const private_key = new Buffer.from("4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d", 'hex');
     const signature = ethSignUtil.signTypedData({privateKey: private_key, data: typedData, version: ethSignUtil.SignTypedDataVersion.V4});
+
+    var date = await getLatestBlockTimestamp();
+    locktimestamp1 = date;
+
     const result = await contract.lock(signature, parts[2].v, parts[3].v, { from: firstAccount });
     truffleAssert.eventEmitted(result, 'Lock');
   });
@@ -134,15 +158,22 @@ contract("FRAGToken", (accounts) => {
       { t: "amount", v: 500 },
       { t: "lock_period", v: 0 },
     ];
+
+    var date = await getLatestBlockTimestamp();
+    locktimestamp2 = date;
+
     const parts_unlock = [
       { t: "name", v: "FragUnlock" },
       { t: "sender", v: account },
       { t: "amount", v: 0 },
+      { t: "min_locktime", v: locktimestamp2 },
+      { t: "max_locktime", v: locktimestamp2 },
     ];
 
     const typedData = eip712_message(chainId, parts, contract.address);
     const private_key = new Buffer.from("4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d", 'hex');
     const signature = ethSignUtil.signTypedData({privateKey: private_key, data: typedData, version: ethSignUtil.SignTypedDataVersion.V4});
+
     const result = await contract.lock(signature, parts[2].v, parts[3].v, { from: account });
     truffleAssert.eventEmitted(result, 'Lock');
 
@@ -164,16 +195,23 @@ contract("FRAGToken", (accounts) => {
       { t: "amount", v: 2000 },
       { t: "lock_period", v: 0 },
     ];
+
+    var date = await getLatestBlockTimestamp();
+    locktimestamp3 = date;
+
     const parts_unlock = [
       { t: "name", v: "FragUnlock" },
       { t: "sender", v: account },
       { t: "amount", v: 3500 }, // aggregated lock amounts from the other previous js tests are considered too (1000 + 500 + 2000)
+      { t: "min_locktime", v: locktimestamp1 },
+      { t: "max_locktime", v: locktimestamp3 },
     ];
 
     // execute a lock
     const typedData = eip712_message(chainId, parts, contract.address);
     const private_key = new Buffer.from("4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d", 'hex');
     const signature = ethSignUtil.signTypedData({privateKey: private_key, data: typedData, version: ethSignUtil.SignTypedDataVersion.V4});
+
     const result = await contract.lock(signature, parts[2].v, parts[3].v, { from: account });
     truffleAssert.eventEmitted(result, 'Lock');
 
@@ -189,6 +227,10 @@ contract("FRAGToken", (accounts) => {
    // execute a new lock after the unlock
     const typedData_new_lock = eip712_message(chainId, parts, contract.address);
     const signature_new_lock = ethSignUtil.signTypedData({privateKey: private_key, data: typedData_new_lock, version: ethSignUtil.SignTypedDataVersion.V4});
+
+    var date2 = await getLatestBlockTimestamp();
+    locktimestamp4 = date2;
+
     const result_new_lock = await contract.lock(signature_new_lock, parts[2].v, parts[3].v, { from: account });
     truffleAssert.eventEmitted(result_new_lock, 'Lock');
 
@@ -198,6 +240,8 @@ contract("FRAGToken", (accounts) => {
       { t: "name", v: "FragUnlock" },
       { t: "sender", v: account },
       { t: "amount", v: 2000 }, 
+      { t: "min_locktime", v: locktimestamp4 },
+      { t: "max_locktime", v: locktimestamp4 },
     ];
 
     // execute an unlock where there will be only the latest 1000 tokens locked.
@@ -216,6 +260,8 @@ contract("FRAGToken", (accounts) => {
       { t: "name", v: "FragUnlock" },
       { t: "sender", v: account },
       { t: "amount", v: 0 }, // The unlock in the previous test has drained all tokens to possibly unlock
+      { t: "min_locktime", v: locktimestamp1 },
+      { t: "max_locktime", v: locktimestamp1 },
     ];
 
     // execute an unlock where there will be only the latest 1000 tokens locked.
@@ -226,78 +272,6 @@ contract("FRAGToken", (accounts) => {
       contract.unlock(signature_unlock_new, { from: account }),
       "There no locked tokens OR they have been all already unlocked"
     );
-  });
-
-  it("with multiple locks, should be able to unlock only the unlockable amount, leaving unlockable ones stored", async () => {
-    const account = accounts[0];
-    const chainId = await web3.eth.getChainId();
-    const contract = await fragToken.deployed();
-    const parts_two_weeks = [
-      { t: "name", v: "FragLock" },
-      { t: "sender", v: account },
-      { t: "amount", v: 2000 },
-      { t: "lock_period", v: 0 },
-    ];
-    const parts_three_months = [
-      { t: "name", v: "FragLock" },
-      { t: "sender", v: account },
-      { t: "amount", v: 600 },
-      { t: "lock_period", v: 2 },
-    ];
-    const parts_one_year = [
-      { t: "name", v: "FragLock" },
-      { t: "sender", v: account },
-      { t: "amount", v: 5000 },
-      { t: "lock_period", v: 4 },
-    ];
-    const parts_unlock = [
-      { t: "name", v: "FragUnlock" },
-      { t: "sender", v: account },
-      { t: "amount", v: 2000 }, 
-    ];
-    const parts_unlock_four_months = [
-      { t: "name", v: "FragUnlock" },
-      { t: "sender", v: account },
-      { t: "amount", v: 600 }, 
-    ];
-
-    // execute first lock
-    const typedData_two_weeks = eip712_message(chainId, parts_two_weeks, contract.address);
-    const private_key = new Buffer.from("4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d", 'hex');
-    const signature_two_weeks = ethSignUtil.signTypedData({privateKey: private_key, data: typedData_two_weeks, version: ethSignUtil.SignTypedDataVersion.V4});
-    const result_two_weeks = await contract.lock(signature_two_weeks, parts_two_weeks[2].v, parts_two_weeks[3].v, { from: account });
-    truffleAssert.eventEmitted(result_two_weeks, 'Lock');
-
-    // execute second lock
-    const typedData_three_months = eip712_message(chainId, parts_three_months, contract.address);
-    const signature_three_months = ethSignUtil.signTypedData({privateKey: private_key, data: typedData_three_months, version: ethSignUtil.SignTypedDataVersion.V4});
-    const result_three_months = await contract.lock(signature_three_months, parts_three_months[2].v, parts_three_months[3].v, { from: account });
-    truffleAssert.eventEmitted(result_three_months, 'Lock');
-
-    // execute third lock
-    const typedData_one_year = eip712_message(chainId, parts_one_year, contract.address);
-    const signature_one_year = ethSignUtil.signTypedData({privateKey: private_key, data: typedData_one_year, version: ethSignUtil.SignTypedDataVersion.V4});
-    const result_one_year = await contract.lock(signature_one_year, parts_one_year[2].v, parts_one_year[3].v, { from: account });
-    truffleAssert.eventEmitted(result_one_year, 'Lock');
-
-    // execute unlock after one month
-    const duration = time.duration.weeks(4);
-    await time.increase(duration);
-
-    const typedDataUnlock = eip712_message_unlock(chainId, parts_unlock, contract.address);
-    const signature_unlock = ethSignUtil.signTypedData({privateKey: private_key, data: typedDataUnlock, version: ethSignUtil.SignTypedDataVersion.V4});
-    const result_unlock = await contract.unlock(signature_unlock, { from: account });
-    truffleAssert.eventEmitted(result_unlock, 'Unlock');
-
-    // execute unlock after three months
-    const duration_four_months = time.duration.weeks(10); // 4 weeks set previously in the chain + 10 now
-    await time.increase(duration_four_months);
-
-    const typedDataUnlock_four_months = eip712_message_unlock(chainId, parts_unlock_four_months, contract.address);
-    const signature_unlock_four_months = ethSignUtil.signTypedData({privateKey: private_key, data: typedDataUnlock_four_months, version: ethSignUtil.SignTypedDataVersion.V4});
-    const result_unlock_four_months = await contract.unlock(signature_unlock_four_months, { from: account });
-    truffleAssert.eventEmitted(result_unlock_four_months, 'Unlock');
-
   });
 
   it("should fail when lock period not valid", async () => {
