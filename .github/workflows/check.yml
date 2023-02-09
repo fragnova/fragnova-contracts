@@ -1,0 +1,61 @@
+name: Check CI
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+  pull_request:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  check:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/checkout@v3
+        with:
+          repository: fragcolor-xyz/fragnova
+          path: fragnova
+
+      - name: Install the Necessary Packages
+        run: |
+          sudo apt install -y cmake pkg-config libssl-dev git build-essential clang libclang-dev curl protobuf-compiler
+
+      - name: Install Rustup
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          source ~/.cargo/env
+          rustup default nightly
+          rustup update nightly
+          rustup update stable
+          rustup target add wasm32-unknown-unknown --toolchain nightly
+
+      - uses: Swatinem/rust-cache@v1
+
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '14'  # The node-version input is optional. If not supplied, the node version from PATH will be used. However, it is recommended to always specify Node.js version and don't rely on the system one.
+
+      - name: Check if Hardhat Tests Pass (which includes the End-To-End Test)
+        run: |
+          cd fragnova
+          cargo build
+          RUST_LOG=bitswap=trace,pallet_protos::pallet=trace,pallet_fragments::pallet=trace,pallet_detach::pallet=trace,pallet_accounts::pallet=trace target/debug/fragnova --dev --tmp --rpc-external --rpc-port 9933 --rpc-cors all --ws-external --enable-offchain-indexing 1 --rpc-methods=Unsafe --ipfs-server &
+          sleep 120
+          cd ..
+          
+          cd new-smart-contracts
+          npm install
+          npx hardhat test
+          
+          kill %1
+          
+          
+
